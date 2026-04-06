@@ -1,6 +1,6 @@
 # Social Audio — 產品需求文件 (PRD)
 
-> **版本**：v1.0
+> **版本**：v1.1
 > **建立日期**：2026-04-06
 > **狀態**：Draft
 > **GitHub**：https://github.com/hd961245/social-autio
@@ -11,12 +11,12 @@
 
 ### 1.1 產品定位
 
-**Social Audio** 是一個社群自動經營管理平台（口碑/水軍管理工具），讓使用者可以透過統一後台管理多個社群帳號，實現自動化發文、帳號健康監控、關鍵字監測與智慧回應。
+**Social Audio** 是一個**個人用**社群自動經營管理平台（口碑/水軍管理工具），透過統一後台管理多個社群帳號，實現自動化發文、帳號健康監控、關鍵字監測與智慧回應。本工具為單人使用，無多使用者/團隊需求，因此簡化驗證機制（環境變數密碼或簡易 PIN 登入）。
 
 ### 1.2 願景
 
 - **短期**：以 **Meta Threads** 為核心平台，建立完整的帳號管理與自動化發文能力
-- **長期**：擴展至 Instagram、Twitter/X、部落格等平台，支援短文、影片、圖片等多種素材格式
+- **長期**：擴展至 Instagram、Twitter/X、**WordPress 部落格**等平台，支援短文、影片、圖片等多種素材格式
 
 ### 1.3 核心價值
 
@@ -32,12 +32,14 @@
 
 ## 2. 目標使用者
 
-| 角色 | 需求 |
-|------|------|
-| 行銷人員 | 管理品牌社群帳號，追蹤成效指標 |
-| 品牌操盤手 | 批量管理多個品牌/子品牌帳號，統一排程發文 |
-| 社群代操團隊 | 管理客戶帳號，監控帳號健康度，自動化日常互動 |
-| 口碑經營者 | 透過多帳號進行話題引導、關鍵字回應、互動養號 |
+> **單人使用**：本工具為個人操作工具，不需多使用者帳號系統。
+
+| 使用情境 | 說明 |
+|----------|------|
+| 社群帳號批量管理 | 在一個 Dashboard 管理多個 Threads 帳號 |
+| 口碑/話題經營 | 透過多帳號進行話題引導、關鍵字回應、互動養號 |
+| 內容排程 | 統一排程管理 Threads 貼文與未來的 WordPress 部落格文章 |
+| 成效追蹤 | 監控各帳號健康度，數據驅動優化策略 |
 
 ---
 
@@ -288,7 +290,7 @@ Step 3: POST /{user_id}/threads_publish
 | UI 元件 | shadcn/ui + Tailwind CSS | 高品質 Dashboard 元件，快速開發 |
 | 圖表 | Recharts | React 原生、適合時序資料視覺化 |
 | 排程 | node-cron (MVP) → BullMQ + Redis (正式) | MVP 簡單，正式環境支援重試與並行 |
-| 使用者驗證 | NextAuth.js v5 | 管理者帳號登入（email/密碼） |
+| 使用者驗證 | 環境變數密碼 + middleware | 個人使用，簡易密碼保護即可（免 NextAuth） |
 | AI 回覆 | Claude API (@anthropic-ai/sdk) | 自然語言回覆生成 |
 | 多語系 | next-intl | 繁體中文（zh-TW）+ 英文 |
 
@@ -308,10 +310,8 @@ social-autio/
 ├── src/
 │   ├── app/
 │   │   ├── layout.tsx             # Root layout（providers）
-│   │   ├── page.tsx               # Landing / 登入導向
-│   │   ├── (auth)/
-│   │   │   ├── login/page.tsx     # 登入頁
-│   │   │   └── register/page.tsx  # 註冊頁
+│   │   ├── page.tsx               # 導向 Dashboard
+│   │   ├── login/page.tsx         # 簡易密碼登入頁（個人用）
 │   │   ├── (dashboard)/
 │   │   │   ├── layout.tsx         # Dashboard 外框（側邊欄+頂部列）
 │   │   │   ├── page.tsx           # 總覽儀表板
@@ -329,7 +329,7 @@ social-autio/
 │   │   │   └── automation/
 │   │   │       └── page.tsx       # 自動化規則
 │   │   └── api/
-│   │       ├── auth/[...nextauth]/route.ts  # NextAuth 處理
+│   │       ├── auth/route.ts            # 簡易密碼驗證 API
 │   │       ├── threads/
 │   │       │   ├── callback/route.ts   # OAuth 回調
 │   │       │   ├── publish/route.ts    # 觸發發文
@@ -343,12 +343,15 @@ social-autio/
 │   │   ├── platforms/
 │   │   │   ├── types.ts           # 平台抽象介面（PlatformAdapter）
 │   │   │   ├── index.ts           # 平台 registry/factory
-│   │   │   └── threads/
-│   │   │       ├── client.ts      # Threads API HTTP 客戶端
-│   │   │       ├── oauth.ts       # OAuth 授權流程
-│   │   │       ├── publisher.ts   # 發文邏輯（容器→發布）
-│   │   │       ├── insights.ts    # 指標抓取
-│   │   │       └── tokens.ts      # Token 刷新邏輯
+│   │   │   ├── threads/
+│   │   │   │   ├── client.ts      # Threads API HTTP 客戶端
+│   │   │   │   ├── oauth.ts       # OAuth 授權流程
+│   │   │   │   ├── publisher.ts   # 發文邏輯（容器→發布）
+│   │   │   │   ├── insights.ts    # 指標抓取
+│   │   │   │   └── tokens.ts      # Token 刷新邏輯
+│   │   │   └── wordpress/         # （Phase 6 擴展）
+│   │   │       ├── client.ts      # WordPress REST API 客戶端
+│   │   │       └── publisher.ts   # 文章發布/更新
 │   │   ├── scheduler/
 │   │   │   └── engine.ts          # 排程處理引擎
 │   │   ├── keywords/
@@ -382,8 +385,8 @@ social-autio/
 ```typescript
 interface PlatformAdapter {
   // 識別
-  platformId: string;              // "threads" | "instagram" | "twitter" | ...
-  displayName: string;             // "Threads" | "Instagram" | ...
+  platformId: string;              // "threads" | "wordpress" | "instagram" | "twitter"
+  displayName: string;             // "Threads" | "WordPress" | ...
 
   // OAuth
   getAuthorizationUrl(state: string): string;
@@ -443,14 +446,14 @@ User 1──N PlatformAccount 1──N Post 1──N PostMetrics
 
 ### 5.2 Table 定義
 
-#### User（平台管理者）
+#### User（個人管理者）
+
+> 單人使用，此 Table 僅存一筆紀錄作為外鍵參照用。驗證由 middleware + 環境變數密碼處理。
 
 | 欄位 | 類型 | 說明 |
 |------|------|------|
 | id | String (cuid) | 主鍵 |
-| email | String (unique) | 登入信箱 |
-| name | String? | 顯示名稱 |
-| passwordHash | String? | 密碼雜湊 |
+| name | String | 顯示名稱（預設 "Admin"） |
 | createdAt | DateTime | 建立時間 |
 | updatedAt | DateTime | 更新時間 |
 
@@ -460,7 +463,7 @@ User 1──N PlatformAccount 1──N Post 1──N PostMetrics
 |------|------|------|
 | id | String (cuid) | 主鍵 |
 | userId | String (FK→User) | 所屬管理者 |
-| platform | String | 平台標識（`"threads"` / `"instagram"` / ...） |
+| platform | String | 平台標識（`"threads"` / `"wordpress"` / `"instagram"` / ...） |
 | platformUserId | String | 平台上的使用者 ID |
 | platformUsername | String | 平台上的使用者名稱 |
 | profilePictureUrl | String? | 頭貼 URL |
@@ -627,7 +630,7 @@ https://graph.threads.net/v1.0
 | 項目 | 措施 |
 |------|------|
 | Token 儲存 | AES-256-GCM 加密，金鑰來自環境變數 |
-| CSRF 防護 | NextAuth 內建處理；Threads OAuth state 參數使用簽章 JWT |
+| CSRF 防護 | Threads OAuth state 參數使用簽章 JWT；API routes 驗證 cookie session |
 | 輸入驗證 | 貼文內容前後端雙重驗證（長度、格式） |
 | 環境變數 | `.env.local` 不進 Git，`.env.example` 提供範本 |
 
@@ -661,11 +664,12 @@ https://graph.threads.net/v1.0
 
 | Phase | 名稱 | 範圍 | 預估時程 |
 |-------|------|------|----------|
-| **1** | 帳號連接 + 基本發文 | 專案骨架、NextAuth 登入、Threads OAuth、Dashboard layout、帳號列表、發文編輯器、立即發文 | 1-2 週 |
+| **1** | 帳號連接 + 基本發文 | 專案骨架、簡易密碼登入、Threads OAuth、Dashboard layout、帳號列表、發文編輯器、立即發文 | 1-2 週 |
 | **2** | 數據儀表板 + 健康監控 | 指標收集 Cron、Recharts 圖表、帳號健康卡片、Token 到期監控 | 1 週 |
 | **3** | 排程發文 + 佇列管理 | 排程選擇器、Cron 自動發布、佇列管理頁、Carousel 支援、配額追蹤 | 1 週 |
 | **4** | 關鍵字監控 | 關鍵字 CRUD、回覆樹掃描 Cron、命中列表、快速動作按鈕 | 1 週 |
 | **5** | 自動回覆 / 互動規則 | 規則建立 UI、模板回覆、Claude AI 回覆、安全機制、活動日誌 | 1-2 週 |
+| **6** | WordPress 部落格整合 | WordPressAdapter 實作、REST API 連接、文章發布/排程、富文本編輯器 | 1-2 週 |
 
 **MVP 範圍**：Phase 1 + Phase 2（帳號連接 + 發文 + 基本監控）
 
@@ -696,14 +700,18 @@ GitHub Repo (social-autio)
 # 資料庫
 DATABASE_URL=postgresql://user:pass@host:5432/social_audio
 
+# 登入密碼（個人使用，簡易保護）
+ADMIN_PASSWORD=your_secure_password
+
 # Threads OAuth
 THREADS_APP_ID=your_threads_app_id
 THREADS_APP_SECRET=your_threads_app_secret
 THREADS_REDIRECT_URI=https://your-domain.zeabur.app/api/threads/callback
 
-# NextAuth
-NEXTAUTH_SECRET=random_32_char_secret_string
-NEXTAUTH_URL=https://your-domain.zeabur.app
+# WordPress（Phase 6）
+WORDPRESS_SITE_URL=https://your-wordpress-site.com
+WORDPRESS_USERNAME=your_wp_username
+WORDPRESS_APP_PASSWORD=xxxx_xxxx_xxxx_xxxx  # WordPress Application Password
 
 # AI 回覆（Phase 5）
 ANTHROPIC_API_KEY=sk-ant-...
@@ -768,15 +776,78 @@ REDIS_URL=redis://host:6379
 
 ## 附錄 A: 未來功能藍圖
 
-| 功能 | 優先級 | 說明 |
-|------|--------|------|
-| Instagram 整合 | P3 | 實作 InstagramAdapter |
-| Twitter/X 整合 | P3 | 實作 TwitterAdapter |
-| 部落格發布 | P4 | 支援 WordPress / Medium API |
-| 短影片發布 | P4 | 支援 Reels / TikTok |
-| 批量 CSV 匯入 | P3 | 匯入排程貼文 |
-| AI 內容生成 | P3 | 根據主題自動產生貼文 |
-| 多使用者/團隊 | P4 | 多個管理者共同管理 |
-| Web Scraping 監控 | P3 | 擴展關鍵字監控至競品帳號 |
-| Webhook 通知 | P3 | 關鍵字命中時推送 LINE/Slack 通知 |
-| A/B 測試 | P4 | 同一內容不同版本的成效比較 |
+| 功能 | 優先級 | Phase | 說明 |
+|------|--------|-------|------|
+| **WordPress 部落格整合** | **P2** | **6** | **實作 WordPressAdapter，透過 REST API 發布/管理文章（使用者已有 WordPress 站台）** |
+| Instagram 整合 | P3 | 7+ | 實作 InstagramAdapter |
+| Twitter/X 整合 | P3 | 7+ | 實作 TwitterAdapter |
+| 短影片發布 | P4 | — | 支援 Reels / TikTok |
+| 批量 CSV 匯入 | P3 | — | 匯入排程貼文 |
+| AI 內容生成 | P3 | — | 根據主題自動產生貼文/部落格文章 |
+| Web Scraping 監控 | P3 | — | 擴展關鍵字監控至競品帳號 |
+| Webhook 通知 | P3 | — | 關鍵字命中時推送 LINE/Slack 通知 |
+| A/B 測試 | P4 | — | 同一內容不同版本的成效比較 |
+| Threads ↔ WordPress 連動 | P3 | — | Threads 貼文自動同步為部落格文章，或反向摘要發布 |
+
+---
+
+## 附錄 B: WordPress 整合規格（Phase 6）
+
+### B.1 整合方式
+
+透過 **WordPress REST API**（`/wp-json/wp/v2/`）連接自有 WordPress 站台。
+
+### B.2 驗證方式
+
+使用 **WordPress Application Password**（WordPress 5.6+ 內建）：
+1. WordPress 後台 → 使用者 → 個人資料 → Application Passwords
+2. 建立一組 Application Password
+3. 存入環境變數 `WORDPRESS_APP_PASSWORD`
+4. API 請求使用 HTTP Basic Auth（`username:app_password`）
+
+### B.3 支援功能
+
+| 功能 | API 端點 | 說明 |
+|------|----------|------|
+| 發布文章 | `POST /wp-json/wp/v2/posts` | 標題、內容（HTML）、摘錄、分類、標籤 |
+| 更新文章 | `PUT /wp-json/wp/v2/posts/{id}` | 修改已發布的文章 |
+| 排程文章 | `POST /wp-json/wp/v2/posts` + `status: "future"` + `date` | WordPress 原生排程 |
+| 上傳媒體 | `POST /wp-json/wp/v2/media` | 上傳圖片/影片作為特色圖片或內文媒體 |
+| 取得文章列表 | `GET /wp-json/wp/v2/posts` | 管理已發布/草稿文章 |
+| 取得分類/標籤 | `GET /wp-json/wp/v2/categories` / `tags` | 發文時選擇分類和標籤 |
+
+### B.4 WordPressAdapter 介面實作
+
+```typescript
+class WordPressAdapter implements PlatformAdapter {
+  platformId = "wordpress";
+  displayName = "WordPress";
+
+  constraints = {
+    maxTextLength: Infinity,      // 部落格無字數限制
+    maxMediaItems: 50,            // 文章內可嵌入多張圖片
+    supportedMediaTypes: ["text", "image", "video"] as const,
+    maxHashtags: Infinity,        // 標籤無上限
+    publishDelaySeconds: 0,       // 無需等待
+  };
+
+  // OAuth 不適用，改用 Application Password
+  getAuthorizationUrl() { /* 不適用，直接設定帳密 */ }
+
+  async createPost(account, content) {
+    // POST /wp-json/wp/v2/posts
+    // 支援 HTML 內容、分類、標籤、特色圖片
+  }
+
+  async getUserMetrics(account) {
+    // 可選：接入 WordPress Stats API（Jetpack）或 Google Analytics API
+  }
+}
+```
+
+### B.5 UI 擴展
+
+- 發文編輯器新增「WordPress」平台選項
+- WordPress 發文支援：標題、HTML 內容（富文本編輯器）、摘錄、分類、標籤、特色圖片
+- 排程佇列同時顯示 Threads 與 WordPress 貼文
+- 未來可支援「Threads 貼文 → 自動擴展為部落格文章」的連動功能
