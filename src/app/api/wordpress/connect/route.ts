@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { encryptString } from "@/lib/crypto";
-import { wordpressFetch } from "@/lib/platforms/wordpress/client";
+import { diagnoseWordPressConnection, wordpressFetch } from "@/lib/platforms/wordpress/client";
 import { prisma } from "@/lib/prisma";
 
 const connectSchema = z.object({
@@ -25,6 +25,20 @@ export async function POST(request: Request) {
     });
 
     const normalizedSiteUrl = payload.siteUrl.replace(/\/$/, "");
+    const diagnostic = await diagnoseWordPressConnection(normalizedSiteUrl, payload.username, payload.appPassword);
+
+    if (!diagnostic.ok) {
+      return NextResponse.json(
+        {
+          ok: false,
+          stage: diagnostic.stage,
+          message: diagnostic.message,
+          hints: diagnostic.hints
+        },
+        { status: 400 }
+      );
+    }
+
     const profile = await wordpressFetch<{ name?: string; slug?: string }>(
       normalizedSiteUrl,
       payload.username,
@@ -64,7 +78,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, accountId: account.id });
   } catch (error) {
     return NextResponse.json(
-      { ok: false, message: error instanceof Error ? error.message : "WordPress connect failed" },
+      {
+        ok: false,
+        message: error instanceof Error ? error.message : "WordPress connect failed",
+        hints: ["如果還是失敗，先用瀏覽器打開 /wp-json/，再重新產生一組 Application Password。"]
+      },
       { status: 400 }
     );
   }
