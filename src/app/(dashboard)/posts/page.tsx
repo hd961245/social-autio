@@ -12,7 +12,7 @@ export default async function PostsPage() {
       <PageIntro
         eyebrow="Publishing Queue"
         title="排程與發布紀錄"
-        description="現在已支援 Threads 與 WordPress 的排程佇列，也可以把已發布的 Threads 貼文一鍵轉成 WordPress 草稿。"
+        description="現在已支援 Threads 與 WordPress 的排程佇列，兩邊都可以互相一鍵轉成對方的平台草稿。"
       />
 
       <section className="glass-panel rounded-[2rem] border border-[var(--border)] p-6">
