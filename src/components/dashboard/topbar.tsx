@@ -1,7 +1,7 @@
-import { getActiveAccountSummary } from "@/lib/dashboard-data";
+import { getActiveAccountSummary, getDatabaseStatus } from "@/lib/dashboard-data";
 
 export async function Topbar() {
-  const activeAccount = await getActiveAccountSummary();
+  const [activeAccount, databaseStatus] = await Promise.all([getActiveAccountSummary(), getDatabaseStatus()]);
 
   return (
     <header className="glass-panel soft-grid overflow-hidden rounded-[2rem] border border-[var(--border)] px-6 py-5 fade-in-up">
@@ -25,8 +25,8 @@ export async function Topbar() {
             <p className="mt-1 text-sm font-semibold">{activeAccount ? activeAccount.username : "Not Connected"}</p>
           </div>
           <div className="rounded-[1.2rem] border border-[var(--border)] bg-[var(--card-dark)] px-4 py-3 text-white">
-            <p className="text-[11px] uppercase tracking-[0.25em] text-white/60">Focus</p>
-            <p className="mt-1 text-sm font-semibold">MVP Phase 1</p>
+            <p className="text-[11px] uppercase tracking-[0.25em] text-white/60">Database</p>
+            <p className="mt-1 text-sm font-semibold">{databaseStatus.ready ? "Ready" : "Needs Push"}</p>
           </div>
         </div>
       </div>

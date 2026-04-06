@@ -1,16 +1,18 @@
 import { AccountCardItem } from "@/components/dashboard/account-card";
+import { DatabaseBanner } from "@/components/dashboard/database-banner";
 import { KeywordTable } from "@/components/dashboard/keyword-table";
 import { MetricsChart } from "@/components/dashboard/metrics-chart";
 import { PageIntro } from "@/components/dashboard/page-intro";
-import { getAccountSummaries, getDashboardStats, getKeywordHitSummaries } from "@/lib/dashboard-data";
+import { getAccountSummaries, getDashboardStats, getDatabaseStatus, getKeywordHitSummaries } from "@/lib/dashboard-data";
 
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
-  const [stats, accounts, keywordHits] = await Promise.all([
+  const [stats, accounts, keywordHits, databaseStatus] = await Promise.all([
     getDashboardStats(),
     getAccountSummaries(),
-    getKeywordHitSummaries()
+    getKeywordHitSummaries(),
+    getDatabaseStatus()
   ]);
 
   return (
@@ -28,6 +30,8 @@ export default async function DashboardPage() {
           </a>
         }
       />
+
+      <DatabaseBanner status={databaseStatus} />
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {stats.map((item) => (

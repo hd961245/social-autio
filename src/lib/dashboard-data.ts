@@ -34,6 +34,11 @@ export type ActiveAccountSummary = {
   lastSyncedAt: string;
 } | null;
 
+export type DatabaseStatus = {
+  ready: boolean;
+  message: string;
+};
+
 function formatDate(value?: Date | null) {
   if (!value) {
     return "尚未同步";
@@ -100,6 +105,21 @@ export async function getActiveAccountSummary(): Promise<ActiveAccountSummary> {
     };
   } catch {
     return null;
+  }
+}
+
+export async function getDatabaseStatus(): Promise<DatabaseStatus> {
+  try {
+    await prisma.user.count();
+    return {
+      ready: true,
+      message: "資料庫已連線"
+    };
+  } catch {
+    return {
+      ready: false,
+      message: "資料庫尚未初始化，請在 Zeabur 執行 npm run db:push"
+    };
   }
 }
 

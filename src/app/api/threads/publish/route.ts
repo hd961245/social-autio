@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { getDatabaseStatus } from "@/lib/dashboard-data";
 import { getPlatformAdapter } from "@/lib/platforms";
 import { prisma } from "@/lib/prisma";
 
@@ -12,6 +13,18 @@ const publishSchema = z.object({
 
 export async function POST(request: Request) {
   try {
+    const databaseStatus = await getDatabaseStatus();
+
+    if (!databaseStatus.ready) {
+      return NextResponse.json(
+        {
+          ok: false,
+          message: "資料庫尚未初始化，請先在 Zeabur 執行 npm run db:push"
+        },
+        { status: 503 }
+      );
+    }
+
     const body = await request.json();
     const payload = publishSchema.parse(body);
 
@@ -81,4 +94,3 @@ export async function POST(request: Request) {
     );
   }
 }
-

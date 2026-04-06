@@ -1,21 +1,37 @@
+import { DatabaseBanner } from "@/components/dashboard/database-banner";
 import { PageIntro } from "@/components/dashboard/page-intro";
 import { PostComposerForm } from "@/components/dashboard/post-composer-form";
+import { getDatabaseStatus } from "@/lib/dashboard-data";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
 export default async function ComposePage() {
-  const [accounts, posts] = await Promise.all([
-    prisma.platformAccount.findMany({
-      where: { isActive: true },
-      orderBy: { createdAt: "desc" }
-    }),
-    prisma.post.findMany({
-      include: { account: true },
-      orderBy: { createdAt: "desc" },
-      take: 5
-    })
-  ]);
+  const databaseStatus = await getDatabaseStatus();
+  let accounts: Awaited<ReturnType<typeof prisma.platformAccount.findMany>> = [];
+  let posts: Awaited<
+    ReturnType<
+      typeof prisma.post.findMany<{
+        include: { account: true };
+        orderBy: { createdAt: "desc" };
+        take: 5;
+      }>
+    >
+  > = [];
+
+  if (databaseStatus.ready) {
+    [accounts, posts] = await Promise.all([
+      prisma.platformAccount.findMany({
+        where: { isActive: true },
+        orderBy: { createdAt: "desc" }
+      }),
+      prisma.post.findMany({
+        include: { account: true },
+        orderBy: { createdAt: "desc" },
+        take: 5
+      })
+    ]);
+  }
 
   return (
     <div className="space-y-6">
@@ -24,6 +40,7 @@ export default async function ComposePage() {
         title="建立新的 Threads 貼文"
         description="第一版先支援文字與單一媒體立即發文。送出後會寫入資料庫並直接走 Threads publish 流程。"
       />
+      <DatabaseBanner status={databaseStatus} />
       <PostComposerForm
         accounts={accounts.map((account) => ({
           id: account.id,
