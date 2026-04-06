@@ -25,10 +25,14 @@ export function PostComposerForm({
   const [accountId, setAccountId] = useState(accounts[0]?.id ?? "");
   const [text, setText] = useState("");
   const [mediaUrl, setMediaUrl] = useState("");
+  const [publishMode, setPublishMode] = useState<"immediate" | "scheduled">("immediate");
+  const [scheduledAt, setScheduledAt] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const charactersLeft = 500 - text.length;
+  const selectedAccount = accounts.find((account) => account.id === accountId);
+  const isWordPress = selectedAccount?.platform === "wordpress";
 
   return (
     <section className="glass-panel fade-in-up rounded-[2rem] border border-[var(--border)] p-6">
@@ -60,7 +64,9 @@ export function PostComposerForm({
                   accountId,
                   text,
                   mediaUrls: mediaUrl ? [mediaUrl] : [],
-                  contentType: mediaUrl ? "image" : "text"
+                  contentType: mediaUrl ? "image" : "text",
+                  publishMode,
+                  scheduledAt: publishMode === "scheduled" ? scheduledAt : undefined
                 })
               });
 
@@ -74,6 +80,7 @@ export function PostComposerForm({
               setMessage("已建立貼文並送出第一版發布流程。重新整理後可在排程頁看到紀錄。");
               setText("");
               setMediaUrl("");
+              setScheduledAt("");
             });
           }}
         >
@@ -98,6 +105,31 @@ export function PostComposerForm({
               onChange={(event) => setMediaUrl(event.target.value)}
             />
           </div>
+          {!isWordPress ? (
+            <div className="grid gap-4 md:grid-cols-2">
+              <label className="rounded-3xl bg-white/85 p-4">
+                <span className="mb-2 block text-sm text-[var(--muted)]">發佈模式</span>
+                <select
+                  className="w-full rounded-2xl border border-[var(--border)] bg-transparent px-4 py-3 outline-none"
+                  value={publishMode}
+                  onChange={(event) => setPublishMode(event.target.value as "immediate" | "scheduled")}
+                >
+                  <option value="immediate">立即發文</option>
+                  <option value="scheduled">排程發文</option>
+                </select>
+              </label>
+              <label className="rounded-3xl bg-white/85 p-4">
+                <span className="mb-2 block text-sm text-[var(--muted)]">排程時間</span>
+                <input
+                  type="datetime-local"
+                  className="w-full rounded-2xl border border-[var(--border)] bg-transparent px-4 py-3 outline-none"
+                  value={scheduledAt}
+                  onChange={(event) => setScheduledAt(event.target.value)}
+                  disabled={publishMode !== "scheduled"}
+                />
+              </label>
+            </div>
+          ) : null}
 
           <button
             type="submit"
@@ -111,7 +143,7 @@ export function PostComposerForm({
 
         <div className="rounded-3xl bg-[var(--card-dark)] p-4 text-white">
           <p className="text-sm text-white/70">發文選項</p>
-          <div className="mt-4 space-y-3 text-sm">
+            <div className="mt-4 space-y-3 text-sm">
             <label className="block">
               <span className="mb-2 block text-white/60">帳號</span>
               <select
@@ -126,9 +158,15 @@ export function PostComposerForm({
                 ))}
               </select>
             </label>
-            <div className="rounded-2xl border border-white/10 p-3">類型：文字 / 單一媒體第一版</div>
-            <div className="rounded-2xl border border-white/10 p-3">Hashtag：Threads 上限 1 個</div>
-            <div className="rounded-2xl border border-white/10 p-3">模式：先做立即發文，排程下一版補強</div>
+            <div className="rounded-2xl border border-white/10 p-3">
+              類型：{isWordPress ? "文章內容 / 直接發布" : "文字 / 單一媒體 / 排程第一版"}
+            </div>
+            <div className="rounded-2xl border border-white/10 p-3">
+              {isWordPress ? "WordPress 會用第一行作為文章標題" : "Hashtag：Threads 上限 1 個"}
+            </div>
+            <div className="rounded-2xl border border-white/10 p-3">
+              {isWordPress ? "透過 Application Password 發布文章" : "模式：立即發文或排程發文"}
+            </div>
           </div>
 
           <div className="mt-6">

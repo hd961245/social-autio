@@ -1,11 +1,30 @@
+import { AutomationManager } from "@/components/dashboard/automation-manager";
 import { PageIntro } from "@/components/dashboard/page-intro";
+import { prisma } from "@/lib/prisma";
 
-export default function AutomationPage() {
+export const dynamic = "force-dynamic";
+
+export default async function AutomationPage() {
   const cards = [
     { title: "Trigger", body: "keyword_match / mention / reply_received / new_follower" },
     { title: "Action", body: "reply / like / repost / quote" },
     { title: "Safety", body: "每日上限、隨機延遲、重複偵測、全域暫停" }
   ];
+  const [rules, accounts] = await Promise.all([
+    prisma.autoRule.findMany({
+      orderBy: {
+        createdAt: "desc"
+      }
+    }),
+    prisma.platformAccount.findMany({
+      where: {
+        isActive: true
+      },
+      orderBy: {
+        createdAt: "desc"
+      }
+    })
+  ]);
 
   return (
     <div className="space-y-6">
@@ -22,6 +41,21 @@ export default function AutomationPage() {
           </article>
         ))}
       </div>
+      <AutomationManager
+        initialRules={rules.map((rule) => ({
+          id: rule.id,
+          name: rule.name,
+          isActive: rule.isActive,
+          dailyLimit: rule.dailyLimit,
+          triggerConfig: rule.triggerConfig,
+          actionConfig: rule.actionConfig
+        }))}
+        accounts={accounts.map((account) => ({
+          id: account.id,
+          username: `@${account.platformUsername}`,
+          platform: account.platform
+        }))}
+      />
       <section className="glass-panel rounded-[2rem] border border-[var(--border)] p-6">
         <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
           <div>

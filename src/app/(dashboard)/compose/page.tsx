@@ -37,8 +37,8 @@ export default async function ComposePage() {
     <div className="space-y-6">
       <PageIntro
         eyebrow="Compose"
-        title="建立新的 Threads 貼文"
-        description="第一版先支援文字與單一媒體立即發文。送出後會寫入資料庫並直接走 Threads publish 流程。"
+        title="建立新的平台內容"
+        description="現在可以選 Threads 或 WordPress。Threads 支援立即發文與排程；WordPress 第一版支援直接發文章。"
       />
       <DatabaseBanner status={databaseStatus} />
       <PostComposerForm

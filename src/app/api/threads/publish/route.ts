@@ -6,9 +6,11 @@ import { prisma } from "@/lib/prisma";
 
 const publishSchema = z.object({
   accountId: z.string().min(1),
-  text: z.string().trim().min(1).max(500),
+  text: z.string().trim().min(1).max(100000),
   contentType: z.enum(["text", "image", "video", "carousel"]).default("text"),
-  mediaUrls: z.array(z.string().url()).optional()
+  mediaUrls: z.array(z.string().url()).optional(),
+  publishMode: z.enum(["immediate", "scheduled"]).default("immediate"),
+  scheduledAt: z.string().datetime().optional()
 });
 
 export async function POST(request: Request) {
@@ -38,7 +40,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: false, message: "找不到指定帳號" }, { status: 404 });
     }
 
-    const adapter = getPlatformAdapter("threads");
+    if (account.platform === "threads" && payload.text.length > 500) {
+      return NextResponse.json({ ok: false, message: "Threads 文字上限為 500 字" }, { status: 400 });
+    }
 
     const createdPost = await prisma.post.create({
       data: {
@@ -47,11 +51,21 @@ export async function POST(request: Request) {
         contentType: payload.contentType,
         textContent: payload.text,
         mediaUrls: payload.mediaUrls?.length ? JSON.stringify(payload.mediaUrls) : null,
-        status: "publishing"
+        status: payload.publishMode === "scheduled" ? "scheduled" : "publishing",
+        scheduledAt: payload.publishMode === "scheduled" && payload.scheduledAt ? new Date(payload.scheduledAt) : null
       }
     });
 
+    if (payload.publishMode === "scheduled" && account.platform === "threads") {
+      return NextResponse.json({
+        ok: true,
+        scheduled: true,
+        postId: createdPost.id
+      });
+    }
+
     try {
+      const adapter = getPlatformAdapter(account.platform as "threads" | "wordpress");
       const result = await adapter.createPost(payload.accountId, {
         contentType: payload.contentType,
         text: payload.text,

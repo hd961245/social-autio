@@ -11,15 +11,22 @@ export default async function PostsPage() {
       <PageIntro
         eyebrow="Publishing Queue"
         title="排程與發布紀錄"
-        description="先顯示已建立與已發布的貼文紀錄。下一階段會把排程編輯、重試與 cron 執行結果完整接上。"
+        description="現在已支援排程貼文與手動觸發 scheduler。Threads 排程會進佇列，WordPress 先走直接發布。"
       />
 
       <section className="glass-panel rounded-[2rem] border border-[var(--border)] p-6">
         <div className="mb-6 flex items-center justify-between gap-4">
           <p className="text-sm text-[var(--muted)]">Cron 預定每 1 分鐘掃描一次</p>
-          <a href="/compose" className="rounded-full border border-[var(--border-strong)] bg-white/70 px-4 py-2 text-sm">
-            建立新貼文
-          </a>
+          <div className="flex gap-3">
+            <form action="/api/cron/scheduler" method="post">
+              <button className="rounded-full border border-[var(--border-strong)] bg-white/70 px-4 py-2 text-sm">
+                立即執行排程
+              </button>
+            </form>
+            <a href="/compose" className="rounded-full border border-[var(--border-strong)] bg-white/70 px-4 py-2 text-sm">
+              建立新貼文
+            </a>
+          </div>
         </div>
 
         <div className="space-y-4">

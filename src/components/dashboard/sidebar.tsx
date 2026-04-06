@@ -10,6 +10,8 @@ const navItems = [
   { href: "/analytics", label: "分析", hint: "insights + quota" },
   { href: "/keywords", label: "關鍵字", hint: "monitor + hits" },
   { href: "/automation", label: "自動化", hint: "rules + safety" }
+  ,
+  { href: "/wordpress", label: "WordPress", hint: "blog + publish" }
 ];
 
 export function Sidebar() {
