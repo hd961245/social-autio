@@ -13,10 +13,12 @@ export type AccountSummary = {
 export type PostSummary = {
   id: string;
   account: string;
+  accountId: string;
   platform: string;
   status: string;
   scheduledAt: string;
   text: string;
+  title?: string | null;
   platformUrl?: string | null;
 };
 
@@ -286,10 +288,12 @@ export async function getPostSummaries(): Promise<PostSummary[]> {
     return posts.map((post) => ({
       id: post.id,
       account: `@${post.account.platformUsername}`,
+      accountId: post.accountId,
       platform: post.account.platform,
       status: post.status,
       scheduledAt: formatDate(post.scheduledAt ?? post.createdAt),
       text: post.title ?? post.textContent ?? "(無文字內容)",
+      title: post.title,
       platformUrl: post.platformUrl
     }));
   } catch {
