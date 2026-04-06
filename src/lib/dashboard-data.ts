@@ -28,6 +28,12 @@ export type KeywordHitSummary = {
   excerpt: string;
 };
 
+export type ActiveAccountSummary = {
+  username: string;
+  platform: string;
+  lastSyncedAt: string;
+} | null;
+
 function formatDate(value?: Date | null) {
   if (!value) {
     return "尚未同步";
@@ -68,6 +74,29 @@ export async function getAccountSummaries(): Promise<AccountSummary[]> {
       weeklyViews: latestMetrics?.totalViews ?? 0
     };
   });
+}
+
+export async function getActiveAccountSummary(): Promise<ActiveAccountSummary> {
+  try {
+    const account = await prisma.platformAccount.findFirst({
+      where: {
+        isActive: true
+      },
+      orderBy: [{ lastSyncedAt: "desc" }, { createdAt: "desc" }]
+    });
+
+    if (!account) {
+      return null;
+    }
+
+    return {
+      username: `@${account.platformUsername}`,
+      platform: account.platform[0]?.toUpperCase() + account.platform.slice(1),
+      lastSyncedAt: formatDate(account.lastSyncedAt)
+    };
+  } catch {
+    return null;
+  }
 }
 
 export async function getDashboardStats() {
@@ -144,4 +173,3 @@ export async function getKeywordHitSummaries(): Promise<KeywordHitSummary[]> {
     excerpt: hit.postText
   }));
 }
-
