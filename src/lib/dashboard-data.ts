@@ -64,12 +64,120 @@ export type AnalyticsOverview = {
     replies: number;
     account: string;
   }>;
+  viralCandidates: Array<{
+    id: string;
+    text: string;
+    account: string;
+    score: number;
+    label: "high" | "medium" | "low";
+    reasons: string[];
+    suggestion: string;
+  }>;
   quota: {
     used: number;
     limit: number;
   };
   tokenWarning: string | null;
 };
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(Math.max(value, min), max);
+}
+
+function getViralLabel(score: number): "high" | "medium" | "low" {
+  if (score >= 75) {
+    return "high";
+  }
+
+  if (score >= 50) {
+    return "medium";
+  }
+
+  return "low";
+}
+
+function analyzeViralPotential(input: {
+  text: string;
+  views: number;
+  likes: number;
+  replies: number;
+  reposts: number;
+  quotes: number;
+}) {
+  const text = input.text.trim();
+  const likesPerView = input.views > 0 ? input.likes / input.views : 0;
+  const conversationRate = input.views > 0 ? (input.replies + input.quotes) / input.views : 0;
+  const shareSignal = input.views > 0 ? (input.reposts + input.quotes) / input.views : 0;
+  const hasHook = /^(為什麼|怎麼|如何|別再|不要|其實|你可能|我發現|這 3|這三|先說結論)/.test(text);
+  const hasNumbers = /\d/.test(text);
+  const hasLineBreaks = text.includes("\n");
+  const shortEnough = text.length >= 60 && text.length <= 220;
+
+  let score = 35;
+  const reasons: string[] = [];
+
+  if (likesPerView >= 0.08) {
+    score += 18;
+    reasons.push("按讚率高，代表第一眼吸引力不錯");
+  } else if (likesPerView >= 0.04) {
+    score += 10;
+    reasons.push("按讚率穩定，有放大的空間");
+  }
+
+  if (conversationRate >= 0.03) {
+    score += 18;
+    reasons.push("留言/引用比例高，容易引發討論");
+  } else if (conversationRate >= 0.015) {
+    score += 10;
+    reasons.push("互動有起來，適合再補強觀點");
+  }
+
+  if (shareSignal >= 0.015) {
+    score += 12;
+    reasons.push("轉發訊號不錯，具備擴散潛力");
+  }
+
+  if (hasHook) {
+    score += 8;
+    reasons.push("開頭像 hook，容易讓人停下來看");
+  }
+
+  if (hasNumbers) {
+    score += 6;
+    reasons.push("文案裡有數字，通常更容易被記住");
+  }
+
+  if (hasLineBreaks) {
+    score += 4;
+    reasons.push("段落節奏清楚，閱讀阻力較低");
+  }
+
+  if (shortEnough) {
+    score += 6;
+    reasons.push("篇幅落在 Threads 常見的好讀區間");
+  } else if (text.length > 320) {
+    score -= 10;
+    reasons.push("文案偏長，首屏吸引力可能被稀釋");
+  } else if (text.length < 30) {
+    score -= 8;
+    reasons.push("文案偏短，資訊密度可能不夠");
+  }
+
+  const label = getViralLabel(clamp(score, 0, 100));
+  const suggestion =
+    label === "high"
+      ? "可以優先二次分發，延伸成系列文或短影片腳本。"
+      : label === "medium"
+        ? "建議重寫第一句 hook，並補一個更強的結論或立場。"
+        : "先補清楚觀點、數字或反直覺切角，再測一次。";
+
+  return {
+    score: clamp(score, 0, 100),
+    label,
+    reasons: reasons.slice(0, 3),
+    suggestion
+  };
+}
 
 function formatDate(value?: Date | null) {
   if (!value) {
@@ -215,6 +323,26 @@ export async function getAnalyticsOverview(): Promise<AnalyticsOverview> {
         replies: post.metrics[0]?.replies ?? 0,
         account: `@${post.account.platformUsername}`
       })),
+      viralCandidates: posts.map((post) => {
+        const analysis = analyzeViralPotential({
+          text: post.textContent ?? post.title ?? "(無文字內容)",
+          views: post.metrics[0]?.views ?? 0,
+          likes: post.metrics[0]?.likes ?? 0,
+          replies: post.metrics[0]?.replies ?? 0,
+          reposts: post.metrics[0]?.reposts ?? 0,
+          quotes: post.metrics[0]?.quotes ?? 0
+        });
+
+        return {
+          id: post.id,
+          text: post.textContent ?? post.title ?? "(無文字內容)",
+          account: `@${post.account.platformUsername}`,
+          score: analysis.score,
+          label: analysis.label,
+          reasons: analysis.reasons,
+          suggestion: analysis.suggestion
+        };
+      }).sort((a, b) => b.score - a.score),
       quota,
       tokenWarning:
         account && account.tokenExpiresAt.getTime() <= Date.now() + 7 * 24 * 60 * 60 * 1000
@@ -225,6 +353,7 @@ export async function getAnalyticsOverview(): Promise<AnalyticsOverview> {
     return {
       followerTrend: [],
       topPosts: [],
+      viralCandidates: [],
       quota: { used: 0, limit: 250 },
       tokenWarning: null
     };

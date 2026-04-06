@@ -12,7 +12,7 @@ export default async function AnalyticsPage() {
       <PageIntro
         eyebrow="Analytics"
         title="帳號健康監控"
-        description="這一版已經把 metrics snapshot、發文配額與 token 到期提醒接進來，作為 Phase 2 的第一輪落地。"
+        description="現在除了 metrics snapshot、發文配額與 token 提醒，也會幫你評估哪些文最有爆款潛力。"
       />
       <DatabaseBanner status={databaseStatus} />
 
@@ -69,6 +69,43 @@ export default async function AnalyticsPage() {
           })}
           {analytics.followerTrend.length === 0 ? (
             <p className="text-sm text-[var(--muted)]">還沒有 metrics snapshot，先按上方按鈕或呼叫 cron route 收集一次。</p>
+          ) : null}
+        </div>
+      </section>
+
+      <section className="glass-panel rounded-[2rem] border border-[var(--border)] p-6">
+        <p className="text-[11px] uppercase tracking-[0.3em] text-[var(--muted)]">Viral Radar</p>
+        <h2 className="mt-2 text-3xl font-semibold">爆款潛力候選</h2>
+        <div className="mt-6 space-y-4">
+          {analytics.viralCandidates.map((post) => (
+            <article key={post.id} className="rounded-[1.5rem] border border-[var(--border)] bg-white/70 p-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">{post.account}</p>
+                <span
+                  className={`rounded-full px-3 py-1 text-xs uppercase ${
+                    post.label === "high"
+                      ? "bg-[var(--success-soft)] text-[var(--success)]"
+                      : post.label === "medium"
+                        ? "bg-[var(--accent-soft)] text-[var(--accent-strong)]"
+                        : "bg-slate-200 text-slate-700"
+                  }`}
+                >
+                  {post.label} · {post.score}
+                </span>
+              </div>
+              <p className="mt-2 text-base">{post.text}</p>
+              <div className="mt-4 flex flex-wrap gap-2 text-sm text-[var(--muted)]">
+                {post.reasons.map((reason) => (
+                  <span key={reason} className="rounded-full border border-[var(--border)] px-3 py-1">
+                    {reason}
+                  </span>
+                ))}
+              </div>
+              <p className="mt-4 text-sm text-[var(--muted)]">{post.suggestion}</p>
+            </article>
+          ))}
+          {analytics.viralCandidates.length === 0 ? (
+            <p className="text-sm text-[var(--muted)]">目前還沒有足夠的貼文與 metrics 資料可評估爆款潛力。</p>
           ) : null}
         </div>
       </section>
