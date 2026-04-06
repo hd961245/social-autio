@@ -1,0 +1,105 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f3ede2;
+  --foreground: #1c1713;
+  --card: rgba(255, 251, 246, 0.76);
+  --card-strong: rgba(255, 250, 244, 0.94);
+  --card-dark: #201a16;
+  --border: rgba(91, 69, 46, 0.14);
+  --border-strong: rgba(91, 69, 46, 0.24);
+  --accent: #bb5a36;
+  --accent-strong: #8f3e21;
+  --accent-soft: rgba(187, 90, 54, 0.12);
+  --muted: #6e6153;
+  --success: #1f7a5c;
+  --warning: #b7791f;
+  --danger: #b24334;
+  --shadow-lg: 0 30px 120px rgba(87, 54, 28, 0.11);
+  --shadow-md: 0 18px 60px rgba(87, 54, 28, 0.08);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background:
+    radial-gradient(circle at top left, rgba(187, 90, 54, 0.2), transparent 32%),
+    radial-gradient(circle at 75% 20%, rgba(31, 122, 92, 0.1), transparent 22%),
+    linear-gradient(180deg, #fff8ef 0%, #f7f0e7 34%, var(--background) 100%);
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  color: var(--foreground);
+  font-family: var(--font-sans), sans-serif;
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.18) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.12) 1px, transparent 1px);
+  background-size: 80px 80px;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-display), serif;
+  letter-spacing: -0.02em;
+}
+
+::selection {
+  background: rgba(184, 92, 56, 0.22);
+}
+
+.glass-panel {
+  background: linear-gradient(180deg, rgba(255, 252, 247, 0.88), rgba(255, 248, 240, 0.74));
+  backdrop-filter: blur(16px);
+  box-shadow: var(--shadow-md);
+}
+
+.soft-grid {
+  position: relative;
+}
+
+.soft-grid::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background-image:
+    linear-gradient(rgba(91, 69, 46, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(91, 69, 46, 0.05) 1px, transparent 1px);
+  background-size: 26px 26px;
+  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.7), transparent);
+  pointer-events: none;
+}
+
+.fade-in-up {
+  animation: fade-in-up 0.55s ease-out both;
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
