@@ -1,9 +1,22 @@
 import { NextResponse } from "next/server";
+import { collectMetricsSnapshots, refreshExpiringTokens } from "@/lib/metrics-service";
 
 export async function POST() {
-  return NextResponse.json({
-    ok: true,
-    message: "Metrics collection scaffold is ready for Phase 2 implementation."
-  });
-}
+  try {
+    const [metrics, tokenRefresh] = await Promise.all([collectMetricsSnapshots(), refreshExpiringTokens()]);
 
+    return NextResponse.json({
+      ok: true,
+      metrics,
+      tokenRefresh
+    });
+  } catch (error) {
+    return NextResponse.json(
+      {
+        ok: false,
+        message: error instanceof Error ? error.message : "Metrics collection failed"
+      },
+      { status: 500 }
+    );
+  }
+}

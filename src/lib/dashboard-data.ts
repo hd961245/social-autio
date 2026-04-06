@@ -39,6 +39,23 @@ export type DatabaseStatus = {
   message: string;
 };
 
+export type AnalyticsOverview = {
+  followerTrend: Array<{ label: string; followers: number; engagement: number }>;
+  topPosts: Array<{
+    id: string;
+    text: string;
+    views: number;
+    likes: number;
+    replies: number;
+    account: string;
+  }>;
+  quota: {
+    used: number;
+    limit: number;
+  };
+  tokenWarning: string | null;
+};
+
 function formatDate(value?: Date | null) {
   if (!value) {
     return "尚未同步";
@@ -119,6 +136,82 @@ export async function getDatabaseStatus(): Promise<DatabaseStatus> {
     return {
       ready: false,
       message: "資料庫尚未初始化，請在 Zeabur 執行 npm run db:push"
+    };
+  }
+}
+
+export async function getAnalyticsOverview(): Promise<AnalyticsOverview> {
+  try {
+    const [snapshots, posts, account] = await Promise.all([
+      prisma.metricsSnapshot.findMany({
+        include: {
+          account: true
+        },
+        orderBy: {
+          capturedAt: "asc"
+        },
+        take: 7
+      }),
+      prisma.post.findMany({
+        where: {
+          status: "published"
+        },
+        include: {
+          account: true,
+          metrics: {
+            orderBy: {
+              capturedAt: "desc"
+            },
+            take: 1
+          }
+        },
+        take: 5
+      }),
+      prisma.platformAccount.findFirst({
+        where: {
+          isActive: true
+        },
+        orderBy: {
+          lastSyncedAt: "desc"
+        }
+      })
+    ]);
+
+    let quota = { used: 0, limit: 250 };
+
+    if (account) {
+      try {
+        quota = await (await import("@/lib/platforms")).getPlatformAdapter("threads").getPublishingQuota(account.id);
+      } catch {}
+    }
+
+    return {
+      followerTrend: snapshots.map((snapshot) => ({
+        label: snapshot.capturedAt.toLocaleDateString("zh-TW", { month: "numeric", day: "numeric" }),
+        followers: snapshot.followerCount,
+        engagement:
+          snapshot.totalLikes + snapshot.totalReplies + snapshot.totalReposts + snapshot.totalQuotes
+      })),
+      topPosts: posts.map((post) => ({
+        id: post.id,
+        text: post.textContent ?? "(無文字內容)",
+        views: post.metrics[0]?.views ?? 0,
+        likes: post.metrics[0]?.likes ?? 0,
+        replies: post.metrics[0]?.replies ?? 0,
+        account: `@${post.account.platformUsername}`
+      })),
+      quota,
+      tokenWarning:
+        account && account.tokenExpiresAt.getTime() <= Date.now() + 7 * 24 * 60 * 60 * 1000
+          ? `帳號 ${account.platformUsername} 的 token 即將在 7 天內到期`
+          : null
+    };
+  } catch {
+    return {
+      followerTrend: [],
+      topPosts: [],
+      quota: { used: 0, limit: 250 },
+      tokenWarning: null
     };
   }
 }

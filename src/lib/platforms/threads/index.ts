@@ -1,8 +1,10 @@
-import { getThreadsUserMetrics, getThreadsPostMetrics } from "@/lib/platforms/threads/insights";
+import { getThreadsPostMetrics, getThreadsPublishingQuota, getThreadsUserMetrics } from "@/lib/platforms/threads/insights";
 import { exchangeCodeForShortLivedToken, exchangeLongLivedToken, getThreadsAuthorizationUrl } from "@/lib/platforms/threads/oauth";
 import { publishToThreads } from "@/lib/platforms/threads/publisher";
 import { refreshThreadsToken } from "@/lib/platforms/threads/tokens";
 import type { PlatformAdapter } from "@/lib/platforms/types";
+import { decryptString, encryptString } from "@/lib/crypto";
+import { prisma } from "@/lib/prisma";
 
 export const threadsAdapter: PlatformAdapter = {
   platformId: "threads",
@@ -28,7 +30,7 @@ export const threadsAdapter: PlatformAdapter = {
     };
   },
   async refreshToken() {
-    return refreshThreadsToken();
+    throw new Error("Account id is required for token refresh.");
   },
   async createPost(accountId, content) {
     return publishToThreads(accountId, content);
@@ -40,11 +42,11 @@ export const threadsAdapter: PlatformAdapter = {
       url: `https://threads.net/@demo/post/${accountId}-${encodeURIComponent(text)}`
     };
   },
-  async getUserMetrics() {
-    return getThreadsUserMetrics();
+  async getUserMetrics(accountId) {
+    return getThreadsUserMetrics(accountId);
   },
-  async getPostMetrics() {
-    return getThreadsPostMetrics();
+  async getPostMetrics(accountId, platformPostId) {
+    return getThreadsPostMetrics(accountId, platformPostId);
   },
   async getOwnPosts() {
     return [];
@@ -52,10 +54,31 @@ export const threadsAdapter: PlatformAdapter = {
   async getPostReplies() {
     return [];
   },
-  async getPublishingQuota() {
-    return {
-      used: 8,
-      limit: 250
-    };
+  async getPublishingQuota(accountId) {
+    return getThreadsPublishingQuota(accountId);
   }
+};
+
+threadsAdapter.refreshToken = async (accountId) => {
+  const account = await prisma.platformAccount.findUnique({
+    where: { id: accountId }
+  });
+
+  if (!account) {
+    throw new Error("找不到指定的 Threads 帳號。");
+  }
+
+  const token = await refreshThreadsToken(decryptString(account.accessToken));
+
+  await prisma.platformAccount.update({
+    where: { id: account.id },
+    data: {
+      accessToken: encryptString(token.accessToken),
+      tokenType: token.tokenType,
+      tokenExpiresAt: token.expiresAt,
+      isActive: true
+    }
+  });
+
+  return token;
 };
