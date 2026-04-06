@@ -13,6 +13,7 @@ export type AccountSummary = {
 export type PostSummary = {
   id: string;
   account: string;
+  platform: string;
   status: string;
   scheduledAt: string;
   text: string;
@@ -26,6 +27,18 @@ export type KeywordHitSummary = {
   matchedAt: string;
   actionTaken: string;
   excerpt: string;
+  sourcePostId?: string | null;
+  accountId?: string | null;
+  actionPostId?: string | null;
+};
+
+export type AutomationLogSummary = {
+  id: string;
+  ruleName: string;
+  actionType: string;
+  status: string;
+  detail: string;
+  executedAt: string;
 };
 
 export type ActiveAccountSummary = {
@@ -273,9 +286,10 @@ export async function getPostSummaries(): Promise<PostSummary[]> {
     return posts.map((post) => ({
       id: post.id,
       account: `@${post.account.platformUsername}`,
+      platform: post.account.platform,
       status: post.status,
       scheduledAt: formatDate(post.scheduledAt ?? post.createdAt),
-      text: post.textContent ?? "(無文字內容)",
+      text: post.title ?? post.textContent ?? "(無文字內容)",
       platformUrl: post.platformUrl
     }));
   } catch {
@@ -301,7 +315,35 @@ export async function getKeywordHitSummaries(): Promise<KeywordHitSummary[]> {
       author: hit.authorUsername,
       matchedAt: formatDate(hit.matchedAt),
       actionTaken: hit.actionTaken ?? "none",
-      excerpt: hit.postText
+      excerpt: hit.postText,
+      sourcePostId: hit.sourcePostId,
+      accountId: hit.accountId,
+      actionPostId: hit.actionPostId
+    }));
+  } catch {
+    return [];
+  }
+}
+
+export async function getAutomationLogSummaries(): Promise<AutomationLogSummary[]> {
+  try {
+    const logs = await prisma.automationLog.findMany({
+      include: {
+        rule: true
+      },
+      orderBy: {
+        executedAt: "desc"
+      },
+      take: 8
+    });
+
+    return logs.map((log) => ({
+      id: log.id,
+      ruleName: log.rule?.name ?? "Manual action",
+      actionType: log.actionType,
+      status: log.status,
+      detail: log.detail ?? "已記錄動作",
+      executedAt: formatDate(log.executedAt)
     }));
   } catch {
     return [];

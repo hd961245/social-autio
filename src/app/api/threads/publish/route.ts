@@ -7,8 +7,15 @@ import { prisma } from "@/lib/prisma";
 const publishSchema = z.object({
   accountId: z.string().min(1),
   text: z.string().trim().min(1).max(100000),
+  title: z.string().trim().max(200).optional(),
+  excerpt: z.string().trim().max(500).optional(),
+  html: z.string().trim().optional(),
   contentType: z.enum(["text", "image", "video", "carousel"]).default("text"),
   mediaUrls: z.array(z.string().url()).optional(),
+  featuredImageUrl: z.string().url().optional(),
+  categories: z.array(z.string().trim().min(1)).optional(),
+  tags: z.array(z.string().trim().min(1)).optional(),
+  replyToPostId: z.string().trim().optional(),
   publishMode: z.enum(["immediate", "scheduled"]).default("immediate"),
   scheduledAt: z.string().datetime().optional()
 });
@@ -49,14 +56,21 @@ export async function POST(request: Request) {
         userId: account.userId,
         accountId: account.id,
         contentType: payload.contentType,
+        title: payload.title,
         textContent: payload.text,
+        htmlContent: payload.html ?? null,
+        excerpt: payload.excerpt ?? null,
         mediaUrls: payload.mediaUrls?.length ? JSON.stringify(payload.mediaUrls) : null,
+        featuredImageUrl: payload.featuredImageUrl ?? null,
+        categories: payload.categories?.length ? JSON.stringify(payload.categories) : null,
+        tags: payload.tags?.length ? JSON.stringify(payload.tags) : null,
         status: payload.publishMode === "scheduled" ? "scheduled" : "publishing",
-        scheduledAt: payload.publishMode === "scheduled" && payload.scheduledAt ? new Date(payload.scheduledAt) : null
+        scheduledAt: payload.publishMode === "scheduled" && payload.scheduledAt ? new Date(payload.scheduledAt) : null,
+        replyToPostId: payload.replyToPostId ?? null
       }
     });
 
-    if (payload.publishMode === "scheduled" && account.platform === "threads") {
+    if (payload.publishMode === "scheduled") {
       return NextResponse.json({
         ok: true,
         scheduled: true,
@@ -68,8 +82,15 @@ export async function POST(request: Request) {
       const adapter = getPlatformAdapter(account.platform as "threads" | "wordpress");
       const result = await adapter.createPost(payload.accountId, {
         contentType: payload.contentType,
+        title: payload.title,
         text: payload.text,
-        mediaUrls: payload.mediaUrls
+        html: payload.html,
+        excerpt: payload.excerpt,
+        mediaUrls: payload.mediaUrls,
+        featuredImageUrl: payload.featuredImageUrl,
+        categories: payload.categories,
+        tags: payload.tags,
+        replyToPostId: payload.replyToPostId
       });
 
       const post = await prisma.post.update({

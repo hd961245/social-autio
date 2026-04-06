@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { encryptString } from "@/lib/crypto";
+import { wordpressFetch } from "@/lib/platforms/wordpress/client";
 import { prisma } from "@/lib/prisma";
 
 const connectSchema = z.object({
@@ -24,6 +25,12 @@ export async function POST(request: Request) {
     });
 
     const normalizedSiteUrl = payload.siteUrl.replace(/\/$/, "");
+    const profile = await wordpressFetch<{ name?: string; slug?: string }>(
+      normalizedSiteUrl,
+      payload.username,
+      payload.appPassword,
+      "/wp-json/wp/v2/users/me"
+    );
 
     const account = await prisma.platformAccount.upsert({
       where: {
@@ -33,7 +40,7 @@ export async function POST(request: Request) {
         }
       },
       update: {
-        platformUsername: payload.username,
+        platformUsername: profile.slug ?? payload.username,
         accessToken: encryptString(payload.appPassword),
         tokenType: "app_password",
         tokenExpiresAt: new Date("2099-12-31T00:00:00.000Z"),
@@ -44,10 +51,11 @@ export async function POST(request: Request) {
         userId: user.id,
         platform: "wordpress",
         platformUserId: normalizedSiteUrl,
-        platformUsername: payload.username,
+        platformUsername: profile.slug ?? payload.username,
         accessToken: encryptString(payload.appPassword),
         tokenType: "app_password",
         tokenExpiresAt: new Date("2099-12-31T00:00:00.000Z"),
+        profilePictureUrl: null,
         isActive: true,
         lastSyncedAt: new Date()
       }
@@ -61,4 +69,3 @@ export async function POST(request: Request) {
     );
   }
 }
-

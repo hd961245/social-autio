@@ -69,3 +69,34 @@ export async function threadsFormPost<T>(
 
   return response.json() as Promise<T>;
 }
+
+export type ThreadsNode = {
+  id: string;
+  text?: string;
+  username?: string;
+  permalink?: string;
+  timestamp?: string;
+  media_type?: string;
+};
+
+type ThreadsListResponse = {
+  data?: ThreadsNode[];
+};
+
+export async function getThreadsUserThreads(userId: string, accessToken: string): Promise<ThreadsNode[]> {
+  const response = await threadsFetch<ThreadsListResponse>(
+    `/${userId}/threads?fields=id,text,username,permalink,timestamp,media_type`,
+    { accessToken }
+  );
+
+  return response.data ?? [];
+}
+
+export async function getThreadsReplies(mediaId: string, accessToken: string): Promise<ThreadsNode[]> {
+  const response = await threadsFetch<ThreadsListResponse>(
+    `/${mediaId}/replies?fields=id,text,username,permalink,timestamp`,
+    { accessToken }
+  );
+
+  return response.data ?? [];
+}

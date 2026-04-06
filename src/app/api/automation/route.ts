@@ -7,7 +7,9 @@ const ruleSchema = z.object({
   triggerKeyword: z.string().trim().min(1),
   replyTemplate: z.string().trim().min(1),
   accountId: z.string().min(1),
-  dailyLimit: z.number().int().min(1).max(500).default(50)
+  dailyLimit: z.number().int().min(1).max(500).default(50),
+  delayMinSeconds: z.number().int().min(0).max(3600).default(30),
+  delayMaxSeconds: z.number().int().min(0).max(3600).default(300)
 });
 
 export async function GET() {
@@ -36,7 +38,9 @@ export async function POST(request: Request) {
           accountId: payload.accountId,
           template: payload.replyTemplate
         }),
-        dailyLimit: payload.dailyLimit
+        dailyLimit: payload.dailyLimit,
+        delayMinSeconds: payload.delayMinSeconds,
+        delayMaxSeconds: Math.max(payload.delayMaxSeconds, payload.delayMinSeconds)
       }
     });
 
@@ -48,4 +52,3 @@ export async function POST(request: Request) {
     );
   }
 }
-

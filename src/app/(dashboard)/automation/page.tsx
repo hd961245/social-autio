@@ -1,5 +1,6 @@
 import { AutomationManager } from "@/components/dashboard/automation-manager";
 import { PageIntro } from "@/components/dashboard/page-intro";
+import { getAutomationLogSummaries } from "@/lib/dashboard-data";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -10,28 +11,38 @@ export default async function AutomationPage() {
     { title: "Action", body: "reply / like / repost / quote" },
     { title: "Safety", body: "每日上限、隨機延遲、重複偵測、全域暫停" }
   ];
-  const [rules, accounts] = await Promise.all([
-    prisma.autoRule.findMany({
-      orderBy: {
-        createdAt: "desc"
-      }
-    }),
-    prisma.platformAccount.findMany({
-      where: {
-        isActive: true
-      },
-      orderBy: {
-        createdAt: "desc"
-      }
-    })
-  ]);
+  let rules: Awaited<ReturnType<typeof prisma.autoRule.findMany>> = [];
+  let accounts: Awaited<ReturnType<typeof prisma.platformAccount.findMany>> = [];
+  let settings: Awaited<ReturnType<typeof prisma.appSettings.findFirst>> = null;
+  let logs = await getAutomationLogSummaries();
+
+  try {
+    [rules, accounts, settings] = await Promise.all([
+      prisma.autoRule.findMany({
+        orderBy: {
+          createdAt: "desc"
+        }
+      }),
+      prisma.platformAccount.findMany({
+        where: {
+          isActive: true
+        },
+        orderBy: {
+          createdAt: "desc"
+        }
+      }),
+      prisma.appSettings.findFirst()
+    ]);
+  } catch {
+    logs = [];
+  }
 
   return (
     <div className="space-y-6">
       <PageIntro
         eyebrow="Automation"
         title="自動化規則"
-        description="這一頁先把規則模型與操作方式可視化，等 engine 接上後就能把 keyword 命中直接轉成回應工作。"
+        description="規則引擎現在會把 keyword 命中轉成延遲回覆佇列，並記錄活動日誌、每日上限與全域暫停狀態。"
       />
       <div className="grid gap-4 md:grid-cols-3">
         {cards.map((card) => (
@@ -48,13 +59,19 @@ export default async function AutomationPage() {
           isActive: rule.isActive,
           dailyLimit: rule.dailyLimit,
           triggerConfig: rule.triggerConfig,
-          actionConfig: rule.actionConfig
+          actionConfig: rule.actionConfig,
+          delayMinSeconds: rule.delayMinSeconds,
+          delayMaxSeconds: rule.delayMaxSeconds
         }))}
         accounts={accounts.map((account) => ({
           id: account.id,
           username: `@${account.platformUsername}`,
           platform: account.platform
         }))}
+        initialSettings={{
+          automationPaused: settings?.automationPaused ?? false,
+          keywordScanPaused: settings?.keywordScanPaused ?? false
+        }}
       />
       <section className="glass-panel rounded-[2rem] border border-[var(--border)] p-6">
         <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
@@ -75,11 +92,18 @@ export default async function AutomationPage() {
           </div>
           <div className="rounded-[1.8rem] bg-[var(--card-dark)] p-5 text-white">
             <p className="text-[11px] uppercase tracking-[0.25em] text-white/55">Execution Notes</p>
-            <ul className="mt-4 space-y-3 text-sm leading-7 text-white/78">
-              <li>規則資料表與 engine interface 已經存在。</li>
-              <li>下一步接 keyword scan 後即可把命中推進規則判斷。</li>
-              <li>AI reply 模式會在後面掛上 Anthropic key 檢查與預覽。</li>
-            </ul>
+            <div className="mt-4 space-y-3 text-sm leading-7 text-white/78">
+              {logs.map((log) => (
+                <div key={log.id} className="rounded-2xl border border-white/10 bg-white/5 p-3">
+                  <p className="text-xs uppercase tracking-[0.22em] text-white/50">
+                    {log.ruleName} · {log.status}
+                  </p>
+                  <p className="mt-2">{log.detail}</p>
+                  <p className="mt-2 text-xs text-white/50">{log.executedAt}</p>
+                </div>
+              ))}
+              {logs.length === 0 ? <p>目前還沒有自動化活動日誌，先跑一次規則就會出現在這裡。</p> : null}
+            </div>
           </div>
         </div>
       </section>

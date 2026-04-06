@@ -17,6 +17,11 @@ type ThreadsPublishResponse = {
   id: string;
 };
 
+type ThreadsPublishedNode = {
+  id: string;
+  permalink?: string;
+};
+
 function getMediaPayload(content: PostContent) {
   if (content.contentType === "carousel" || (content.mediaUrls?.length ?? 0) > 1) {
     throw new Error("第一版暫不支援 carousel，請先使用文字或單一媒體貼文。");
@@ -78,6 +83,7 @@ export async function publishToThreads(accountId: string, content: PostContent):
     `/${account.platformUserId}/threads`,
     {
       text: content.text,
+      reply_to_id: content.replyToPostId,
       ...mediaPayload
     },
     accessToken
@@ -95,7 +101,17 @@ export async function publishToThreads(accountId: string, content: PostContent):
     accessToken
   );
 
+  let permalink: string | undefined;
+
+  try {
+    const node = await threadsFetch<ThreadsPublishedNode>(`/${published.id}?fields=id,permalink`, {
+      accessToken
+    });
+    permalink = node.permalink;
+  } catch {}
+
   return {
-    platformPostId: published.id
+    platformPostId: published.id,
+    url: permalink
   };
 }

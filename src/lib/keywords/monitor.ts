@@ -1,56 +1,109 @@
-export async function scanKeywordMatches() {
-  const { prisma } = await import("@/lib/prisma");
+import { getPlatformAdapter } from "@/lib/platforms";
+import { prisma } from "@/lib/prisma";
 
-  const [keywords, posts] = await Promise.all([
+function matchesKeyword(keyword: string, matchMode: string, text: string) {
+  if (!text) {
+    return false;
+  }
+
+  if (matchMode === "exact") {
+    return text.trim().toLowerCase() === keyword.trim().toLowerCase();
+  }
+
+  if (matchMode === "regex") {
+    try {
+      return new RegExp(keyword, "i").test(text);
+    } catch {
+      return false;
+    }
+  }
+
+  return text.toLowerCase().includes(keyword.toLowerCase());
+}
+
+export async function scanKeywordMatches() {
+  const settings = await prisma.appSettings.findFirst();
+
+  if (settings?.keywordScanPaused) {
+    return {
+      scannedAccounts: 0,
+      scannedPosts: 0,
+      scannedReplies: 0,
+      newMatches: 0,
+      paused: true
+    };
+  }
+
+  const [keywords, accounts] = await Promise.all([
     prisma.keyword.findMany({ where: { isActive: true } }),
-    prisma.post.findMany({
+    prisma.platformAccount.findMany({
       where: {
-        status: "published",
-        textContent: {
-          not: null
-        }
+        isActive: true,
+        platform: "threads"
       },
-      include: {
-        account: true
-      },
-      take: 50
+      orderBy: {
+        createdAt: "desc"
+      }
     })
   ]);
 
+  let scannedPosts = 0;
+  let scannedReplies = 0;
   let newMatches = 0;
 
-  for (const keyword of keywords) {
-    for (const post of posts) {
-      const text = post.textContent ?? "";
-      const matched =
-        keyword.matchMode === "exact"
-          ? text === keyword.keyword
-          : keyword.matchMode === "regex"
-            ? new RegExp(keyword.keyword, "i").test(text)
-            : text.toLowerCase().includes(keyword.keyword.toLowerCase());
+  for (const account of accounts) {
+    const adapter = getPlatformAdapter("threads");
+    let ownPosts: Awaited<ReturnType<typeof adapter.getOwnPosts>> = [];
 
-      if (!matched) {
+    try {
+      ownPosts = await adapter.getOwnPosts(account.id, new Date(Date.now() - 7 * 24 * 60 * 60 * 1000));
+    } catch {
+      continue;
+    }
+
+    scannedPosts += ownPosts.length;
+
+    for (const sourcePost of ownPosts) {
+      let replies: Awaited<ReturnType<typeof adapter.getPostReplies>> = [];
+
+      try {
+        replies = await adapter.getPostReplies(account.id, sourcePost.id);
+      } catch {
         continue;
       }
 
-      try {
-        await prisma.keywordMatch.create({
-          data: {
-            keywordId: keyword.id,
-            accountId: post.accountId,
-            platformPostId: post.platformPostId ?? post.id,
-            authorUsername: post.account.platformUsername,
-            postText: text,
-            postUrl: post.platformUrl
+      scannedReplies += replies.length;
+
+      for (const reply of replies) {
+        for (const keyword of keywords) {
+          if (!matchesKeyword(keyword.keyword, keyword.matchMode, reply.text)) {
+            continue;
           }
-        });
-        newMatches += 1;
-      } catch {}
+
+          try {
+            await prisma.keywordMatch.create({
+              data: {
+                keywordId: keyword.id,
+                accountId: account.id,
+                platformPostId: reply.id,
+                sourcePostId: sourcePost.id,
+                authorUsername: reply.username,
+                postText: reply.text,
+                postUrl: null
+              }
+            });
+            newMatches += 1;
+          } catch {}
+        }
+      }
     }
   }
 
   return {
-    scannedAccounts: posts.length,
-    newMatches
+    scannedAccounts: accounts.length,
+    scannedPosts,
+    scannedReplies,
+    newMatches,
+    paused: false
   };
 }

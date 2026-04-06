@@ -50,3 +50,28 @@ export async function wordpressFetch<T>(
   return response.json() as Promise<T>;
 }
 
+export async function wordpressRawFetch<T>(
+  siteUrl: string,
+  username: string,
+  appPassword: string,
+  path: string,
+  init?: RequestInit
+): Promise<T> {
+  const url = new URL(path, siteUrl.endsWith("/") ? siteUrl : `${siteUrl}/`);
+  const auth = Buffer.from(`${username}:${appPassword}`).toString("base64");
+
+  const response = await fetch(url, {
+    ...init,
+    headers: {
+      Authorization: `Basic ${auth}`,
+      ...(init?.headers ?? {})
+    }
+  });
+
+  if (!response.ok) {
+    const message = await response.text();
+    throw new Error(`WordPress API error (${response.status}): ${message}`);
+  }
+
+  return response.json() as Promise<T>;
+}

@@ -38,7 +38,7 @@ export default async function ComposePage() {
       <PageIntro
         eyebrow="Compose"
         title="建立新的平台內容"
-        description="現在可以選 Threads 或 WordPress。Threads 支援立即發文與排程；WordPress 第一版支援直接發文章。"
+        description="現在可以選 Threads 或 WordPress。Threads 支援立即發文、排程與回覆；WordPress 支援文章標題、HTML、分類、標籤與特色圖。"
       />
       <DatabaseBanner status={databaseStatus} />
       <PostComposerForm
@@ -50,8 +50,9 @@ export default async function ComposePage() {
         recentPosts={posts.map((post) => ({
           id: post.id,
           status: post.status,
-          text: post.textContent ?? "(無文字內容)",
-          account: `@${post.account.platformUsername}`
+          text: post.title ?? post.textContent ?? "(無文字內容)",
+          account: `@${post.account.platformUsername}`,
+          platform: post.account.platform
         }))}
       />
     </div>

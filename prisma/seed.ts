@@ -57,6 +57,7 @@ async function main() {
       keywordId: keyword.id,
       accountId: account.id,
       platformPostId: "reply-1",
+      sourcePostId: "thread-1",
       authorUsername: "trend_watcher",
       postText: "這個 social audio 類型最近很多人在討論",
       actionTaken: "replied"
@@ -70,7 +71,17 @@ async function main() {
       triggerType: "keyword_match",
       triggerConfig: JSON.stringify({ keywordIds: [keyword.id] }),
       actionType: "reply",
-      actionConfig: JSON.stringify({ mode: "template" })
+      actionConfig: JSON.stringify({ mode: "template", accountId: account.id, template: "謝謝 {author}，我們也在觀察 {keyword}。" })
+    }
+  });
+
+  await prisma.appSettings.upsert({
+    where: { id: "seed-settings" },
+    update: {},
+    create: {
+      id: "seed-settings",
+      automationPaused: false,
+      keywordScanPaused: false
     }
   });
 }
@@ -84,4 +95,3 @@ main()
     await prisma.$disconnect();
     process.exit(1);
   });
-

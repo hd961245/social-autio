@@ -5,7 +5,9 @@ import { prisma } from "@/lib/prisma";
 const updateSchema = z.object({
   isActive: z.boolean().optional(),
   name: z.string().trim().min(1).optional(),
-  dailyLimit: z.number().int().min(1).max(500).optional()
+  dailyLimit: z.number().int().min(1).max(500).optional(),
+  delayMinSeconds: z.number().int().min(0).max(3600).optional(),
+  delayMaxSeconds: z.number().int().min(0).max(3600).optional()
 });
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -32,4 +34,3 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
   await prisma.autoRule.delete({ where: { id } });
   return NextResponse.json({ ok: true });
 }
-

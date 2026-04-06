@@ -31,8 +31,15 @@ export async function runScheduledPosts() {
       const adapter = getPlatformAdapter(post.account.platform as "threads" | "wordpress");
       const result = await adapter.createPost(post.accountId, {
         contentType: post.contentType as "text" | "image" | "video" | "carousel",
+        title: post.title ?? undefined,
         text: post.textContent ?? undefined,
-        mediaUrls: post.mediaUrls ? (JSON.parse(post.mediaUrls) as string[]) : undefined
+        html: post.htmlContent ?? undefined,
+        excerpt: post.excerpt ?? undefined,
+        mediaUrls: post.mediaUrls ? (JSON.parse(post.mediaUrls) as string[]) : undefined,
+        featuredImageUrl: post.featuredImageUrl ?? undefined,
+        categories: post.categories ? (JSON.parse(post.categories) as string[]) : undefined,
+        tags: post.tags ? (JSON.parse(post.tags) as string[]) : undefined,
+        replyToPostId: post.replyToPostId ?? undefined
       });
 
       await prisma.post.update({
@@ -44,6 +51,27 @@ export async function runScheduledPosts() {
           platformUrl: result.url ?? null
         }
       });
+
+      if (post.sourceMatchId) {
+        await prisma.keywordMatch.update({
+          where: { id: post.sourceMatchId },
+          data: {
+            actionTaken: "replied",
+            actionPostId: post.id
+          }
+        });
+
+        await prisma.automationLog.updateMany({
+          where: {
+            postId: post.id,
+            status: "scheduled"
+          },
+          data: {
+            status: "executed",
+            detail: `已發布至 ${post.account.platform}`
+          }
+        });
+      }
       published += 1;
     } catch (error) {
       await prisma.post.update({
@@ -53,6 +81,19 @@ export async function runScheduledPosts() {
           errorMessage: error instanceof Error ? error.message : "Unknown scheduled publish failure"
         }
       });
+
+      if (post.sourceMatchId) {
+        await prisma.automationLog.updateMany({
+          where: {
+            postId: post.id,
+            status: "scheduled"
+          },
+          data: {
+            status: "failed",
+            detail: error instanceof Error ? error.message : "Unknown scheduled publish failure"
+          }
+        });
+      }
       failed += 1;
     }
   }

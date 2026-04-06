@@ -1,8 +1,14 @@
 export type PlatformId = "threads" | "wordpress" | "instagram" | "twitter";
 
 export type PostContent = {
+  title?: string;
   text?: string;
+  html?: string;
+  excerpt?: string;
   mediaUrls?: string[];
+  featuredImageUrl?: string;
+  categories?: string[];
+  tags?: string[];
   topicTag?: string;
   replyToPostId?: string;
   contentType: "text" | "image" | "video" | "carousel";
@@ -74,4 +80,3 @@ export interface PlatformAdapter {
   getPostReplies(accountId: string, platformPostId: string): Promise<PlatformPost[]>;
   getPublishingQuota(accountId: string): Promise<QuotaInfo>;
 }
-

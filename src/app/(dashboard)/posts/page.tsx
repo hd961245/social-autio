@@ -11,7 +11,7 @@ export default async function PostsPage() {
       <PageIntro
         eyebrow="Publishing Queue"
         title="排程與發布紀錄"
-        description="現在已支援排程貼文與手動觸發 scheduler。Threads 排程會進佇列，WordPress 先走直接發布。"
+        description="現在已支援 Threads 與 WordPress 的排程佇列，也可以手動觸發 scheduler 立即處理到期工作。"
       />
 
       <section className="glass-panel rounded-[2rem] border border-[var(--border)] p-6">
@@ -34,7 +34,9 @@ export default async function PostsPage() {
             <article key={post.id} className="rounded-3xl border border-[var(--border)] bg-white/80 p-5">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <p className="text-sm text-[var(--muted)]">{post.account}</p>
+                  <p className="text-sm text-[var(--muted)]">
+                    {post.account} · {post.platform}
+                  </p>
                   <h2 className="mt-1 text-xl font-semibold">{post.text}</h2>
                 </div>
                 <span className="rounded-full border border-[var(--border)] px-3 py-1 text-xs uppercase">
