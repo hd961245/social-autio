@@ -4,7 +4,9 @@ import { prisma } from "@/lib/prisma";
 
 const settingsSchema = z.object({
   automationPaused: z.boolean().optional(),
-  keywordScanPaused: z.boolean().optional()
+  keywordScanPaused: z.boolean().optional(),
+  globalPersonaPrompt: z.string().trim().max(5000).optional(),
+  defaultTone: z.string().trim().max(100).optional()
 });
 
 export async function GET() {
@@ -13,7 +15,9 @@ export async function GET() {
     ok: true,
     settings: settings ?? {
       automationPaused: false,
-      keywordScanPaused: false
+      keywordScanPaused: false,
+      globalPersonaPrompt: "",
+      defaultTone: "sharp-observer"
     }
   });
 }
@@ -31,7 +35,9 @@ export async function PATCH(request: Request) {
       : await prisma.appSettings.create({
           data: {
             automationPaused: payload.automationPaused ?? false,
-            keywordScanPaused: payload.keywordScanPaused ?? false
+            keywordScanPaused: payload.keywordScanPaused ?? false,
+            globalPersonaPrompt: payload.globalPersonaPrompt,
+            defaultTone: payload.defaultTone ?? "sharp-observer"
           }
         });
 

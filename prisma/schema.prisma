@@ -16,6 +16,7 @@ model User {
   posts      Post[]
   keywords   Keyword[]
   autoRules  AutoRule[]
+  ingestions IngestionRecord[]
 }
 
 model PlatformAccount {
@@ -175,6 +176,24 @@ model AppSettings {
   id                    String   @id @default(cuid())
   automationPaused      Boolean  @default(false)
   keywordScanPaused     Boolean  @default(false)
+  globalPersonaPrompt   String?
+  defaultTone           String?  @default("sharp-observer")
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
+}
+
+model IngestionRecord {
+  id            String   @id @default(cuid())
+  userId        String
+  sourceType    String
+  sourceUrl     String?
+  title         String?
+  rawText       String?
+  imageUrls     String?
+  status        String   @default("processed")
+  generatedPostIds String?
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

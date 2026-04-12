@@ -8,6 +8,7 @@ const navItems = [
   { href: "/compose", label: "發文", hint: "create + publish" },
   { href: "/posts", label: "排程", hint: "queue + history" },
   { href: "/analytics", label: "分析", hint: "insights + quota" },
+  { href: "/content-engine", label: "內容引擎", hint: "ingest + rewrite" },
   { href: "/keywords", label: "關鍵字", hint: "monitor + hits" },
   { href: "/automation", label: "自動化", hint: "rules + safety" }
   ,
