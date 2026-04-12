@@ -14,6 +14,8 @@ type WordPressDiagnostic = {
   hints: string[];
 };
 
+export type { WordPressDiagnostic };
+
 export async function getWordPressAccountContext(accountId: string): Promise<WordPressAccountContext> {
   const account = await prisma.platformAccount.findUnique({
     where: { id: accountId }
@@ -158,7 +160,9 @@ export async function diagnoseWordPressConnection(
       hints: [
         "確認你填的是 WordPress 真正登入帳號，不是顯示名稱。",
         "確認你使用的是 Application Password，不是一般登入密碼。",
-        "如果站台有安全外掛或 Nginx/Apache 規則，確認 Authorization header 沒被吃掉。"
+        "如果站台有安全外掛或 Nginx/Apache 規則，確認 Authorization header 沒被吃掉。",
+        "Apache 可嘗試在 .htaccess 加上：RewriteRule .* - [E=HTTP_AUTHORIZATION:%1]",
+        "Nginx 可嘗試加入：fastcgi_param HTTP_AUTHORIZATION $http_authorization;"
       ]
     };
   }
