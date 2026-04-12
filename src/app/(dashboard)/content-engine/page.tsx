@@ -32,7 +32,7 @@ export default async function ContentEnginePage() {
       <PageIntro
         eyebrow="Content Engine"
         title="AI 內容大腦"
-        description="丟進網址、文本或截圖素材，先用 persona 視角拆成 Threads 與 WordPress 草稿，人工審稿後再排程。"
+        description="丟進網址、文本或截圖素材，優先用 Gemini / Claude 做 persona rewrite，失敗時會退回本地規則生成草稿。"
       />
 
       <ContentEngineForm

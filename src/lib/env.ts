@@ -15,6 +15,7 @@ export const env = {
   threadsAppId: () => required("THREADS_APP_ID"),
   threadsAppSecret: () => required("THREADS_APP_SECRET"),
   threadsRedirectUri: () => required("THREADS_REDIRECT_URI"),
-  tokenEncryptionKey: () => required("TOKEN_ENCRYPTION_KEY")
+  tokenEncryptionKey: () => required("TOKEN_ENCRYPTION_KEY"),
+  anthropicApiKey: () => process.env.ANTHROPIC_API_KEY?.trim() || "",
+  geminiApiKey: () => process.env.GEMINI_API_KEY?.trim() || ""
 };
-

@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { rewriteContentWithAi } from "@/lib/ai/gateway";
 
 type IngestionInput = {
   sourceType: "url" | "text" | "image";
@@ -85,6 +86,33 @@ export async function ingestAndGenerateDrafts(input: IngestionInput) {
   const safeTitle = input.title?.trim() || "未命名素材";
   const safeText = input.rawText?.trim() || input.sourceUrl || "沒有附上文字內容";
   const summary = summarizeSource(safeTitle, safeText);
+  let aiProvider = "fallback";
+  let generated = {
+    summary,
+    threadsDraft: buildThreadsDraft(summary, personaPrompt, tone),
+    wordpressTitle: safeTitle,
+    wordpressExcerpt: summary.slice(0, 140),
+    wordpressHtml: buildWordPressDraft(safeTitle, summary, personaPrompt).html
+  };
+
+  try {
+    const aiResult = await rewriteContentWithAi({
+      title: safeTitle,
+      rawText: safeText,
+      personaPrompt,
+      tone
+    });
+
+    aiProvider = aiResult.provider;
+    generated = {
+      summary: aiResult.summary,
+      threadsDraft: aiResult.threadsDraft,
+      wordpressTitle: aiResult.wordpressTitle,
+      wordpressExcerpt: aiResult.wordpressExcerpt,
+      wordpressHtml: aiResult.wordpressHtml
+    };
+  } catch {}
+
   const generatedPostIds: string[] = [];
 
   const ingestion = await prisma.ingestionRecord.create({
@@ -96,7 +124,7 @@ export async function ingestAndGenerateDrafts(input: IngestionInput) {
       rawText: safeText,
       imageUrls: input.imageUrls?.length ? JSON.stringify(input.imageUrls) : null,
       status: "processed",
-      notes: `Persona: ${personaPrompt.slice(0, 120)}`
+      notes: `Persona: ${personaPrompt.slice(0, 120)} | Provider: ${aiProvider}`
     }
   });
 
@@ -106,7 +134,7 @@ export async function ingestAndGenerateDrafts(input: IngestionInput) {
         userId: user.id,
         accountId: threadsAccount.id,
         contentType: "text",
-        textContent: buildThreadsDraft(summary, personaPrompt, tone),
+        textContent: generated.threadsDraft,
         mediaUrls: input.imageUrls?.length ? JSON.stringify(input.imageUrls.slice(0, 1)) : null,
         status: "draft"
       }
@@ -115,16 +143,15 @@ export async function ingestAndGenerateDrafts(input: IngestionInput) {
   }
 
   if (wordpressAccount) {
-    const wpDraft = buildWordPressDraft(safeTitle, summary, personaPrompt);
     const wordpressDraft = await prisma.post.create({
       data: {
         userId: user.id,
         accountId: wordpressAccount.id,
         contentType: "text",
-        title: wpDraft.title,
-        textContent: wpDraft.excerpt,
-        htmlContent: wpDraft.html,
-        excerpt: wpDraft.excerpt,
+        title: generated.wordpressTitle,
+        textContent: generated.wordpressExcerpt,
+        htmlContent: generated.wordpressHtml,
+        excerpt: generated.wordpressExcerpt,
         featuredImageUrl: input.imageUrls?.[0] ?? null,
         status: "draft"
       }
