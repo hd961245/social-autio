@@ -21,6 +21,9 @@ THREADS_REDIRECT_URI=https://social-audio.zeabur.app/api/threads/callback
 TOKEN_ENCRYPTION_KEY=larry1201
 ANTHROPIC_API_KEY=
 CRON_SECRET=<請自行產生一組隨機字串>
+INNGEST_EVENT_KEY=<由 Inngest 提供>
+INNGEST_SIGNING_KEY=<由 Inngest 提供>
+INNGEST_SERVE_ORIGIN=https://social-audio.zeabur.app
 ```
 
 ## 3. Meta Threads 設定
@@ -50,18 +53,20 @@ npm run db:seed
 目前你提供的 `ADMIN_SESSION_SECRET` 與 `TOKEN_ENCRYPTION_KEY` 都偏弱，只適合暫時測試。
 正式上線前請改成隨機字串，並建議重設已曝光過的 `THREADS_APP_SECRET`。
 
-## 6. 自動排程發文
+## 6. Inngest 自動任務
 
-目前排程貼文會先寫進資料庫，但要真的在時間到時自動發出，還需要 Zeabur 定時呼叫 scheduler API。
+目前排程貼文、metrics 收集、關鍵字掃描與 automation 都改由 Inngest 觸發。
 
-在 Zeabur 新增一個 Scheduled Request：
-
-- 頻率：每 1 分鐘
-- Method：`GET`
-- URL：
+你需要在 Inngest 建立 app，並把 serve endpoint 指向：
 
 ```text
-https://social-audio.zeabur.app/api/cron/scheduler?secret=你的-CRON_SECRET
+https://social-audio.zeabur.app/api/inngest
 ```
 
-如果這一步沒有設，排程貼文只會停在 `scheduled`，不會自己發出去。
+接著在 Zeabur 環境變數中填入：
+
+- `INNGEST_EVENT_KEY`
+- `INNGEST_SIGNING_KEY`
+- `INNGEST_SERVE_ORIGIN=https://social-audio.zeabur.app`
+
+如果 Inngest 沒有成功 sync 到這個 endpoint，排程貼文會停在 `scheduled`，不會自己發出去。

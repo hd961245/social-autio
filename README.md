@@ -26,16 +26,23 @@ Open `http://localhost:3000`.
 
 - 建立 Zeabur `PostgreSQL` addon，將連線字串填到 `DATABASE_URL`
 - 設定環境變數：`ADMIN_PASSWORD`、`ADMIN_SESSION_SECRET`、`THREADS_APP_ID`、`THREADS_APP_SECRET`、`THREADS_REDIRECT_URI`、`TOKEN_ENCRYPTION_KEY`
-- 若要讓排程自動發文，另外設定 `CRON_SECRET`
+- 若要讓排程、metrics、keywords 與 automation 自動執行，另外設定 `INNGEST_EVENT_KEY`、`INNGEST_SIGNING_KEY`、`INNGEST_SERVE_ORIGIN`
 - `THREADS_REDIRECT_URI` 應設為 `https://social-audio.zeabur.app/api/threads/callback`
 - 首次部署後執行一次 `npm run db:push`
 
-## Scheduler
+## Inngest Jobs
 
-排程貼文不是只存進資料庫就會自己發，還需要一個定時器去呼叫：
+排程貼文不是只存進資料庫就會自己發，現在改由 Inngest 負責每分鐘觸發 scheduler function。
 
-`GET /api/cron/scheduler?secret=你的-CRON_SECRET`
+需要在 Inngest 將 app 連到：
 
-在 Zeabur 建議新增一個每 1 分鐘執行一次的 Scheduled Request，指向上面的 URL。
+`https://social-audio.zeabur.app/api/inngest`
+
+目前已內建的排程：
+
+- 每 1 分鐘：發布到期排程貼文
+- 每 6 小時：收集 metrics + 刷新即將到期 token
+- 每 30 分鐘：關鍵字掃描
+- 每 30 分鐘：自動化規則執行
 
 建議上線前重設 `THREADS_APP_SECRET`，並把 `ADMIN_SESSION_SECRET` 與 `TOKEN_ENCRYPTION_KEY` 換成高熵隨機值。

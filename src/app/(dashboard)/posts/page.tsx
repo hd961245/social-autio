@@ -18,8 +18,8 @@ export default async function PostsPage() {
       <section className="glass-panel rounded-[2rem] border border-[var(--border)] p-6">
         <div className="mb-6 flex items-center justify-between gap-4">
           <div>
-            <p className="text-sm text-[var(--muted)]">排程需要 Zeabur 定時呼叫 `/api/cron/scheduler` 才會自動發出。</p>
-            <p className="mt-1 text-xs text-[var(--muted)]">如果還沒設 Scheduled Request，貼文會停在 `scheduled`。</p>
+            <p className="text-sm text-[var(--muted)]">排程由 Inngest 每分鐘觸發一次 scheduler function。</p>
+            <p className="mt-1 text-xs text-[var(--muted)]">如果 Inngest 尚未連到 `/api/inngest`，貼文會停在 `scheduled`。</p>
           </div>
           <div className="flex gap-3">
             <form action="/api/cron/scheduler" method="post">
