@@ -277,6 +277,51 @@ Step 3: POST /{user_id}/threads_publish
 
 ---
 
+### F6: AI 內容大腦與視角重寫（Content Engine）
+
+**優先級**：P1（MVP 關鍵差異化功能）
+
+**場景**：接收外部優質文章、調研資料或競品內容，套用既定 IP 人設後，重新生成多平台內容草稿。
+
+#### F6.1 快速輸入接口（Ingestion）
+
+| 項目 | 規格 |
+|------|------|
+| 入口形式 | 提供一組專屬 Webhook API 網址，可綁定 iOS 捷徑、Telegram Bot、Zapier 或其他自動化入口 |
+| 輸入格式 | URL 網址 / 純文本 / 圖片或截圖 |
+| 最低處理流程 | 接收 payload → 建立 IngestionRecord → 丟入 AI 任務佇列 → 回傳 request id |
+| 失敗處理 | 任務失敗時保留原始輸入，允許重新投遞 |
+
+#### F6.2 視角重寫（Persona Rewriting）
+
+| 項目 | 規格 |
+|------|------|
+| 全域設定 | 使用者可在後台設定「IP 人設 System Prompt」 |
+| Prompt 範例 | 都會貓頭鷹 DODO 語氣 / 東方玄學視角 / 冷靜投資研究員 / 高密度產業評論者 |
+| AI 工作內容 | 解析來源內容、抽出重點、改寫成指定視角與語氣 |
+| 可配置參數 | 語氣強度、結論先行與否、可接受的誇張程度、是否保留引用來源 |
+| 審核模式 | 預設先進草稿，由使用者審閱後再排程發布 |
+
+#### F6.3 多平台格式拆解
+
+| 項目 | 規格 |
+|------|------|
+| 一次產出 | WordPress SEO 長文草稿 + Threads 500 字破題短文 + IG 輪播圖分鏡文案 |
+| 結果儲存 | 每個平台各建立一筆 Post 紀錄，狀態預設為 `draft` |
+| 工作流 | 使用者審閱草稿 → 可微調 → 點擊排程發布 |
+| 可擴展性 | 未來可加入 X/Twitter、LinkedIn、電子報版本 |
+
+#### F6.4 爆款潛力評估
+
+| 項目 | 規格 |
+|------|------|
+| 評估對象 | 已發布內容 + AI 生成草稿 |
+| 輸出 | 爆款潛力分數、原因摘要、建議重寫方向 |
+| 判斷依據 | 歷史互動指標、文案結構、主題切角、平台長度適配度 |
+| 用途 | 決定先排哪篇、是否要再重寫一次、是否延伸為長文或圖文輪播 |
+
+---
+
 ## 4. 技術架構
 
 ### 4.1 技術選型
@@ -289,9 +334,12 @@ Step 3: POST /{user_id}/threads_publish
 | ORM | Prisma | 型別安全查詢、migration 系統、多資料庫切換 |
 | UI 元件 | shadcn/ui + Tailwind CSS | 高品質 Dashboard 元件，快速開發 |
 | 圖表 | Recharts | React 原生、適合時序資料視覺化 |
-| 排程 | node-cron (MVP) → BullMQ + Redis (正式) | MVP 簡單，正式環境支援重試與並行 |
+| 任務編排 | Inngest 或 Trigger.dev | 原生支援 Next.js，適合 AI 長任務、可重試、可視化執行狀態，避免 node-cron / API Route timeout 地雷 |
+| Zeabur 佈署模式 | Frontend/API 與 Scheduler Worker 分離成兩個 Service | 若採 Zeabur，自動任務與 Web 請求分離，降低 timeout 與記憶體競爭 |
 | 使用者驗證 | 環境變數密碼 + middleware | 個人使用，簡易密碼保護即可（免 NextAuth） |
-| AI 回覆 | Claude API (@anthropic-ai/sdk) | 自然語言回覆生成 |
+| AI Gateway | 自建多模型 gateway（provider adapter） | 將 Claude 與 Gemini 統一成同一層介面，方便依任務切換模型 |
+| AI 回覆 | Claude 3.5 Sonnet | 擅長高敏感度語氣模擬、品牌人格一致性與回覆品質控制 |
+| AI 重寫引擎 | Gemini 1.5 Pro / Flash | 原生多模態、超長 context，適合吃截圖、長篇調研資料與多平台內容拆解 |
 | 多語系 | next-intl | 繁體中文（zh-TW）+ 英文 |
 
 ### 4.2 專案結構
@@ -326,20 +374,28 @@ social-autio/
 │   │   │   │   └── page.tsx       # 數據分析圖表
 │   │   │   ├── keywords/
 │   │   │   │   └── page.tsx       # 關鍵字監控
+│   │   │   ├── content-engine/
+│   │   │   │   └── page.tsx       # AI 內容重寫與審稿工作台
 │   │   │   └── automation/
 │   │   │       └── page.tsx       # 自動化規則
 │   │   └── api/
 │   │       ├── auth/route.ts            # 簡易密碼驗證 API
+│   │       ├── ingest/route.ts          # 外部 Webhook 入口（URL / text / image）
 │   │       ├── threads/
 │   │       │   ├── callback/route.ts   # OAuth 回調
 │   │       │   ├── publish/route.ts    # 觸發發文
 │   │       │   └── insights/route.ts   # 指標查詢
-│   │       └── cron/
-│   │           ├── scheduler/route.ts  # 排程發文處理
-│   │           ├── metrics/route.ts    # 指標收集
-│   │           └── keywords/route.ts   # 關鍵字掃描
+│   │       └── jobs/
+│   │           ├── scheduler/route.ts  # 觸發排程 worker
+│   │           ├── metrics/route.ts    # 指標收集 worker
+│   │           ├── keywords/route.ts   # 關鍵字掃描 worker
+│   │           └── content/route.ts    # AI 內容重寫 worker
 │   ├── lib/
 │   │   ├── prisma.ts              # Prisma client singleton
+│   │   ├── ai/
+│   │   │   ├── gateway.ts         # Claude / Gemini provider router
+│   │   │   ├── prompts.ts         # Persona、rewriting、reply prompt templates
+│   │   │   └── content-engine.ts  # 多平台內容生成 orchestration
 │   │   ├── platforms/
 │   │   │   ├── types.ts           # 平台抽象介面（PlatformAdapter）
 │   │   │   ├── index.ts           # 平台 registry/factory
@@ -349,11 +405,14 @@ social-autio/
 │   │   │   │   ├── publisher.ts   # 發文邏輯（容器→發布）
 │   │   │   │   ├── insights.ts    # 指標抓取
 │   │   │   │   └── tokens.ts      # Token 刷新邏輯
-│   │   │   └── wordpress/         # （Phase 6 擴展）
+│   │   │   └── wordpress/         # （Phase 7 擴展）
 │   │   │       ├── client.ts      # WordPress REST API 客戶端
 │   │   │       └── publisher.ts   # 文章發布/更新
-│   │   ├── scheduler/
-│   │   │   └── engine.ts          # 排程處理引擎
+│   │   ├── workers/
+│   │   │   ├── scheduler.ts       # 排程發文 worker
+│   │   │   ├── metrics.ts         # 指標收集 worker
+│   │   │   ├── keywords.ts        # 關鍵字掃描 worker
+│   │   │   └── content-engine.ts  # AI 生成與重寫 worker
 │   │   ├── keywords/
 │   │   │   └── monitor.ts         # 關鍵字比對引擎
 │   │   └── automation/
@@ -368,9 +427,12 @@ social-autio/
 │   │       └── keyword-table.tsx  # 關鍵字命中表格
 │   └── hooks/
 │       ├── use-accounts.ts        # 帳號資料 hook
-│       └── use-metrics.ts         # 指標資料 hook
-├── scripts/
-│   └── setup-cron.ts              # 獨立 cron 執行器
+│       ├── use-metrics.ts         # 指標資料 hook
+│       └── use-content-engine.ts  # AI 內容工作台 hook
+├── inngest/
+│   └── functions.ts               # Inngest / Trigger.dev 任務定義
+├── workers/
+│   └── scheduler-service.ts       # Zeabur 獨立 Scheduler Worker（若採雙 service）
 ├── .env.example                   # 環境變數範本
 ├── next.config.ts
 ├── tailwind.config.ts
@@ -656,7 +718,7 @@ https://graph.threads.net/v1.0
 |------|------|
 | 多平台 | PlatformAdapter 介面抽象，新平台只需實作介面 |
 | 帳號規模 | 初期 1-5 個，資料庫 index 設計支援 20+ 帳號 |
-| 排程系統 | MVP 用 node-cron，可平滑遷移至 BullMQ + Redis |
+| 排程系統 | 採 Inngest / Trigger.dev 或獨立 Scheduler Worker，支援 retry、觀察與長任務處理 |
 
 ---
 
@@ -669,9 +731,10 @@ https://graph.threads.net/v1.0
 | **3** | 排程發文 + 佇列管理 | 排程選擇器、Cron 自動發布、佇列管理頁、Carousel 支援、配額追蹤 | 1 週 |
 | **4** | 關鍵字監控 | 關鍵字 CRUD、回覆樹掃描 Cron、命中列表、快速動作按鈕 | 1 週 |
 | **5** | 自動回覆 / 互動規則 | 規則建立 UI、模板回覆、Claude AI 回覆、安全機制、活動日誌 | 1-2 週 |
-| **6** | WordPress 部落格整合 | WordPressAdapter 實作、REST API 連接、文章發布/排程、富文本編輯器 | 1-2 週 |
+| **6** | AI 內容大腦 / Persona 重寫 | Webhook ingestion、Persona prompt、Gemini 內容重寫、多平台草稿拆解、爆款潛力分析 | 1-2 週 |
+| **7** | WordPress 部落格整合 | WordPressAdapter 實作、REST API 連接、文章發布/排程、富文本編輯器 | 1-2 週 |
 
-**MVP 範圍**：Phase 1 + Phase 2（帳號連接 + 發文 + 基本監控）
+**MVP 範圍**：Phase 1 + Phase 2 + Phase 6（帳號連接 + 發文 + 基本監控 + AI 內容重寫）
 
 ---
 
@@ -689,9 +752,10 @@ GitHub Repo (social-autio)
     ├── push → Zeabur 自動部署
     │
     └── Zeabur Project
-        ├── Next.js Service     ← 主應用程式
-        ├── PostgreSQL Addon    ← 資料庫
-        └── Redis Addon         ← 排程佇列（Phase 3+）
+        ├── Next.js Service       ← 前台 + API
+        ├── Scheduler Worker      ← 任務執行器（可為 Inngest/Trigger.dev worker）
+        ├── PostgreSQL Addon      ← 資料庫
+        └── Object Storage / Queue ← 素材與任務中介（視 provider 選型）
 ```
 
 ### 9.3 環境變數
@@ -708,7 +772,7 @@ THREADS_APP_ID=your_threads_app_id
 THREADS_APP_SECRET=your_threads_app_secret
 THREADS_REDIRECT_URI=https://your-domain.zeabur.app/api/threads/callback
 
-# WordPress（Phase 6）
+# WordPress（Phase 7）
 WORDPRESS_SITE_URL=https://your-wordpress-site.com
 WORDPRESS_USERNAME=your_wp_username
 WORDPRESS_APP_PASSWORD=xxxx_xxxx_xxxx_xxxx  # WordPress Application Password
@@ -716,11 +780,13 @@ WORDPRESS_APP_PASSWORD=xxxx_xxxx_xxxx_xxxx  # WordPress Application Password
 # AI 回覆（Phase 5）
 ANTHROPIC_API_KEY=sk-ant-...
 
+# AI 內容重寫（Phase 6）
+GEMINI_API_KEY=AIza...
+AI_GATEWAY_PROVIDER=claude,gemini
+GLOBAL_PERSONA_PROMPT=你是都會貓頭鷹 DODO，擅長把資訊轉成有觀點的社群內容
+
 # Token 加密
 TOKEN_ENCRYPTION_KEY=random_32_char_encryption_key
-
-# Redis（Phase 3+）
-REDIS_URL=redis://host:6379
 ```
 
 ### 9.4 Meta Developer Console 設定
@@ -746,6 +812,8 @@ REDIS_URL=redis://host:6379
 | Token 自動刷新 | 每日 | 1 | 刷新 7 天內到期的長期 Token |
 | 關鍵字掃描 | 每 30 分鐘 | 4 | 掃描自有帳號貼文回覆樹 |
 | 自動化規則執行 | 每 30 分鐘 | 5 | 處理待執行的自動化動作 |
+| 內容輸入處理 | 即時 | 6 | Webhook 收到 URL / text / image 後建立 AI 任務 |
+| 內容重寫與多平台拆解 | 視事件觸發 | 6 | 呼叫 Gemini / Claude 生成 WordPress、Threads、IG 草稿 |
 
 ---
 
@@ -754,11 +822,13 @@ REDIS_URL=redis://host:6379
 | 風險 | 等級 | 說明 | 緩解措施 |
 |------|------|------|----------|
 | Threads API 無搜尋功能 | 高 | 無法搜尋全域關鍵字 | 先掃描自有帳號回覆樹；架構預留擴展 |
+| 無法主動全域口碑狙擊 | 高 | Threads API 無全域搜尋，無法主動去別人熱門串底下留言 | 將 F4 定位為被動防禦；熱點探索交由外部搜尋 / 爬蟲服務 |
 | 發文配額 250/天 | 中 | 多帳號共用配額需注意 | 前端顯示配額、排程分散發送 |
 | Token 60 天到期 | 中 | 忘記刷新會斷線 | 自動刷新 Cron + 到期警告 |
 | Meta App Review | 中 | 正式上線需通過審核 | 開發模式 + Testers 先行測試 |
 | 帳號風控 | 高 | 大量自動化可能觸發平台偵測 | 隨機延遲、每日上限、人工介入機制 |
 | AI 回覆品質 | 低 | AI 生成內容可能不適當 | 提供人工審核模式、回覆預覽 |
+| AI 長任務 timeout | 高 | 在單一 Next.js service 內跑長任務容易 timeout 或吃滿記憶體 | 採 Inngest / Trigger.dev 或獨立 Scheduler Worker |
 
 ---
 
@@ -771,6 +841,8 @@ REDIS_URL=redis://host:6379
 | 指標收集完整率 | > 98%（每 6 小時無遺漏） |
 | 關鍵字命中回應時間 | < 30 分鐘（掃描週期內） |
 | Dashboard 載入速度 | < 2 秒 |
+| AI 重寫成功率 | > 90% |
+| AI 草稿審閱後採用率 | > 40% |
 
 ---
 
@@ -778,7 +850,7 @@ REDIS_URL=redis://host:6379
 
 | 功能 | 優先級 | Phase | 說明 |
 |------|--------|-------|------|
-| **WordPress 部落格整合** | **P2** | **6** | **實作 WordPressAdapter，透過 REST API 發布/管理文章（使用者已有 WordPress 站台）** |
+| **WordPress 部落格整合** | **P2** | **7** | **實作 WordPressAdapter，透過 REST API 發布/管理文章（使用者已有 WordPress 站台）** |
 | Instagram 整合 | P3 | 7+ | 實作 InstagramAdapter |
 | Twitter/X 整合 | P3 | 7+ | 實作 TwitterAdapter |
 | 短影片發布 | P4 | — | 支援 Reels / TikTok |
@@ -788,10 +860,11 @@ REDIS_URL=redis://host:6379
 | Webhook 通知 | P3 | — | 關鍵字命中時推送 LINE/Slack 通知 |
 | A/B 測試 | P4 | — | 同一內容不同版本的成效比較 |
 | Threads ↔ WordPress 連動 | P3 | — | Threads 貼文自動同步為部落格文章，或反向摘要發布 |
+| Google Custom Search / Firecrawl 熱點雷達 | P2 | — | 每日抓取特定媒體、Dcard、PTT 或新聞標題，交給 AI 判斷是否值得評論並自動建立 Threads 草稿 |
 
 ---
 
-## 附錄 B: WordPress 整合規格（Phase 6）
+## 附錄 B: WordPress 整合規格（Phase 7）
 
 ### B.1 整合方式
 
