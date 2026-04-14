@@ -1,22 +1,27 @@
 import { PageIntro } from "@/components/dashboard/page-intro";
 import { WordPressConnectForm } from "@/components/dashboard/wordpress-connect-form";
+import { WordPressStyleProfileCard } from "@/components/dashboard/wordpress-style-profile-card";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
 export default async function WordPressPage() {
   let sites: Awaited<ReturnType<typeof prisma.platformAccount.findMany>> = [];
+  let settings: Awaited<ReturnType<typeof prisma.appSettings.findFirst>> = null;
 
   try {
-    sites = await prisma.platformAccount.findMany({
-      where: {
-        platform: "wordpress",
-        isActive: true
-      },
-      orderBy: {
-        updatedAt: "desc"
-      }
-    });
+    [sites, settings] = await Promise.all([
+      prisma.platformAccount.findMany({
+        where: {
+          platform: "wordpress",
+          isActive: true
+        },
+        orderBy: {
+          updatedAt: "desc"
+        }
+      }),
+      prisma.appSettings.findFirst()
+    ]);
   } catch {}
 
   return (
@@ -27,6 +32,15 @@ export default async function WordPressPage() {
         description="這裡只負責連接站台和接收草稿。Threads 轉進來的長文、或你在 Compose 手動建立的文章，都會以 draft 形式同步。"
       />
       <WordPressConnectForm />
+      <WordPressStyleProfileCard
+        sites={sites.map((site) => ({
+          id: site.id,
+          siteUrl: site.platformUserId,
+          username: site.platformUsername
+        }))}
+        initialWritingStyleProfile={settings?.writingStyleProfile ?? ""}
+        initialAffiliateLinkPolicy={settings?.affiliateLinkPolicy ?? ""}
+      />
       <section className="glass-panel rounded-[2rem] border border-[var(--border)] p-6">
         <div className="flex items-center justify-between gap-4">
           <div>

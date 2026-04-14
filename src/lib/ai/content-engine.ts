@@ -89,8 +89,13 @@ export async function ingestAndGenerateDrafts(input: IngestionInput) {
   });
 
   const settings = await prisma.appSettings.findFirst();
-  const personaPrompt =
-    settings?.globalPersonaPrompt?.trim() || "用冷靜、有觀點、像內容策略師一樣的語氣，幫我拆解重點。";
+  const personaPrompt = [
+    settings?.globalPersonaPrompt?.trim() || "用冷靜、有觀點、像內容策略師一樣的語氣，幫我拆解重點。",
+    settings?.writingStyleProfile?.trim() ? `寫作風格基底：${settings.writingStyleProfile.trim()}` : "",
+    settings?.affiliateLinkPolicy?.trim() ? `聯盟與推廣連結策略：${settings.affiliateLinkPolicy.trim()}` : ""
+  ]
+    .filter(Boolean)
+    .join("\n\n");
   const tone = settings?.defaultTone?.trim() || "sharp-observer";
   const preferredProvider = (settings?.aiProvider?.trim() as "auto" | "gemini" | "claude" | "openai" | undefined) || "auto";
 

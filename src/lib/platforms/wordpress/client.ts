@@ -14,7 +14,25 @@ type WordPressDiagnostic = {
   hints: string[];
 };
 
+type WordPressPostListItem = {
+  id: number;
+  date?: string;
+  link?: string;
+  title?: {
+    rendered?: string;
+  };
+  excerpt?: {
+    rendered?: string;
+  };
+  content?: {
+    rendered?: string;
+  };
+  slug?: string;
+  status?: string;
+};
+
 export type { WordPressDiagnostic };
+export type { WordPressPostListItem };
 
 export async function getWordPressAccountContext(accountId: string): Promise<WordPressAccountContext> {
   const account = await prisma.platformAccount.findUnique({
@@ -166,4 +184,15 @@ export async function diagnoseWordPressConnection(
       ]
     };
   }
+}
+
+export async function fetchWordPressPosts(accountId: string, perPage = 20): Promise<WordPressPostListItem[]> {
+  const account = await getWordPressAccountContext(accountId);
+
+  return wordpressFetch<WordPressPostListItem[]>(
+    account.siteUrl,
+    account.username,
+    account.appPassword,
+    `/wp-json/wp/v2/posts?context=edit&per_page=${Math.min(Math.max(perPage, 1), 50)}&_fields=id,date,link,slug,status,title,excerpt,content`
+  );
 }
