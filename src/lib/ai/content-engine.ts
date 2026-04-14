@@ -41,17 +41,34 @@ function buildWordPressDraft(title: string, summary: string, personaPrompt: stri
   const paragraphs = summary
     .split(/(?<=[。！？.!?])\s+/)
     .filter(Boolean)
-    .slice(0, 6)
+    .slice(0, 8)
     .map((line) => `<p>${line}</p>`)
+    .join("\n");
+  const points = summary
+    .split(/(?<=[。！？.!?])\s+/)
+    .filter(Boolean)
+    .slice(0, 3)
+    .map((line) => `<li>${line}</li>`)
     .join("\n");
 
   return {
     title: heading,
     excerpt: summary.slice(0, 140),
     html: `
-<p>這是一篇由 Content Engine 根據外部素材整理出的初稿，方便後續人工審閱與排程。</p>
+<p>這是一篇由 Content Engine 根據外部素材整理出的長文初稿，先把核心觀點、背景脈絡與後續行動整理好，方便你直接細修。</p>
 ${personaBlock}
+<h2>先說結論</h2>
+<p>${summary.slice(0, 160)}</p>
+<h2>背景與脈絡</h2>
 ${paragraphs}
+<h2>這篇內容最值得抓的重點</h2>
+<ul>
+  ${points}
+</ul>
+<h2>延伸觀點</h2>
+<p>如果要把這篇內容發展成更完整的 blog 文章，下一步可以補上案例、數據、你的個人立場，以及讀者看完後能立即採取的動作。</p>
+<h2>結尾 CTA</h2>
+<p>你可以在這裡補上一段自己的總結，或邀請讀者回覆、留言、訂閱，讓這篇文章從整理稿變成真正可發佈的內容。</p>
 <h2>可以再補強的地方</h2>
 <ul>
   <li>補案例與數據</li>
@@ -95,6 +112,7 @@ export async function ingestAndGenerateDrafts(input: IngestionInput) {
   const sourceUrl = input.sourceUrl?.trim();
   let extractedTitle = "";
   let extractedText = "";
+  let extractedExcerpt = "";
   let sourceNote = "";
 
   if (input.sourceType === "url" && sourceUrl) {
@@ -102,6 +120,7 @@ export async function ingestAndGenerateDrafts(input: IngestionInput) {
       const extracted = await extractContentFromUrl(sourceUrl);
       extractedTitle = extracted.title;
       extractedText = extracted.text;
+      extractedExcerpt = extracted.excerpt;
       sourceNote = `URL import: ${extracted.sourceLabel} | Resolved: ${extracted.resolvedUrl}`;
     } catch (error) {
       sourceNote = error instanceof Error ? `URL import fallback: ${error.message}` : "URL import fallback";
@@ -134,7 +153,7 @@ export async function ingestAndGenerateDrafts(input: IngestionInput) {
       summary: aiResult.summary,
       threadsDraft: aiResult.threadsDraft,
       wordpressTitle: aiResult.wordpressTitle,
-      wordpressExcerpt: aiResult.wordpressExcerpt,
+      wordpressExcerpt: aiResult.wordpressExcerpt || extractedExcerpt || summary.slice(0, 140),
       wordpressHtml: aiResult.wordpressHtml
     };
   } catch {}

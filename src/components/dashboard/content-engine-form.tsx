@@ -31,6 +31,13 @@ export function ContentEngineForm({
   recentIngestions: IngestionSummary[];
   recentDrafts: DraftSummary[];
 }) {
+  const [preview, setPreview] = useState<{
+    title: string;
+    excerpt: string;
+    text: string;
+    sourceLabel: string;
+    resolvedUrl: string;
+  } | null>(null);
   const [sourceType, setSourceType] = useState<"url" | "text" | "image">("text");
   const [title, setTitle] = useState("");
   const [sourceUrl, setSourceUrl] = useState("");
@@ -43,6 +50,7 @@ export function ContentEngineForm({
   const [ingestions, setIngestions] = useState(recentIngestions);
   const [drafts, setDrafts] = useState(recentDrafts);
   const [isPending, startTransition] = useTransition();
+  const [isPreviewPending, startPreviewTransition] = useTransition();
 
   return (
     <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
@@ -94,6 +102,7 @@ export function ContentEngineForm({
               }
 
               setMessage(result.message ?? "草稿已生成，右側可以直接點進去繼續修。");
+              setPreview(null);
               setIngestions((current) => [
                 {
                   id: result.ingestionId,
@@ -153,6 +162,46 @@ export function ContentEngineForm({
               <p className="mt-3 text-sm text-[var(--muted)]">
                 支援貼入公開 Threads 貼文、部落格文章或公開 Facebook Page 內容連結。若平台限制抓取，系統會退回連結改寫模式。
               </p>
+              <div className="mt-4 flex flex-wrap gap-3">
+                <button
+                  type="button"
+                  disabled={!sourceUrl || isPending || isPreviewPending}
+                  className="rounded-full border border-[var(--border-strong)] px-4 py-2 text-sm text-[var(--foreground)] disabled:opacity-60"
+                  onClick={() => {
+                    startPreviewTransition(async () => {
+                      setMessage(null);
+                      const response = await fetch("/api/ingest/preview", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ sourceUrl })
+                      });
+                      const result = await response.json();
+
+                      if (!response.ok) {
+                        setPreview(null);
+                        setMessage(result.message ?? "網址預覽失敗");
+                        return;
+                      }
+
+                      setPreview(result.preview);
+                      if (!title) {
+                        setTitle(result.preview.title ?? "");
+                      }
+                    });
+                  }}
+                >
+                  {isPreviewPending ? "抓取中..." : "先看抓取預覽"}
+                </button>
+                {preview ? (
+                  <button
+                    type="button"
+                    className="rounded-full border border-[var(--border)] px-4 py-2 text-sm text-[var(--muted)]"
+                    onClick={() => setPreview(null)}
+                  >
+                    清除預覽
+                  </button>
+                ) : null}
+              </div>
             </div>
           ) : null}
 
@@ -226,6 +275,32 @@ export function ContentEngineForm({
 
       <div className="space-y-6">
         <section className="glass-panel rounded-[2rem] border border-[var(--border)] p-6">
+          {preview ? (
+            <article className="mb-4 rounded-[1.4rem] border border-[var(--border-strong)] bg-[var(--accent-soft)] p-4 text-[var(--foreground)]">
+              <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">
+                Import Preview · {preview.sourceLabel}
+              </p>
+              <h3 className="mt-2 text-xl font-semibold">{preview.title}</h3>
+              <p className="mt-3 text-sm leading-7 text-[var(--foreground)]/80">{preview.excerpt}</p>
+              <div className="mt-4 rounded-[1.2rem] bg-white/75 p-4 text-sm leading-7 text-[var(--foreground)]">
+                {preview.text
+                  .split("\n")
+                  .filter(Boolean)
+                  .slice(0, 4)
+                  .map((line, index) => (
+                    <p key={`${line}-${index}`}>{line}</p>
+                  ))}
+              </div>
+              <a
+                href={preview.resolvedUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-4 inline-flex text-sm font-medium text-[var(--accent)]"
+              >
+                打開原始內容
+              </a>
+            </article>
+          ) : null}
           <p className="text-[11px] uppercase tracking-[0.3em] text-[var(--muted)]">Recent Ingestions</p>
           <h2 className="mt-2 text-2xl font-semibold">最近輸入</h2>
           <div className="mt-4 space-y-3">
