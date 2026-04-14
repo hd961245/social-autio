@@ -1,0 +1,93 @@
+import { NextResponse } from "next/server";
+import { ingestAndGenerateDrafts } from "@/lib/ai/content-engine";
+import { refreshSourceWatch } from "@/lib/content/source-watch";
+import { prisma } from "@/lib/prisma";
+
+export async function POST(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+
+  try {
+    const watch = await prisma.sourceWatch.findUnique({
+      where: { id }
+    });
+
+    if (!watch) {
+      return NextResponse.json({ ok: false, message: "找不到這個來源。" }, { status: 404 });
+    }
+
+    const preview = await refreshSourceWatch(watch.sourceType, watch.sourceUrl);
+
+    await prisma.sourceWatch.update({
+      where: { id: watch.id },
+      data: {
+        lastFetchedAt: new Date(),
+        lastItemTitle: preview.title,
+        lastItemUrl: preview.url,
+        lastExcerpt: preview.excerpt,
+        lastError: null
+      }
+    });
+
+    return NextResponse.json({
+      ok: true,
+      preview
+    });
+  } catch (error) {
+    await prisma.sourceWatch.updateMany({
+      where: { id },
+      data: {
+        lastError: error instanceof Error ? error.message : "Refresh failed"
+      }
+    });
+
+    return NextResponse.json(
+      { ok: false, message: error instanceof Error ? error.message : "Refresh failed" },
+      { status: 400 }
+    );
+  }
+}
+
+export async function PUT(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+
+  try {
+    const watch = await prisma.sourceWatch.findUnique({
+      where: { id }
+    });
+
+    if (!watch) {
+      return NextResponse.json({ ok: false, message: "找不到這個來源。" }, { status: 404 });
+    }
+
+    const preview = await refreshSourceWatch(watch.sourceType, watch.sourceUrl);
+    const result = await ingestAndGenerateDrafts({
+      sourceType: "url",
+      sourceUrl: preview.url,
+      title: preview.title,
+      rawText: preview.excerpt
+    });
+
+    await prisma.sourceWatch.update({
+      where: { id: watch.id },
+      data: {
+        lastFetchedAt: new Date(),
+        lastItemTitle: preview.title,
+        lastItemUrl: preview.url,
+        lastExcerpt: preview.excerpt,
+        lastError: null
+      }
+    });
+
+    return NextResponse.json({
+      ok: true,
+      message: "已從來源建立新的草稿。",
+      ...result,
+      preview
+    });
+  } catch (error) {
+    return NextResponse.json(
+      { ok: false, message: error instanceof Error ? error.message : "Import failed" },
+      { status: 400 }
+    );
+  }
+}

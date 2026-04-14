@@ -9,6 +9,7 @@ const navItems = [
   { href: "/posts", label: "Queue", hint: "threads queue + wp drafts" },
   { href: "/analytics", label: "分析", hint: "insights + quota" },
   { href: "/content-engine", label: "內容引擎", hint: "rewrite + split" },
+  { href: "/sources", label: "來源", hint: "watchlist + import" },
   { href: "/keywords", label: "關鍵字", hint: "monitor + hits" },
   { href: "/automation", label: "自動化", hint: "rules + safety" },
   { href: "/wordpress", label: "WP 草稿", hint: "connect + draft sync" }
