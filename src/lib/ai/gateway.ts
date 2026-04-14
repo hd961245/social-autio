@@ -5,6 +5,7 @@ type RewriteInput = {
   rawText: string;
   personaPrompt: string;
   tone: string;
+  wordpressTemplate?: "opinion" | "case-study" | "tool-review" | "weekly-recap";
   preferredProvider?: "auto" | "gemini" | "claude" | "openai";
 };
 
@@ -47,11 +48,13 @@ function buildPrompt(input: RewriteInput) {
     "你是一個多平台內容編輯引擎。",
     `Persona: ${input.personaPrompt}`,
     `Tone: ${input.tone}`,
+    `WordPress template: ${input.wordpressTemplate ?? "opinion"}`,
     "請根據輸入素材，輸出 JSON，欄位必須只有：summary, threadsDraft, wordpressTitle, wordpressExcerpt, wordpressHtml。",
     "threadsDraft 必須適合 Threads，500 字以內。",
     "wordpressExcerpt 請控制在 140 字內。",
     "wordpressHtml 請輸出可直接貼入 WordPress 的 HTML 內容，而且要像一篇真的可編輯 blog 初稿，不要只有摘要。",
     "wordpressHtml 結構至少包含：開頭導語、2-4 個小標段落、重點條列、結尾觀點或 CTA。",
+    "wordpressHtml 必須保留一個明確的聯盟連結 / 推廣連結插槽區塊。",
     "如果來源是一則社群貼文，請主動補出『為什麼這件事值得注意』與『可執行的下一步』。",
     `Title: ${input.title}`,
     `Source: ${input.rawText}`

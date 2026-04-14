@@ -7,7 +7,8 @@ const ingestSchema = z.object({
   sourceUrl: z.string().url().optional(),
   title: z.string().trim().max(200).optional(),
   rawText: z.string().trim().max(30000).optional(),
-  imageUrls: z.array(z.string().url()).optional()
+  imageUrls: z.array(z.string().url()).optional(),
+  wordpressTemplate: z.enum(["opinion", "case-study", "tool-review", "weekly-recap"]).optional()
 });
 
 export async function POST(request: Request) {

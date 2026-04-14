@@ -2,6 +2,13 @@
 
 import { useState, useTransition } from "react";
 
+const wordpressTemplates = [
+  { value: "opinion", label: "觀點文" },
+  { value: "case-study", label: "案例拆解" },
+  { value: "tool-review", label: "工具推薦" },
+  { value: "weekly-recap", label: "週報 Recap" }
+] as const;
+
 type DraftSummary = {
   id: string;
   platform: string;
@@ -39,6 +46,7 @@ export function ContentEngineForm({
     resolvedUrl: string;
   } | null>(null);
   const [sourceType, setSourceType] = useState<"url" | "text" | "image">("text");
+  const [wordpressTemplate, setWordpressTemplate] = useState<(typeof wordpressTemplates)[number]["value"]>("opinion");
   const [title, setTitle] = useState("");
   const [sourceUrl, setSourceUrl] = useState("");
   const [rawText, setRawText] = useState("");
@@ -87,6 +95,7 @@ export function ContentEngineForm({
                   sourceUrl: sourceType === "url" ? sourceUrl : undefined,
                   title,
                   rawText,
+                  wordpressTemplate,
                   imageUrls: imageUrls
                     .split(",")
                     .map((item) => item.trim())
@@ -260,6 +269,26 @@ export function ContentEngineForm({
                 <option value="openai">OpenAI</option>
               </select>
             </label>
+          </div>
+          <div className="rounded-3xl bg-white/85 p-4">
+            <label className="mb-2 block text-sm text-[var(--muted)]">WordPress 草稿版型</label>
+            <div className="grid gap-3 md:grid-cols-4">
+              {wordpressTemplates.map((template) => (
+                <button
+                  key={template.value}
+                  type="button"
+                  className={`rounded-2xl border px-4 py-3 text-sm ${
+                    wordpressTemplate === template.value
+                      ? "border-[var(--border-strong)] bg-[var(--accent-soft)] text-[var(--foreground)]"
+                      : "border-[var(--border)] bg-white text-[var(--muted)]"
+                  }`}
+                  onClick={() => setWordpressTemplate(template.value)}
+                >
+                  {template.label}
+                </button>
+              ))}
+            </div>
+            <p className="mt-3 text-sm text-[var(--muted)]">生成的 WordPress draft 會依照這個版型保留結構與聯盟連結插槽。</p>
           </div>
 
           <button

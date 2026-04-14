@@ -2,6 +2,82 @@
 
 import { useState, useTransition } from "react";
 
+const wordpressTemplates = [
+  {
+    id: "opinion",
+    label: "觀點文",
+    html: `<h2>先說觀點</h2>
+<p>先用一段話講清楚你的判斷。</p>
+<h2>背景與脈絡</h2>
+<p>補上事件背景、趨勢或市場情境。</p>
+<h2>我會怎麼看</h2>
+<p>放進你的分析、立場與延伸觀察。</p>
+<h2>推薦工具 / 聯盟連結插槽</h2>
+<ul>
+  <li>主推薦工具：待填寫</li>
+  <li>延伸閱讀或替代方案：待填寫</li>
+  <li>Disclosure：若含聯盟連結，正式發佈前請補上揭露。</li>
+</ul>
+<h2>最後 CTA</h2>
+<p>補上你希望讀者採取的下一步。</p>`
+  },
+  {
+    id: "case-study",
+    label: "案例拆解",
+    html: `<h2>案例概覽</h2>
+<p>快速說明這次案例是什麼、為什麼值得拆。</p>
+<h2>拆解過程</h2>
+<p>逐段分析操作方式、切角或節奏。</p>
+<h2>可複製的關鍵</h2>
+<ul>
+  <li>做對了什麼</li>
+  <li>哪裡有機會優化</li>
+  <li>你可以怎麼套用</li>
+</ul>
+<h2>推薦工具 / 聯盟連結插槽</h2>
+<p>這裡放可搭配案例一起推薦的工具、課程或服務。</p>
+<h2>結尾 CTA</h2>
+<p>邀請讀者延伸閱讀、追蹤或留言。</p>`
+  },
+  {
+    id: "tool-review",
+    label: "工具推薦",
+    html: `<h2>這個工具值不值得用</h2>
+<p>先給結論與適用人群。</p>
+<h2>實際使用感受</h2>
+<p>講清楚優點、缺點與真實情境。</p>
+<h2>適合誰 / 不適合誰</h2>
+<ul>
+  <li>適合：待補</li>
+  <li>不適合：待補</li>
+  <li>替代方案：待補</li>
+</ul>
+<h2>推薦工具 / 聯盟連結插槽</h2>
+<p>這裡保留產品連結、聯盟連結、折扣資訊與揭露說明。</p>
+<h2>最後 CTA</h2>
+<p>如果要試用，這裡補上導購與下一步。</p>`
+  },
+  {
+    id: "weekly-recap",
+    label: "週報 Recap",
+    html: `<h2>這週重點</h2>
+<p>整理本週最值得記下的觀察。</p>
+<h2>值得延伸的事情</h2>
+<p>列出幾個值得追的訊號、文章或實驗。</p>
+<h2>推薦工具 / 聯盟連結插槽</h2>
+<p>這裡可以放本週使用到的工具、資源或推廣連結。</p>
+<h2>下週方向</h2>
+<p>下一步你打算怎麼做，或讀者可以怎麼延伸。</p>`
+  }
+] as const;
+
+const affiliateBlock = `<h2>推薦工具 / 聯盟連結插槽</h2>
+<ul>
+  <li>主推薦連結：待填寫</li>
+  <li>備用推薦或延伸閱讀：待填寫</li>
+  <li>Disclosure：若本文含聯盟連結，正式發佈前請補上合適揭露。</li>
+</ul>`;
+
 type AccountOption = {
   id: string;
   username: string;
@@ -50,6 +126,7 @@ export function PostComposerForm({
   const [featuredImageUrl, setFeaturedImageUrl] = useState(initialDraft?.featuredImageUrl ?? "");
   const [categories, setCategories] = useState(initialDraft?.categories ?? "");
   const [tags, setTags] = useState(initialDraft?.tags ?? "");
+  const [selectedTemplate, setSelectedTemplate] = useState<(typeof wordpressTemplates)[number]["id"]>("opinion");
   const [publishMode, setPublishMode] = useState<"immediate" | "scheduled">(
     initialDraft?.status === "scheduled" ? "scheduled" : "immediate"
   );
@@ -191,6 +268,32 @@ export function PostComposerForm({
                   value={html}
                   onChange={(event) => setHtml(event.target.value)}
                 />
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {wordpressTemplates.map((template) => (
+                    <button
+                      key={template.id}
+                      type="button"
+                      className={`rounded-full px-4 py-2 text-sm ${
+                        selectedTemplate === template.id
+                          ? "bg-[var(--card-dark)] text-white"
+                          : "border border-[var(--border)] bg-white text-[var(--foreground)]"
+                      }`}
+                      onClick={() => {
+                        setSelectedTemplate(template.id);
+                        setHtml(template.html);
+                      }}
+                    >
+                      套用 {template.label}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    className="rounded-full border border-[var(--border-strong)] bg-[var(--accent-soft)] px-4 py-2 text-sm text-[var(--foreground)]"
+                    onClick={() => setHtml((current) => `${current.trim()}\n\n${affiliateBlock}`.trim())}
+                  >
+                    插入聯盟連結區塊
+                  </button>
+                </div>
               </div>
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="rounded-3xl bg-white/85 p-4">
@@ -344,10 +447,10 @@ export function PostComposerForm({
               類型：{isWordPress ? "文章 / 摘要 / 分類 / 標籤 / 特色圖" : "文字 / 單一媒體 / 排程回覆"}
             </div>
             <div className="rounded-2xl border border-white/10 p-3">
-              {isWordPress ? "WordPress 只同步成草稿，會自動處理分類、標籤與特色圖。" : "Hashtag：Threads 上限 1 個"}
+              {isWordPress ? "WordPress 只同步成草稿，會自動處理分類、標籤、特色圖與聯盟連結插槽。" : "Hashtag：Threads 上限 1 個"}
             </div>
             <div className="rounded-2xl border border-white/10 p-3">
-              {isWordPress ? "想繼續改內容時，直接從 Queue 點回來編輯。" : "關鍵字命中可直接生成自動回覆佇列"}
+              {isWordPress ? "可快速套用觀點文、案例拆解、工具推薦、週報模板。" : "關鍵字命中可直接生成自動回覆佇列"}
             </div>
           </div>
 

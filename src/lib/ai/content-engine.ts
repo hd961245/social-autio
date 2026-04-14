@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { rewriteContentWithAi } from "@/lib/ai/gateway";
 import { extractContentFromUrl } from "@/lib/content/url-ingest";
+import { buildTemplateHtml } from "@/lib/content/wordpress-templates";
 
 type IngestionInput = {
   sourceType: "url" | "text" | "image";
@@ -8,6 +9,7 @@ type IngestionInput = {
   title?: string;
   rawText?: string;
   imageUrls?: string[];
+  wordpressTemplate?: "opinion" | "case-study" | "tool-review" | "weekly-recap";
 };
 
 type GeneratedDraftSummary = {
@@ -33,48 +35,37 @@ function buildThreadsDraft(summary: string, personaPrompt: string, tone: string)
   return body.slice(0, 500);
 }
 
-function buildWordPressDraft(title: string, summary: string, personaPrompt: string) {
+function buildWordPressDraft(
+  title: string,
+  summary: string,
+  personaPrompt: string,
+  templateId: IngestionInput["wordpressTemplate"],
+  affiliatePolicy: string
+) {
   const heading = title || "內容重寫草稿";
-  const personaBlock = personaPrompt
-    ? `<blockquote><strong>IP 人設視角：</strong>${personaPrompt}</blockquote>`
-    : "";
   const paragraphs = summary
     .split(/(?<=[。！？.!?])\s+/)
     .filter(Boolean)
     .slice(0, 8)
-    .map((line) => `<p>${line}</p>`)
-    .join("\n");
+    .map((line) => line.trim());
   const points = summary
     .split(/(?<=[。！？.!?])\s+/)
     .filter(Boolean)
     .slice(0, 3)
-    .map((line) => `<li>${line}</li>`)
-    .join("\n");
+    .map((line) => line.trim());
 
   return {
     title: heading,
     excerpt: summary.slice(0, 140),
-    html: `
-<p>這是一篇由 Content Engine 根據外部素材整理出的長文初稿，先把核心觀點、背景脈絡與後續行動整理好，方便你直接細修。</p>
-${personaBlock}
-<h2>先說結論</h2>
-<p>${summary.slice(0, 160)}</p>
-<h2>背景與脈絡</h2>
-${paragraphs}
-<h2>這篇內容最值得抓的重點</h2>
-<ul>
-  ${points}
-</ul>
-<h2>延伸觀點</h2>
-<p>如果要把這篇內容發展成更完整的 blog 文章，下一步可以補上案例、數據、你的個人立場，以及讀者看完後能立即採取的動作。</p>
-<h2>結尾 CTA</h2>
-<p>你可以在這裡補上一段自己的總結，或邀請讀者回覆、留言、訂閱，讓這篇文章從整理稿變成真正可發佈的內容。</p>
-<h2>可以再補強的地方</h2>
-<ul>
-  <li>補案例與數據</li>
-  <li>加上個人觀點與立場</li>
-  <li>補一段 CTA 或結論</li>
-</ul>`.trim()
+    html: buildTemplateHtml({
+      templateId,
+      title: heading,
+      summary,
+      paragraphs,
+      points,
+      affiliatePolicy,
+      personaPrompt
+    })
   };
 }
 
@@ -97,6 +88,7 @@ export async function ingestAndGenerateDrafts(input: IngestionInput) {
     .filter(Boolean)
     .join("\n\n");
   const tone = settings?.defaultTone?.trim() || "sharp-observer";
+  const affiliatePolicy = settings?.affiliateLinkPolicy?.trim() || "";
   const preferredProvider = (settings?.aiProvider?.trim() as "auto" | "gemini" | "claude" | "openai" | undefined) || "auto";
 
   const [threadsAccount, wordpressAccount] = await Promise.all([
@@ -141,7 +133,7 @@ export async function ingestAndGenerateDrafts(input: IngestionInput) {
     threadsDraft: buildThreadsDraft(summary, personaPrompt, tone),
     wordpressTitle: safeTitle,
     wordpressExcerpt: summary.slice(0, 140),
-    wordpressHtml: buildWordPressDraft(safeTitle, summary, personaPrompt).html
+    wordpressHtml: buildWordPressDraft(safeTitle, summary, personaPrompt, input.wordpressTemplate, affiliatePolicy).html
   };
 
   try {
@@ -150,6 +142,7 @@ export async function ingestAndGenerateDrafts(input: IngestionInput) {
       rawText: safeText,
       personaPrompt,
       tone,
+      wordpressTemplate: input.wordpressTemplate,
       preferredProvider
     });
 
