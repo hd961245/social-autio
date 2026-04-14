@@ -1,6 +1,8 @@
 import { PageIntro } from "@/components/dashboard/page-intro";
+import { WordPressArchiveRewriteCard } from "@/components/dashboard/wordpress-archive-rewrite-card";
 import { WordPressConnectForm } from "@/components/dashboard/wordpress-connect-form";
 import { WordPressStyleProfileCard } from "@/components/dashboard/wordpress-style-profile-card";
+import { fetchWordPressPosts } from "@/lib/platforms/wordpress/client";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -8,6 +10,16 @@ export const dynamic = "force-dynamic";
 export default async function WordPressPage() {
   let sites: Awaited<ReturnType<typeof prisma.platformAccount.findMany>> = [];
   let settings: Awaited<ReturnType<typeof prisma.appSettings.findFirst>> = null;
+  let archivePosts: Array<{
+    accountId: string;
+    siteUrl: string;
+    remotePostId: number;
+    title: string;
+    excerpt: string;
+    status: string;
+    publishedAt: string;
+    link: string;
+  }> = [];
 
   try {
     [sites, settings] = await Promise.all([
@@ -22,6 +34,28 @@ export default async function WordPressPage() {
       }),
       prisma.appSettings.findFirst()
     ]);
+
+    const sitePosts = await Promise.all(
+      sites.slice(0, 3).map(async (site) => {
+        try {
+          const posts = await fetchWordPressPosts(site.id, 6);
+          return posts.map((post) => ({
+            accountId: site.id,
+            siteUrl: site.platformUserId,
+            remotePostId: post.id,
+            title: (post.title?.rendered ?? "").replace(/<[^>]+>/g, "").trim() || "未命名文章",
+            excerpt: (post.excerpt?.rendered ?? "").replace(/<[^>]+>/g, "").replace(/&nbsp;/g, " ").replace(/\s+/g, " ").trim(),
+            status: post.status ?? "unknown",
+            publishedAt: post.date ? new Date(post.date).toLocaleDateString("zh-TW") : "未標記日期",
+            link: post.link ?? site.platformUserId
+          }));
+        } catch {
+          return [];
+        }
+      })
+    );
+
+    archivePosts = sitePosts.flat();
   } catch {}
 
   return (
@@ -41,6 +75,7 @@ export default async function WordPressPage() {
         initialWritingStyleProfile={settings?.writingStyleProfile ?? ""}
         initialAffiliateLinkPolicy={settings?.affiliateLinkPolicy ?? ""}
       />
+      <WordPressArchiveRewriteCard posts={archivePosts} />
       <section className="glass-panel rounded-[2rem] border border-[var(--border)] p-6">
         <div className="flex items-center justify-between gap-4">
           <div>

@@ -196,3 +196,14 @@ export async function fetchWordPressPosts(accountId: string, perPage = 20): Prom
     `/wp-json/wp/v2/posts?context=edit&per_page=${Math.min(Math.max(perPage, 1), 50)}&_fields=id,date,link,slug,status,title,excerpt,content`
   );
 }
+
+export async function fetchWordPressPostById(accountId: string, postId: number | string): Promise<WordPressPostListItem> {
+  const account = await getWordPressAccountContext(accountId);
+
+  return wordpressFetch<WordPressPostListItem>(
+    account.siteUrl,
+    account.username,
+    account.appPassword,
+    `/wp-json/wp/v2/posts/${postId}?context=edit&_fields=id,date,link,slug,status,title,excerpt,content`
+  );
+}
