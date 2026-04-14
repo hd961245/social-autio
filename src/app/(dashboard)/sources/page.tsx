@@ -31,6 +31,7 @@ export default async function SourcesPage() {
           lastItemTitle: item.lastItemTitle ?? "",
           lastItemUrl: item.lastItemUrl ?? "",
           lastExcerpt: item.lastExcerpt ?? "",
+          lastHandledStatus: (item.lastHandledStatus as "new" | "imported" | "skipped" | null) ?? "new",
           lastError: item.lastError ?? ""
         }))}
       />

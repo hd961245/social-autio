@@ -5,7 +5,12 @@ type SourceWatchPreview = {
   url: string;
   excerpt: string;
   sourceType: "rss" | "url";
+  fingerprint: string;
 };
+
+function buildFingerprint(title: string, url: string, excerpt: string) {
+  return Buffer.from(`${title}::${url}::${excerpt.slice(0, 160)}`).toString("base64").slice(0, 120);
+}
 
 function decodeXml(value: string) {
   return value
@@ -57,7 +62,8 @@ export async function refreshSourceWatch(sourceType: string, sourceUrl: string):
       title,
       url: decodeXml(link),
       excerpt: excerpt.slice(0, 300),
-      sourceType: "rss"
+      sourceType: "rss",
+      fingerprint: buildFingerprint(title, decodeXml(link), excerpt)
     };
   }
 
@@ -67,6 +73,7 @@ export async function refreshSourceWatch(sourceType: string, sourceUrl: string):
     title: extracted.title,
     url: extracted.resolvedUrl,
     excerpt: extracted.excerpt,
-    sourceType: "url"
+    sourceType: "url",
+    fingerprint: buildFingerprint(extracted.title, extracted.resolvedUrl, extracted.excerpt)
   };
 }

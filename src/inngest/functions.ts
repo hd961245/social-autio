@@ -4,6 +4,7 @@ import { evaluateAutomationRules } from "@/lib/automation/rules-engine";
 import { scanKeywordMatches } from "@/lib/keywords/monitor";
 import { collectMetricsSnapshots, refreshExpiringTokens } from "@/lib/metrics-service";
 import { runScheduledPosts } from "@/lib/scheduler/engine";
+import { refreshAllSourceWatches } from "@/lib/sources-service";
 
 export const schedulerFunction = inngest.createFunction(
   { id: "publish-scheduled-posts", retries: 1, triggers: [cron("* * * * *")] },
@@ -39,4 +40,17 @@ export const automationFunction = inngest.createFunction(
   }
 );
 
-export const inngestFunctions = [schedulerFunction, metricsFunction, keywordScanFunction, automationFunction];
+export const sourceWatchRefreshFunction = inngest.createFunction(
+  { id: "refresh-source-watchlist", retries: 1, triggers: [cron("0 */3 * * *")] },
+  async ({ step }) => {
+    return step.run("refresh-sources", async () => refreshAllSourceWatches());
+  }
+);
+
+export const inngestFunctions = [
+  schedulerFunction,
+  metricsFunction,
+  keywordScanFunction,
+  automationFunction,
+  sourceWatchRefreshFunction
+];

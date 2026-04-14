@@ -24,6 +24,8 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
         lastItemTitle: preview.title,
         lastItemUrl: preview.url,
         lastExcerpt: preview.excerpt,
+        lastItemFingerprint: preview.fingerprint,
+        lastHandledStatus: preview.fingerprint === watch.lastItemFingerprint ? watch.lastHandledStatus ?? "new" : "new",
         lastError: null
       }
     });
@@ -60,6 +62,16 @@ export async function PUT(_request: Request, { params }: { params: Promise<{ id:
     }
 
     const preview = await refreshSourceWatch(watch.sourceType, watch.sourceUrl);
+    const sameItem = preview.fingerprint === watch.lastItemFingerprint;
+
+    if (sameItem && watch.lastHandledStatus === "imported") {
+      return NextResponse.json({
+        ok: true,
+        duplicated: true,
+        message: "這篇最新內容之前已經改寫過了。",
+        preview
+      });
+    }
     const result = await ingestAndGenerateDrafts({
       sourceType: "url",
       sourceUrl: preview.url,
@@ -74,6 +86,9 @@ export async function PUT(_request: Request, { params }: { params: Promise<{ id:
         lastItemTitle: preview.title,
         lastItemUrl: preview.url,
         lastExcerpt: preview.excerpt,
+        lastItemFingerprint: preview.fingerprint,
+        lastHandledStatus: "imported",
+        lastHandledAt: new Date(),
         lastError: null
       }
     });

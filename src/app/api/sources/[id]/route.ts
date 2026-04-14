@@ -1,0 +1,29 @@
+import { NextResponse } from "next/server";
+import { z } from "zod";
+import { prisma } from "@/lib/prisma";
+
+const updateSchema = z.object({
+  lastHandledStatus: z.enum(["new", "imported", "skipped"])
+});
+
+export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const { id } = await params;
+    const payload = updateSchema.parse(await request.json());
+
+    const item = await prisma.sourceWatch.update({
+      where: { id },
+      data: {
+        lastHandledStatus: payload.lastHandledStatus,
+        lastHandledAt: payload.lastHandledStatus === "new" ? null : new Date()
+      }
+    });
+
+    return NextResponse.json({ ok: true, item });
+  } catch (error) {
+    return NextResponse.json(
+      { ok: false, message: error instanceof Error ? error.message : "Update source failed" },
+      { status: 400 }
+    );
+  }
+}
