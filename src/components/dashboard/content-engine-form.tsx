@@ -145,11 +145,14 @@ export function ContentEngineForm({
               <label className="mb-2 block text-sm text-[var(--muted)]">來源網址</label>
               <input
                 className="w-full rounded-2xl border border-[var(--border)] bg-transparent px-4 py-3 outline-none"
-                placeholder="https://..."
+                placeholder="https://www.threads.net/... 或文章網址"
                 value={sourceUrl}
                 onChange={(event) => setSourceUrl(event.target.value)}
                 required
               />
+              <p className="mt-3 text-sm text-[var(--muted)]">
+                支援貼入公開 Threads 貼文、部落格文章或公開 Facebook Page 內容連結。若平台限制抓取，系統會退回連結改寫模式。
+              </p>
             </div>
           ) : null}
 

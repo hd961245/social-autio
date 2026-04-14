@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { rewriteContentWithAi } from "@/lib/ai/gateway";
+import { extractContentFromUrl } from "@/lib/content/url-ingest";
 
 type IngestionInput = {
   sourceType: "url" | "text" | "image";
@@ -91,8 +92,24 @@ export async function ingestAndGenerateDrafts(input: IngestionInput) {
     throw new Error("至少需要先連接一個 Threads 或 WordPress 帳號，才能生成草稿。");
   }
 
-  const safeTitle = input.title?.trim() || "未命名素材";
-  const safeText = input.rawText?.trim() || input.sourceUrl || "沒有附上文字內容";
+  const sourceUrl = input.sourceUrl?.trim();
+  let extractedTitle = "";
+  let extractedText = "";
+  let sourceNote = "";
+
+  if (input.sourceType === "url" && sourceUrl) {
+    try {
+      const extracted = await extractContentFromUrl(sourceUrl);
+      extractedTitle = extracted.title;
+      extractedText = extracted.text;
+      sourceNote = `URL import: ${extracted.sourceLabel} | Resolved: ${extracted.resolvedUrl}`;
+    } catch (error) {
+      sourceNote = error instanceof Error ? `URL import fallback: ${error.message}` : "URL import fallback";
+    }
+  }
+
+  const safeTitle = input.title?.trim() || extractedTitle || "未命名素材";
+  const safeText = input.rawText?.trim() || extractedText || sourceUrl || "沒有附上文字內容";
   const summary = summarizeSource(safeTitle, safeText);
   let aiProvider = "fallback";
   let generated = {
@@ -134,7 +151,7 @@ export async function ingestAndGenerateDrafts(input: IngestionInput) {
       rawText: safeText,
       imageUrls: input.imageUrls?.length ? JSON.stringify(input.imageUrls) : null,
       status: "processed",
-      notes: `Persona: ${personaPrompt.slice(0, 120)} | Provider: ${aiProvider}`
+      notes: `Persona: ${personaPrompt.slice(0, 120)} | Provider: ${aiProvider}${sourceNote ? ` | ${sourceNote}` : ""}`
     }
   });
 
