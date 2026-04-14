@@ -178,6 +178,7 @@ model AppSettings {
   keywordScanPaused     Boolean  @default(false)
   globalPersonaPrompt   String?
   defaultTone           String?  @default("sharp-observer")
+  aiProvider            String?  @default("auto")
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
 }

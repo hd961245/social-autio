@@ -74,6 +74,7 @@ export async function ingestAndGenerateDrafts(input: IngestionInput) {
   const personaPrompt =
     settings?.globalPersonaPrompt?.trim() || "用冷靜、有觀點、像內容策略師一樣的語氣，幫我拆解重點。";
   const tone = settings?.defaultTone?.trim() || "sharp-observer";
+  const preferredProvider = (settings?.aiProvider?.trim() as "auto" | "gemini" | "claude" | "openai" | undefined) || "auto";
 
   const [threadsAccount, wordpressAccount] = await Promise.all([
     prisma.platformAccount.findFirst({
@@ -107,7 +108,8 @@ export async function ingestAndGenerateDrafts(input: IngestionInput) {
       title: safeTitle,
       rawText: safeText,
       personaPrompt,
-      tone
+      tone,
+      preferredProvider
     });
 
     aiProvider = aiResult.provider;

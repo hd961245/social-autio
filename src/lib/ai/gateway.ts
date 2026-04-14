@@ -5,6 +5,7 @@ type RewriteInput = {
   rawText: string;
   personaPrompt: string;
   tone: string;
+  preferredProvider?: "auto" | "gemini" | "claude" | "openai";
 };
 
 type RewriteOutput = {
@@ -171,6 +172,20 @@ async function runClaudeRewrite(input: RewriteInput): Promise<RewriteOutput> {
 }
 
 export async function rewriteContentWithAi(input: RewriteInput): Promise<RewriteOutput> {
+  const preferredProvider = input.preferredProvider ?? "auto";
+
+  if (preferredProvider === "openai") {
+    return runOpenAiRewrite(input);
+  }
+
+  if (preferredProvider === "gemini") {
+    return runGeminiRewrite(input);
+  }
+
+  if (preferredProvider === "claude") {
+    return runClaudeRewrite(input);
+  }
+
   try {
     if (env.openaiApiKey()) {
       return await runOpenAiRewrite(input);

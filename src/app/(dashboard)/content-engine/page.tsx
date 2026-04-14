@@ -38,6 +38,7 @@ export default async function ContentEnginePage() {
       <ContentEngineForm
         initialPersonaPrompt={settings?.globalPersonaPrompt ?? "像一位冷靜但有觀點的內容策略師，幫我把素材整理成可發佈版本。"}
         initialTone={settings?.defaultTone ?? "sharp-observer"}
+        initialAiProvider={(settings?.aiProvider as "auto" | "gemini" | "claude" | "openai" | undefined) ?? "auto"}
         recentIngestions={ingestions.map((item) => ({
           id: item.id,
           sourceType: item.sourceType,

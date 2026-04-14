@@ -21,11 +21,13 @@ type IngestionSummary = {
 export function ContentEngineForm({
   initialPersonaPrompt,
   initialTone,
+  initialAiProvider,
   recentIngestions,
   recentDrafts
 }: {
   initialPersonaPrompt: string;
   initialTone: string;
+  initialAiProvider: "auto" | "gemini" | "claude" | "openai";
   recentIngestions: IngestionSummary[];
   recentDrafts: DraftSummary[];
 }) {
@@ -36,6 +38,7 @@ export function ContentEngineForm({
   const [imageUrls, setImageUrls] = useState("");
   const [personaPrompt, setPersonaPrompt] = useState(initialPersonaPrompt);
   const [tone, setTone] = useState(initialTone);
+  const [aiProvider, setAiProvider] = useState<"auto" | "gemini" | "claude" | "openai">(initialAiProvider);
   const [message, setMessage] = useState<string | null>(null);
   const [ingestions, setIngestions] = useState(recentIngestions);
   const [drafts, setDrafts] = useState(recentDrafts);
@@ -61,7 +64,8 @@ export function ContentEngineForm({
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                   globalPersonaPrompt: personaPrompt,
-                  defaultTone: tone
+                  defaultTone: tone,
+                  aiProvider
                 })
               });
 
@@ -170,7 +174,7 @@ export function ContentEngineForm({
             />
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-4 md:grid-cols-3">
             <div className="rounded-3xl bg-white/85 p-4">
               <label className="mb-2 block text-sm text-[var(--muted)]">Persona Prompt</label>
               <textarea
@@ -188,7 +192,20 @@ export function ContentEngineForm({
               >
                 <option value="sharp-observer">Sharp Observer</option>
                 <option value="mystic-guide">Mystic Guide</option>
-                <option value="founder-journal">Founder Journal</option>
+                  <option value="founder-journal">Founder Journal</option>
+                </select>
+              </label>
+            <label className="rounded-3xl bg-white/85 p-4">
+              <span className="mb-2 block text-sm text-[var(--muted)]">AI Provider</span>
+              <select
+                className="w-full rounded-2xl border border-[var(--border)] bg-transparent px-4 py-3 outline-none"
+                value={aiProvider}
+                onChange={(event) => setAiProvider(event.target.value as "auto" | "gemini" | "claude" | "openai")}
+              >
+                <option value="auto">Auto</option>
+                <option value="gemini">Gemini</option>
+                <option value="claude">Claude</option>
+                <option value="openai">OpenAI</option>
               </select>
             </label>
           </div>

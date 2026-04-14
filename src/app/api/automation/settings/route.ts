@@ -6,7 +6,8 @@ const settingsSchema = z.object({
   automationPaused: z.boolean().optional(),
   keywordScanPaused: z.boolean().optional(),
   globalPersonaPrompt: z.string().trim().max(5000).optional(),
-  defaultTone: z.string().trim().max(100).optional()
+  defaultTone: z.string().trim().max(100).optional(),
+  aiProvider: z.enum(["auto", "gemini", "claude", "openai"]).optional()
 });
 
 export async function GET() {
@@ -14,12 +15,13 @@ export async function GET() {
   return NextResponse.json({
     ok: true,
     settings: settings ?? {
-      automationPaused: false,
-      keywordScanPaused: false,
-      globalPersonaPrompt: "",
-      defaultTone: "sharp-observer"
-    }
-  });
+        automationPaused: false,
+        keywordScanPaused: false,
+        globalPersonaPrompt: "",
+        defaultTone: "sharp-observer",
+        aiProvider: "auto"
+      }
+    });
 }
 
 export async function PATCH(request: Request) {
@@ -37,7 +39,8 @@ export async function PATCH(request: Request) {
             automationPaused: payload.automationPaused ?? false,
             keywordScanPaused: payload.keywordScanPaused ?? false,
             globalPersonaPrompt: payload.globalPersonaPrompt,
-            defaultTone: payload.defaultTone ?? "sharp-observer"
+            defaultTone: payload.defaultTone ?? "sharp-observer",
+            aiProvider: payload.aiProvider ?? "auto"
           }
         });
 
