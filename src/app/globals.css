@@ -1,22 +1,22 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f3ede2;
-  --foreground: #1c1713;
-  --card: rgba(255, 251, 246, 0.76);
-  --card-strong: rgba(255, 250, 244, 0.94);
-  --card-dark: #201a16;
-  --border: rgba(91, 69, 46, 0.14);
-  --border-strong: rgba(91, 69, 46, 0.24);
-  --accent: #bb5a36;
-  --accent-strong: #8f3e21;
-  --accent-soft: rgba(187, 90, 54, 0.12);
-  --muted: #6e6153;
+  --background: #ece4d8;
+  --foreground: #16120f;
+  --card: rgba(255, 251, 246, 0.82);
+  --card-strong: rgba(255, 250, 244, 0.96);
+  --card-dark: #15110f;
+  --border: rgba(58, 43, 30, 0.12);
+  --border-strong: rgba(58, 43, 30, 0.24);
+  --accent: #c84f2c;
+  --accent-strong: #922d12;
+  --accent-soft: rgba(200, 79, 44, 0.11);
+  --muted: #65594b;
   --success: #1f7a5c;
   --warning: #b7791f;
   --danger: #b24334;
-  --shadow-lg: 0 30px 120px rgba(87, 54, 28, 0.11);
-  --shadow-md: 0 18px 60px rgba(87, 54, 28, 0.08);
+  --shadow-lg: 0 32px 120px rgba(40, 23, 10, 0.14);
+  --shadow-md: 0 20px 60px rgba(40, 23, 10, 0.1);
 }
 
 * {
@@ -25,9 +25,9 @@
 
 html {
   background:
-    radial-gradient(circle at top left, rgba(187, 90, 54, 0.2), transparent 32%),
-    radial-gradient(circle at 75% 20%, rgba(31, 122, 92, 0.1), transparent 22%),
-    linear-gradient(180deg, #fff8ef 0%, #f7f0e7 34%, var(--background) 100%);
+    radial-gradient(circle at top left, rgba(200, 79, 44, 0.24), transparent 30%),
+    radial-gradient(circle at 82% 12%, rgba(14, 14, 14, 0.08), transparent 24%),
+    linear-gradient(180deg, #fff8ef 0%, #f3ebdf 34%, var(--background) 100%);
 }
 
 body {
@@ -36,9 +36,9 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans), sans-serif;
   background-image:
-    linear-gradient(to right, rgba(255, 255, 255, 0.18) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.12) 1px, transparent 1px);
-  background-size: 80px 80px;
+    linear-gradient(to right, rgba(255, 255, 255, 0.16) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.1) 1px, transparent 1px);
+  background-size: 72px 72px;
 }
 
 a {
@@ -66,7 +66,7 @@ h4 {
 }
 
 .glass-panel {
-  background: linear-gradient(180deg, rgba(255, 252, 247, 0.88), rgba(255, 248, 240, 0.74));
+  background: linear-gradient(180deg, rgba(255, 252, 247, 0.92), rgba(255, 247, 239, 0.78));
   backdrop-filter: blur(16px);
   box-shadow: var(--shadow-md);
 }

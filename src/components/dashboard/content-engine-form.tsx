@@ -7,6 +7,7 @@ type DraftSummary = {
   platform: string;
   title: string;
   status: string;
+  href: string;
 };
 
 type IngestionSummary = {
@@ -45,7 +46,7 @@ export function ContentEngineForm({
       <section className="glass-panel rounded-[2rem] border border-[var(--border)] p-6">
         <div>
           <p className="text-[11px] uppercase tracking-[0.3em] text-[var(--muted)]">Content Engine</p>
-          <h2 className="mt-2 text-3xl font-semibold">輸入素材，直接拆出多平台草稿</h2>
+          <h2 className="mt-2 text-3xl font-semibold">輸入素材，直接拆出 Threads + WordPress 草稿</h2>
         </div>
 
         <form
@@ -88,7 +89,7 @@ export function ContentEngineForm({
                 return;
               }
 
-              setMessage("草稿已生成，請到右側或 Posts 頁查看。");
+              setMessage(result.message ?? "草稿已生成，右側可以直接點進去繼續修。");
               setIngestions((current) => [
                 {
                   id: result.ingestionId,
@@ -101,12 +102,12 @@ export function ContentEngineForm({
               ]);
               setDrafts((current) => [
                 ...current,
-                ...(sourceType ? (["threads", "wordpress"] as const).map((platform) => ({
-                  id: `${result.ingestionId}-${platform}`,
-                  platform,
-                  title: title || "未命名素材",
-                  status: "draft"
-                })) : [])
+                ...((result.generatedDrafts ?? []) as Array<{ id: string; platform: string; title: string; status: string }>).map(
+                  (draft) => ({
+                    ...draft,
+                    href: `/compose?postId=${draft.id}`
+                  })
+                )
               ]);
             });
           }}
@@ -231,6 +232,9 @@ export function ContentEngineForm({
                   {draft.platform} · {draft.status}
                 </p>
                 <p className="mt-2 font-medium">{draft.title}</p>
+                <a href={draft.href} className="mt-3 inline-flex text-sm font-medium text-[var(--accent)]">
+                  打開草稿
+                </a>
               </article>
             ))}
             {drafts.length === 0 ? <p className="text-sm text-[var(--muted)]">目前還沒有草稿。</p> : null}

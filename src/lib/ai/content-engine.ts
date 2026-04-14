@@ -9,6 +9,13 @@ type IngestionInput = {
   imageUrls?: string[];
 };
 
+type GeneratedDraftSummary = {
+  id: string;
+  platform: "threads" | "wordpress";
+  title: string;
+  status: "draft";
+};
+
 function stripText(text: string) {
   return text.replace(/\s+/g, " ").trim();
 }
@@ -114,6 +121,7 @@ export async function ingestAndGenerateDrafts(input: IngestionInput) {
   } catch {}
 
   const generatedPostIds: string[] = [];
+  const generatedDrafts: GeneratedDraftSummary[] = [];
 
   const ingestion = await prisma.ingestionRecord.create({
     data: {
@@ -140,6 +148,12 @@ export async function ingestAndGenerateDrafts(input: IngestionInput) {
       }
     });
     generatedPostIds.push(threadsDraft.id);
+    generatedDrafts.push({
+      id: threadsDraft.id,
+      platform: "threads",
+      title: generated.threadsDraft.slice(0, 72),
+      status: "draft"
+    });
   }
 
   if (wordpressAccount) {
@@ -157,6 +171,12 @@ export async function ingestAndGenerateDrafts(input: IngestionInput) {
       }
     });
     generatedPostIds.push(wordpressDraft.id);
+    generatedDrafts.push({
+      id: wordpressDraft.id,
+      platform: "wordpress",
+      title: generated.wordpressTitle,
+      status: "draft"
+    });
   }
 
   await prisma.ingestionRecord.update({
@@ -168,6 +188,8 @@ export async function ingestAndGenerateDrafts(input: IngestionInput) {
 
   return {
     ingestionId: ingestion.id,
-    generatedPostIds
+    generatedPostIds,
+    generatedDrafts,
+    provider: aiProvider
   };
 }

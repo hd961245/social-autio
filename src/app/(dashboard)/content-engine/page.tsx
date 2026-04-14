@@ -31,8 +31,8 @@ export default async function ContentEnginePage() {
     <div className="space-y-6">
       <PageIntro
         eyebrow="Content Engine"
-        title="AI 內容大腦"
-        description="丟進網址、文本或截圖素材，優先用 Gemini / Claude 做 persona rewrite，失敗時會退回本地規則生成草稿。"
+        title="AI 草稿引擎"
+        description="把外部素材先拆成兩個明確產物: 一篇 Threads 草稿，一篇 WordPress 長文草稿。都先給你改，不直接代你發布。"
       />
 
       <ContentEngineForm
@@ -49,7 +49,8 @@ export default async function ContentEnginePage() {
           id: draft.id,
           platform: draft.account.platform,
           title: draft.title ?? draft.textContent ?? "未命名草稿",
-          status: draft.status
+          status: draft.status,
+          href: `/compose?postId=${draft.id}`
         }))}
       />
     </div>

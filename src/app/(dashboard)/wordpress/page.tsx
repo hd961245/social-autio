@@ -23,8 +23,8 @@ export default async function WordPressPage() {
     <div className="space-y-6">
       <PageIntro
         eyebrow="WordPress"
-        title="部落格整合"
-        description="使用 WordPress Application Password 連接站台，接著就可以在 Compose 發佈文章、排程內容並管理多個站點。"
+        title="WordPress 草稿台"
+        description="這裡只負責連接站台和接收草稿。Threads 轉進來的長文、或你在 Compose 手動建立的文章，都會以 draft 形式同步。"
       />
       <WordPressConnectForm />
       <section className="glass-panel rounded-[2rem] border border-[var(--border)] p-6">

@@ -42,6 +42,39 @@ function normalizeWordPressContent(content: PostContent) {
   };
 }
 
+async function syncWordPressPost(
+  accountId: string,
+  content: PostContent,
+  existingPlatformPostId?: string
+): Promise<PublishResult> {
+  const account = await getWordPressAccountContext(accountId);
+  const normalized = normalizeWordPressContent(content);
+  const [categoryIds, tagIds, featuredMediaId] = await Promise.all([
+    getOrCreateTermIds(account.siteUrl, account.username, account.appPassword, "categories", content.categories),
+    getOrCreateTermIds(account.siteUrl, account.username, account.appPassword, "tags", content.tags),
+    uploadFeaturedImage(account.siteUrl, account.username, account.appPassword, content.featuredImageUrl)
+  ]);
+
+  const endpoint = existingPlatformPostId ? `/wp-json/wp/v2/posts/${existingPlatformPostId}` : "/wp-json/wp/v2/posts";
+  const post = await wordpressFetch<WordPressPostResponse>(account.siteUrl, account.username, account.appPassword, endpoint, {
+    method: existingPlatformPostId ? "POST" : "POST",
+    body: JSON.stringify({
+      title: normalized.title,
+      content: normalized.html,
+      excerpt: normalized.excerpt,
+      status: "draft",
+      categories: categoryIds,
+      tags: tagIds,
+      featured_media: featuredMediaId
+    })
+  });
+
+  return {
+    platformPostId: String(post.id),
+    url: post.link
+  };
+}
+
 async function getOrCreateTermIds(
   siteUrl: string,
   username: string,
@@ -120,37 +153,13 @@ async function uploadFeaturedImage(
 }
 
 export async function publishToWordPress(accountId: string, content: PostContent): Promise<PublishResult> {
-  const account = await getWordPressAccountContext(accountId);
-  const normalized = normalizeWordPressContent(content);
-  const [categoryIds, tagIds, featuredMediaId] = await Promise.all([
-    getOrCreateTermIds(account.siteUrl, account.username, account.appPassword, "categories", content.categories),
-    getOrCreateTermIds(account.siteUrl, account.username, account.appPassword, "tags", content.tags),
-    uploadFeaturedImage(account.siteUrl, account.username, account.appPassword, content.featuredImageUrl)
-  ]);
+  return syncWordPressPost(accountId, content);
+}
 
-  const status = content.replyToPostId ? "draft" : "publish";
-
-  const post = await wordpressFetch<WordPressPostResponse>(
-    account.siteUrl,
-    account.username,
-    account.appPassword,
-    "/wp-json/wp/v2/posts",
-    {
-      method: "POST",
-      body: JSON.stringify({
-        title: normalized.title,
-        content: normalized.html,
-        excerpt: normalized.excerpt,
-        status,
-        categories: categoryIds,
-        tags: tagIds,
-        featured_media: featuredMediaId
-      })
-    }
-  );
-
-  return {
-    platformPostId: String(post.id),
-    url: post.link
-  };
+export async function updateWordPressDraft(
+  accountId: string,
+  platformPostId: string,
+  content: PostContent
+): Promise<PublishResult> {
+  return syncWordPressPost(accountId, content, platformPostId);
 }

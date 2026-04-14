@@ -20,13 +20,13 @@ export default async function DashboardPage() {
       <PageIntro
         eyebrow="Overview"
         title="Threads-first operations dashboard"
-        description="把授權、發布、監控與後續回應流程收進同一個操作台。這一版先把最常用的第一層工作面做穩。"
+        description="這一版把主控面收得更窄也更利落: Threads 負責發布與監控，WordPress 只接長文草稿，不讓工作流分心。"
         action={
           <a
             href="/compose"
             className="rounded-full bg-[var(--accent)] px-5 py-3 text-sm uppercase tracking-[0.2em] text-white shadow-[0_18px_40px_rgba(187,90,54,0.22)]"
           >
-            New Post
+            New Thread
           </a>
         }
       />
@@ -37,7 +37,7 @@ export default async function DashboardPage() {
         {stats.map((item) => (
           <article key={item.label} className="glass-panel fade-in-up rounded-[1.75rem] border border-[var(--border)] p-5">
             <p className="text-xs uppercase tracking-[0.24em] text-[var(--muted)]">{item.label}</p>
-            <p className="mt-3 text-4xl font-semibold">{item.value}</p>
+            <p className="mt-4 text-5xl font-semibold leading-none">{item.value}</p>
             <p className="mt-4 text-sm leading-6 text-[var(--muted)]">{item.detail}</p>
           </article>
         ))}

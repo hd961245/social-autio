@@ -51,6 +51,78 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: false, message: "Threads 文字上限為 500 字" }, { status: 400 });
     }
 
+    if (account.platform === "wordpress") {
+      const createdPost = await prisma.post.create({
+        data: {
+          userId: account.userId,
+          accountId: account.id,
+          contentType: payload.contentType,
+          title: payload.title,
+          textContent: payload.text,
+          htmlContent: payload.html ?? null,
+          excerpt: payload.excerpt ?? null,
+          mediaUrls: payload.mediaUrls?.length ? JSON.stringify(payload.mediaUrls) : null,
+          featuredImageUrl: payload.featuredImageUrl ?? null,
+          categories: payload.categories?.length ? JSON.stringify(payload.categories) : null,
+          tags: payload.tags?.length ? JSON.stringify(payload.tags) : null,
+          status: "draft",
+          scheduledAt: null,
+          replyToPostId: payload.replyToPostId ?? null
+        }
+      });
+
+      try {
+        const result = await getPlatformAdapter("wordpress").createPost(payload.accountId, {
+          contentType: payload.contentType,
+          title: payload.title,
+          text: payload.text,
+          html: payload.html,
+          excerpt: payload.excerpt,
+          mediaUrls: payload.mediaUrls,
+          featuredImageUrl: payload.featuredImageUrl,
+          categories: payload.categories,
+          tags: payload.tags,
+          replyToPostId: payload.replyToPostId
+        });
+
+        await prisma.post.update({
+          where: { id: createdPost.id },
+          data: {
+            status: "draft",
+            platformPostId: result.platformPostId,
+            platformUrl: result.url,
+            publishedAt: null,
+            errorMessage: null
+          }
+        });
+
+        return NextResponse.json({
+          ok: true,
+          draft: true,
+          remoteDraft: true,
+          message: "已同步到 WordPress 草稿，之後可以再回來編輯。",
+          postId: createdPost.id
+        });
+      } catch (error) {
+        await prisma.post.update({
+          where: { id: createdPost.id },
+          data: {
+            status: "draft",
+            errorMessage: error instanceof Error ? error.message : "WordPress draft sync failed"
+          }
+        });
+
+        return NextResponse.json(
+          {
+            ok: false,
+            postId: createdPost.id,
+            message: error instanceof Error ? error.message : "WordPress draft sync failed"
+          },
+          { status: 400 }
+        );
+      }
+    }
+
     const createdPost = await prisma.post.create({
       data: {
         userId: account.userId,
@@ -79,7 +151,7 @@ export async function POST(request: Request) {
     }
 
     try {
-      const adapter = getPlatformAdapter(account.platform as "threads" | "wordpress");
+      const adapter = getPlatformAdapter("threads");
       const result = await adapter.createPost(payload.accountId, {
         contentType: payload.contentType,
         title: payload.title,

@@ -194,6 +194,9 @@ function getTokenStatus(tokenExpiresAt: Date) {
 export async function getAccountSummaries(): Promise<AccountSummary[]> {
   try {
     const accounts = await prisma.platformAccount.findMany({
+      where: {
+        platform: "threads"
+      },
       include: {
         metricsSnapshots: {
           orderBy: {
@@ -229,7 +232,8 @@ export async function getActiveAccountSummary(): Promise<ActiveAccountSummary> {
   try {
     const account = await prisma.platformAccount.findFirst({
       where: {
-        isActive: true
+        isActive: true,
+        platform: "threads"
       },
       orderBy: [{ lastSyncedAt: "desc" }, { createdAt: "desc" }]
     });
@@ -363,7 +367,7 @@ export async function getAnalyticsOverview(): Promise<AnalyticsOverview> {
 export async function getDashboardStats() {
   try {
     const [accountCount, postCount, publishedCount, keywordCount, queuedPosts] = await Promise.all([
-      prisma.platformAccount.count({ where: { isActive: true } }),
+      prisma.platformAccount.count({ where: { isActive: true, platform: "threads" } }),
       prisma.post.count(),
       prisma.post.count({ where: { status: "published" } }),
       prisma.keywordMatch.count(),

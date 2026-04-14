@@ -6,7 +6,7 @@ export function AccountCardItem({ account }: { account: AccountCard }) {
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-[11px] uppercase tracking-[0.28em] text-[var(--muted)]">{account.platform}</p>
-          <h3 className="mt-2 text-2xl font-semibold">{account.username}</h3>
+          <h3 className="mt-2 text-3xl font-semibold">{account.username}</h3>
         </div>
         <span
           className={`rounded-full px-3 py-1 text-[11px] uppercase tracking-[0.2em] ${

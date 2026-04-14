@@ -6,13 +6,15 @@ export const dynamic = "force-dynamic";
 
 export default async function AnalyticsPage() {
   const [databaseStatus, analytics] = await Promise.all([getDatabaseStatus(), getAnalyticsOverview()]);
+  const bestPost = analytics.topPosts[0] ?? null;
+  const strongestCandidate = analytics.viralCandidates[0] ?? null;
 
   return (
     <div className="space-y-6">
       <PageIntro
         eyebrow="Analytics"
-        title="帳號健康監控"
-        description="現在除了 metrics snapshot、發文配額與 token 提醒，也會幫你評估哪些文最有爆款潛力。"
+        title="Threads 復盤板"
+        description="這裡只看 Threads：配額、token 健康、成長趨勢、爆款候選和目前最值得改寫再打一次的內容。"
       />
       <DatabaseBanner status={databaseStatus} />
 
@@ -33,11 +35,42 @@ export default async function AnalyticsPage() {
         </article>
       </section>
 
+      <section className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
+        <article className="glass-panel rounded-[1.8rem] border border-[var(--border)] p-6">
+          <p className="text-xs uppercase tracking-[0.24em] text-[var(--muted)]">Best Current Post</p>
+          <h2 className="mt-3 text-3xl font-semibold">{bestPost ? bestPost.account : "尚無資料"}</h2>
+          <p className="mt-4 text-base leading-7">{bestPost?.text ?? "等第一批 Threads metrics 回來後，這裡會顯示當前表現最好的內容。"}</p>
+          {bestPost ? (
+            <div className="mt-5 flex flex-wrap gap-3 text-sm text-[var(--muted)]">
+              <span className="rounded-full border border-[var(--border)] px-3 py-1">Views {bestPost.views}</span>
+              <span className="rounded-full border border-[var(--border)] px-3 py-1">Likes {bestPost.likes}</span>
+              <span className="rounded-full border border-[var(--border)] px-3 py-1">Replies {bestPost.replies}</span>
+            </div>
+          ) : null}
+        </article>
+        <article className="rounded-[1.8rem] bg-[var(--card-dark)] p-6 text-white shadow-[0_24px_60px_rgba(15,10,7,0.22)]">
+          <p className="text-xs uppercase tracking-[0.24em] text-white/55">Rewrite Next</p>
+          <h2 className="mt-3 text-3xl font-semibold">
+            {strongestCandidate ? `${strongestCandidate.score} / 100` : "Waiting"}
+          </h2>
+          <p className="mt-4 text-sm leading-7 text-white/72">
+            {strongestCandidate?.suggestion ?? "有足夠的貼文和 metrics 後，這裡會告訴你哪篇最值得重寫或延伸成系列。"}
+          </p>
+          {strongestCandidate?.reasons.length ? (
+            <div className="mt-5 space-y-2 text-sm text-white/78">
+              {strongestCandidate.reasons.map((reason) => (
+                <p key={reason}>- {reason}</p>
+              ))}
+            </div>
+          ) : null}
+        </article>
+      </section>
+
       <section className="glass-panel rounded-[2rem] border border-[var(--border)] p-6">
         <div className="flex items-center justify-between gap-4">
           <div>
             <p className="text-[11px] uppercase tracking-[0.3em] text-[var(--muted)]">Follower Trend</p>
-            <h2 className="mt-2 text-3xl font-semibold">近 7 次快照</h2>
+            <h2 className="mt-2 text-3xl font-semibold">近 7 次 Threads 快照</h2>
           </div>
           <form action="/api/cron/metrics" method="post">
             <button className="rounded-full bg-[var(--accent)] px-4 py-2 text-sm text-white">立即收集指標</button>
@@ -75,7 +108,7 @@ export default async function AnalyticsPage() {
 
       <section className="glass-panel rounded-[2rem] border border-[var(--border)] p-6">
         <p className="text-[11px] uppercase tracking-[0.3em] text-[var(--muted)]">Viral Radar</p>
-        <h2 className="mt-2 text-3xl font-semibold">爆款潛力候選</h2>
+        <h2 className="mt-2 text-3xl font-semibold">值得放大的 Threads</h2>
         <div className="mt-6 space-y-4">
           {analytics.viralCandidates.map((post) => (
             <article key={post.id} className="rounded-[1.5rem] border border-[var(--border)] bg-white/70 p-4">
@@ -112,7 +145,7 @@ export default async function AnalyticsPage() {
 
       <section className="glass-panel rounded-[2rem] border border-[var(--border)] p-6">
         <p className="text-[11px] uppercase tracking-[0.3em] text-[var(--muted)]">Top Posts</p>
-        <h2 className="mt-2 text-3xl font-semibold">最佳表現貼文</h2>
+        <h2 className="mt-2 text-3xl font-semibold">目前表現最好的 Threads</h2>
         <div className="mt-6 space-y-4">
           {analytics.topPosts.map((post) => (
             <article key={post.id} className="rounded-[1.5rem] border border-[var(--border)] bg-white/70 p-4">

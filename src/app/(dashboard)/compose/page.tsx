@@ -6,7 +6,11 @@ import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
-export default async function ComposePage() {
+export default async function ComposePage({
+  searchParams
+}: {
+  searchParams?: Promise<{ postId?: string }>;
+}) {
   const databaseStatus = await getDatabaseStatus();
   let accounts: Awaited<ReturnType<typeof prisma.platformAccount.findMany>> = [];
   let posts: Awaited<
@@ -18,8 +22,26 @@ export default async function ComposePage() {
       }>
     >
   > = [];
+  let draftPost:
+    | {
+        id: string;
+        accountId: string;
+        platform: string;
+        title: string;
+        text: string;
+        html: string;
+        excerpt: string;
+        mediaUrl: string;
+        featuredImageUrl: string;
+        categories: string;
+        tags: string;
+        status: string;
+        scheduledAt: string;
+      }
+    | null = null;
 
   if (databaseStatus.ready) {
+    const params = await searchParams;
     [accounts, posts] = await Promise.all([
       prisma.platformAccount.findMany({
         where: { isActive: true },
@@ -31,14 +53,43 @@ export default async function ComposePage() {
         take: 5
       })
     ]);
+
+    if (params?.postId) {
+      const post = await prisma.post.findUnique({
+        where: { id: params.postId },
+        include: { account: true }
+      });
+
+      if (post) {
+        draftPost = {
+          id: post.id,
+          accountId: post.accountId,
+          platform: post.account.platform,
+          title: post.title ?? "",
+          text: post.textContent ?? "",
+          html: post.htmlContent ?? "",
+          excerpt: post.excerpt ?? "",
+          mediaUrl: post.mediaUrls ? ((JSON.parse(post.mediaUrls) as string[])[0] ?? "") : "",
+          featuredImageUrl: post.featuredImageUrl ?? "",
+          categories: post.categories ? (JSON.parse(post.categories) as string[]).join(", ") : "",
+          tags: post.tags ? (JSON.parse(post.tags) as string[]).join(", ") : "",
+          status: post.status,
+          scheduledAt: post.scheduledAt ? new Date(post.scheduledAt).toISOString().slice(0, 16) : ""
+        };
+      }
+    }
   }
 
   return (
     <div className="space-y-6">
       <PageIntro
         eyebrow="Compose"
-        title="建立新的平台內容"
-        description="現在可以選 Threads 或 WordPress。Threads 支援立即發文、排程與回覆；WordPress 支援文章標題、HTML、分類、標籤與特色圖。"
+        title={draftPost ? "編輯現有草稿" : "建立新的 Threads 內容"}
+        description={
+          draftPost
+            ? "這裡會直接載入你剛才的草稿。Threads 可繼續排程或送出；WordPress 只會同步成草稿，不直接發布。"
+            : "Threads 繼續負責即時發文、排程與回覆；WordPress 只保留成長文草稿台，方便先改完再進站台細修。"
+        }
       />
       <DatabaseBanner status={databaseStatus} />
       <PostComposerForm
@@ -54,6 +105,7 @@ export default async function ComposePage() {
           account: `@${post.account.platformUsername}`,
           platform: post.account.platform
         }))}
+        initialDraft={draftPost}
       />
     </div>
   );

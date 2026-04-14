@@ -7,6 +7,9 @@ export async function runScheduledPosts() {
       status: "scheduled",
       scheduledAt: {
         lte: new Date()
+      },
+      account: {
+        platform: "threads"
       }
     },
     include: {

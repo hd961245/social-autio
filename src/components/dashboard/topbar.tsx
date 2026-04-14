@@ -11,22 +11,22 @@ export async function Topbar() {
           <h2 className="mt-2 text-3xl font-semibold">Threads publishing, monitoring, and response control</h2>
           <p className="mt-3 text-sm text-[var(--muted)]">
             {activeAccount
-              ? `目前使用帳號：${activeAccount.platform} ${activeAccount.username} · 最後同步 ${activeAccount.lastSyncedAt}`
-              : "目前尚未有啟用中的帳號，先到 Accounts 完成 Threads 授權。"}
+              ? `目前主控帳號：${activeAccount.platform} ${activeAccount.username} · 最後同步 ${activeAccount.lastSyncedAt}`
+              : "目前尚未有啟用中的 Threads 帳號，先到 Accounts 完成授權。"}
           </p>
         </div>
         <div className="grid gap-3 sm:grid-cols-3">
           <div className="rounded-[1.2rem] border border-[var(--border)] bg-white/60 px-4 py-3">
-            <p className="text-[11px] uppercase tracking-[0.25em] text-[var(--muted)]">Deploy</p>
-            <p className="mt-1 text-sm font-semibold">Zeabur Preview</p>
+            <p className="text-[11px] uppercase tracking-[0.25em] text-[var(--muted)]">Mode</p>
+            <p className="mt-1 text-sm font-semibold">Threads First</p>
           </div>
           <div className="rounded-[1.2rem] border border-[var(--border)] bg-white/60 px-4 py-3">
             <p className="text-[11px] uppercase tracking-[0.25em] text-[var(--muted)]">Current Account</p>
             <p className="mt-1 text-sm font-semibold">{activeAccount ? activeAccount.username : "Not Connected"}</p>
           </div>
           <div className="rounded-[1.2rem] border border-[var(--border)] bg-[var(--card-dark)] px-4 py-3 text-white">
-            <p className="text-[11px] uppercase tracking-[0.25em] text-white/60">Database</p>
-            <p className="mt-1 text-sm font-semibold">{databaseStatus.ready ? "Ready" : "Needs Push"}</p>
+            <p className="text-[11px] uppercase tracking-[0.25em] text-white/60">WordPress</p>
+            <p className="mt-1 text-sm font-semibold">{databaseStatus.ready ? "Draft Lane" : "Setup First"}</p>
           </div>
         </div>
       </div>

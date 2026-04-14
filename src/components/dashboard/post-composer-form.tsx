@@ -16,40 +16,63 @@ type RecentPost = {
   platform?: string;
 };
 
+type DraftPost = {
+  id: string;
+  accountId: string;
+  platform: string;
+  title: string;
+  text: string;
+  html: string;
+  excerpt: string;
+  mediaUrl: string;
+  featuredImageUrl: string;
+  categories: string;
+  tags: string;
+  status: string;
+  scheduledAt: string;
+};
+
 export function PostComposerForm({
   accounts,
-  recentPosts
+  recentPosts,
+  initialDraft
 }: {
   accounts: AccountOption[];
   recentPosts: RecentPost[];
+  initialDraft?: DraftPost | null;
 }) {
-  const [accountId, setAccountId] = useState(accounts[0]?.id ?? "");
-  const [title, setTitle] = useState("");
-  const [text, setText] = useState("");
-  const [html, setHtml] = useState("");
-  const [excerpt, setExcerpt] = useState("");
-  const [mediaUrl, setMediaUrl] = useState("");
-  const [featuredImageUrl, setFeaturedImageUrl] = useState("");
-  const [categories, setCategories] = useState("");
-  const [tags, setTags] = useState("");
-  const [publishMode, setPublishMode] = useState<"immediate" | "scheduled">("immediate");
-  const [scheduledAt, setScheduledAt] = useState("");
+  const [accountId, setAccountId] = useState(initialDraft?.accountId ?? accounts[0]?.id ?? "");
+  const [title, setTitle] = useState(initialDraft?.title ?? "");
+  const [text, setText] = useState(initialDraft?.text ?? "");
+  const [html, setHtml] = useState(initialDraft?.html ?? "");
+  const [excerpt, setExcerpt] = useState(initialDraft?.excerpt ?? "");
+  const [mediaUrl, setMediaUrl] = useState(initialDraft?.mediaUrl ?? "");
+  const [featuredImageUrl, setFeaturedImageUrl] = useState(initialDraft?.featuredImageUrl ?? "");
+  const [categories, setCategories] = useState(initialDraft?.categories ?? "");
+  const [tags, setTags] = useState(initialDraft?.tags ?? "");
+  const [publishMode, setPublishMode] = useState<"immediate" | "scheduled">(
+    initialDraft?.status === "scheduled" ? "scheduled" : "immediate"
+  );
+  const [scheduledAt, setScheduledAt] = useState(initialDraft?.scheduledAt ?? "");
   const [message, setMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const selectedAccount = accounts.find((account) => account.id === accountId);
   const isWordPress = selectedAccount?.platform === "wordpress";
   const charactersLeft = 500 - text.length;
+  const threadPreview = `${text}${mediaUrl ? `\n\n${mediaUrl}` : ""}`.trim();
+  const wordpressPreviewTitle = title || "未命名草稿";
+  const wordpressPreviewBody = html || text;
 
   return (
     <section className="glass-panel fade-in-up rounded-[2rem] border border-[var(--border)] p-6">
       <div className="flex items-center justify-between gap-4">
         <div>
           <p className="text-[11px] uppercase tracking-[0.3em] text-[var(--muted)]">Compose</p>
-          <h2 className="mt-2 text-3xl font-semibold">跨平台發文編輯器</h2>
+          <h2 className="mt-2 text-3xl font-semibold">{initialDraft ? "回到草稿繼續修" : "Threads 發文台 + WordPress 草稿台"}</h2>
         </div>
         <span className="rounded-full bg-[var(--accent)] px-3 py-1 text-xs uppercase tracking-[0.2em] text-white">
-          phase 6
+          {initialDraft ? "edit mode" : "threads first"}
         </span>
       </div>
 
@@ -62,8 +85,9 @@ export function PostComposerForm({
             startTransition(async () => {
               setMessage(null);
 
-              const response = await fetch("/api/threads/publish", {
-                method: "POST",
+              const endpoint = initialDraft ? `/api/posts/${initialDraft.id}` : "/api/threads/publish";
+              const response = await fetch(endpoint, {
+                method: initialDraft ? "PATCH" : "POST",
                 headers: {
                   "Content-Type": "application/json"
                 },
@@ -101,22 +125,34 @@ export function PostComposerForm({
               }
 
               setMessage(
-                publishMode === "scheduled"
-                  ? "已加入排程佇列，稍後會由 scheduler 自動發布。"
-                  : "已送出發布流程。重新整理後可在排程頁看到紀錄。"
+                result.message ??
+                  (isWordPress
+                    ? "已同步到 WordPress 草稿。"
+                    : publishMode === "scheduled"
+                      ? "已加入 Threads 排程佇列。"
+                      : "已更新 Threads 草稿。")
               );
-              setTitle("");
-              setText("");
-              setHtml("");
-              setExcerpt("");
-              setMediaUrl("");
-              setFeaturedImageUrl("");
-              setCategories("");
-              setTags("");
-              setScheduledAt("");
+
+              if (!initialDraft) {
+                setTitle("");
+                setText("");
+                setHtml("");
+                setExcerpt("");
+                setMediaUrl("");
+                setFeaturedImageUrl("");
+                setCategories("");
+                setTags("");
+                setScheduledAt("");
+              }
             });
           }}
         >
+          {initialDraft ? (
+            <div className="rounded-3xl border border-[var(--border-strong)] bg-[var(--accent-soft)] p-4 text-sm text-[var(--foreground)]">
+              正在編輯：
+              <span className="ml-2 font-semibold">{initialDraft.platform === "wordpress" ? "WordPress 草稿" : "Threads 草稿"}</span>
+            </div>
+          ) : null}
           {isWordPress ? (
             <div className="rounded-3xl bg-white/85 p-4">
               <label className="mb-2 block text-sm text-[var(--muted)]">文章標題</label>
@@ -209,43 +245,87 @@ export function PostComposerForm({
             </div>
           )}
 
-          <div className="grid gap-4 md:grid-cols-2">
-            <label className="rounded-3xl bg-white/85 p-4">
-              <span className="mb-2 block text-sm text-[var(--muted)]">發佈模式</span>
-              <select
-                className="w-full rounded-2xl border border-[var(--border)] bg-transparent px-4 py-3 outline-none"
-                value={publishMode}
-                onChange={(event) => setPublishMode(event.target.value as "immediate" | "scheduled")}
-              >
-                <option value="immediate">立即發佈</option>
-                <option value="scheduled">排程發佈</option>
-              </select>
-            </label>
-            <label className="rounded-3xl bg-white/85 p-4">
-              <span className="mb-2 block text-sm text-[var(--muted)]">排程時間</span>
-              <input
-                type="datetime-local"
-                className="w-full rounded-2xl border border-[var(--border)] bg-transparent px-4 py-3 outline-none"
-                value={scheduledAt}
-                onChange={(event) => setScheduledAt(event.target.value)}
-                disabled={publishMode !== "scheduled"}
-              />
-            </label>
-          </div>
+          {isWordPress ? (
+            <div className="rounded-3xl bg-white/85 p-4 text-sm text-[var(--muted)]">
+              WordPress 現在只會建立或更新草稿，不會直接發佈。你可以先在這裡修內容，再到站台裡細修版型。
+            </div>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2">
+              <label className="rounded-3xl bg-white/85 p-4">
+                <span className="mb-2 block text-sm text-[var(--muted)]">發佈模式</span>
+                <select
+                  className="w-full rounded-2xl border border-[var(--border)] bg-transparent px-4 py-3 outline-none"
+                  value={publishMode}
+                  onChange={(event) => setPublishMode(event.target.value as "immediate" | "scheduled")}
+                >
+                  <option value="immediate">{initialDraft ? "先存草稿" : "立即發佈"}</option>
+                  <option value="scheduled">排程發佈</option>
+                </select>
+              </label>
+              <label className="rounded-3xl bg-white/85 p-4">
+                <span className="mb-2 block text-sm text-[var(--muted)]">排程時間</span>
+                <input
+                  type="datetime-local"
+                  className="w-full rounded-2xl border border-[var(--border)] bg-transparent px-4 py-3 outline-none"
+                  value={scheduledAt}
+                  onChange={(event) => setScheduledAt(event.target.value)}
+                  disabled={publishMode !== "scheduled"}
+                />
+              </label>
+            </div>
+          )}
 
           <button
             type="submit"
             disabled={isPending || !accountId}
             className="w-full rounded-2xl bg-[var(--accent)] px-4 py-3 text-white shadow-[0_16px_40px_rgba(187,90,54,0.24)] disabled:opacity-60"
           >
-            {isPending ? "送出中..." : publishMode === "scheduled" ? "加入排程" : isWordPress ? "發佈文章" : "立即發文"}
+            {isPending
+              ? "送出中..."
+              : isWordPress
+                ? initialDraft
+                  ? "更新 WordPress 草稿"
+                  : "建立 WordPress 草稿"
+                : publishMode === "scheduled"
+                  ? "加入排程"
+                  : initialDraft
+                    ? "更新 Threads 草稿"
+                    : "立即發文"}
           </button>
           {message ? <p className="text-sm text-[var(--muted)]">{message}</p> : null}
         </form>
 
-        <div className="rounded-3xl bg-[var(--card-dark)] p-4 text-white">
-          <p className="text-sm text-white/70">發文選項</p>
-          <div className="mt-4 space-y-3 text-sm">
+        <div className="space-y-4">
+          <div className="rounded-3xl bg-[var(--card-dark)] p-4 text-white">
+            <p className="text-sm text-white/70">即時預覽</p>
+            {isWordPress ? (
+              <div className="mt-4 rounded-[1.6rem] bg-white px-5 py-5 text-[var(--foreground)]">
+                <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">WordPress Draft</p>
+                <h3 className="mt-3 text-2xl font-semibold">{wordpressPreviewTitle}</h3>
+                {excerpt ? <p className="mt-3 text-sm text-[var(--muted)]">{excerpt}</p> : null}
+                <div className="mt-4 space-y-3 text-sm leading-7">
+                  {wordpressPreviewBody
+                    .split("\n")
+                    .filter(Boolean)
+                    .slice(0, 5)
+                    .map((line, index) => (
+                      <p key={`${line}-${index}`}>{line}</p>
+                    ))}
+                  {!wordpressPreviewBody ? <p className="text-[var(--muted)]">這裡會顯示你的長文草稿預覽。</p> : null}
+                </div>
+              </div>
+            ) : (
+              <div className="mt-4 rounded-[1.6rem] border border-white/10 bg-black/20 p-5">
+                <p className="text-xs uppercase tracking-[0.2em] text-white/55">Threads Preview</p>
+                <p className="mt-3 whitespace-pre-wrap text-base leading-7">{threadPreview || "這裡會顯示你的 Threads 貼文預覽。"}</p>
+                <p className="mt-4 text-xs text-white/55">字數 {text.length} / 500</p>
+              </div>
+            )}
+          </div>
+
+          <div className="rounded-3xl bg-[var(--card-dark)] p-4 text-white">
+            <p className="text-sm text-white/70">發文選項</p>
+            <div className="mt-4 space-y-3 text-sm">
             <label className="block">
               <span className="mb-2 block text-white/60">帳號</span>
               <select
@@ -264,16 +344,16 @@ export function PostComposerForm({
               類型：{isWordPress ? "文章 / 摘要 / 分類 / 標籤 / 特色圖" : "文字 / 單一媒體 / 排程回覆"}
             </div>
             <div className="rounded-2xl border border-white/10 p-3">
-              {isWordPress ? "WordPress 會自動建立分類與標籤，並嘗試上傳特色圖。" : "Hashtag：Threads 上限 1 個"}
+              {isWordPress ? "WordPress 只同步成草稿，會自動處理分類、標籤與特色圖。" : "Hashtag：Threads 上限 1 個"}
             </div>
             <div className="rounded-2xl border border-white/10 p-3">
-              {isWordPress ? "排程會先進本地佇列，到時間由 scheduler 發佈。" : "關鍵字命中可直接生成自動回覆佇列"}
+              {isWordPress ? "想繼續改內容時，直接從 Queue 點回來編輯。" : "關鍵字命中可直接生成自動回覆佇列"}
             </div>
           </div>
 
-          <div className="mt-6">
-            <p className="text-sm text-white/70">最近建立</p>
-            <div className="mt-3 space-y-3">
+            <div className="mt-6">
+              <p className="text-sm text-white/70">最近建立</p>
+              <div className="mt-3 space-y-3">
               {recentPosts.map((post) => (
                 <div key={post.id} className="rounded-2xl border border-white/10 bg-white/5 p-3">
                   <p className="text-xs uppercase tracking-[0.2em] text-white/55">
@@ -288,6 +368,7 @@ export function PostComposerForm({
                   目前還沒有貼文紀錄
                 </p>
               ) : null}
+              </div>
             </div>
           </div>
         </div>

@@ -8,7 +8,7 @@ type RewriteInput = {
 };
 
 type RewriteOutput = {
-  provider: "gemini" | "claude" | "fallback";
+  provider: "openai" | "gemini" | "claude" | "fallback";
   summary: string;
   threadsDraft: string;
   wordpressTitle: string;
@@ -37,6 +37,48 @@ function buildPrompt(input: RewriteInput) {
     `Title: ${input.title}`,
     `Source: ${input.rawText}`
   ].join("\n");
+}
+
+async function runOpenAiRewrite(input: RewriteInput): Promise<RewriteOutput> {
+  const apiKey = env.openaiApiKey();
+
+  if (!apiKey) {
+    throw new Error("Missing OPENAI_API_KEY");
+  }
+
+  const response = await fetch("https://api.openai.com/v1/responses", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`
+    },
+    body: JSON.stringify({
+      model: "gpt-4.1-mini",
+      input: buildPrompt(input)
+    })
+  });
+
+  if (!response.ok) {
+    throw new Error(`OpenAI API error (${response.status})`);
+  }
+
+  const data = (await response.json()) as {
+    output_text?: string;
+    output?: Array<{
+      content?: Array<{ type?: string; text?: string }>;
+    }>;
+  };
+
+  const text =
+    data.output_text?.trim() ||
+    data.output?.flatMap((item) => item.content ?? []).map((item) => item.text ?? "").join("\n") ||
+    "";
+  const parsed = extractTextFromJsonBlock(text);
+
+  return {
+    provider: "openai",
+    ...parsed
+  };
 }
 
 async function runGeminiRewrite(input: RewriteInput): Promise<RewriteOutput> {
@@ -129,6 +171,12 @@ async function runClaudeRewrite(input: RewriteInput): Promise<RewriteOutput> {
 }
 
 export async function rewriteContentWithAi(input: RewriteInput): Promise<RewriteOutput> {
+  try {
+    if (env.openaiApiKey()) {
+      return await runOpenAiRewrite(input);
+    }
+  } catch {}
+
   try {
     if (env.geminiApiKey()) {
       return await runGeminiRewrite(input);

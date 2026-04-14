@@ -106,8 +106,8 @@ export async function syncPostToWordPress(postId: string) {
       htmlContent: draft.html,
       excerpt: draft.excerpt,
       tags: draft.tags.length ? JSON.stringify(draft.tags) : null,
-      status: "scheduled",
-      scheduledAt: new Date(),
+      status: "draft",
+      scheduledAt: null,
       replyToPostId: sourcePost.platformPostId,
       mediaUrls: sourcePost.mediaUrls,
       featuredImageUrl: sourcePost.mediaUrls ? (JSON.parse(sourcePost.mediaUrls) as string[])[0] ?? null : null
@@ -119,14 +119,14 @@ export async function syncPostToWordPress(postId: string) {
       accountId: wordpressAccount.id,
       postId: created.id,
       actionType: "wordpress_sync",
-      status: "scheduled",
-      detail: `已由 Threads 貼文建立 WordPress 草稿佇列`
+      status: "executed",
+      detail: "已由 Threads 貼文建立 WordPress 可編輯草稿"
     }
   });
 
   return {
     postId: created.id,
-    scheduled: true,
+    scheduled: false,
     duplicated: false
   };
 }

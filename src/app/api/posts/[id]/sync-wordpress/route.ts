@@ -8,7 +8,7 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
 
     return NextResponse.json({
       ok: true,
-      message: result.duplicated ? "這篇貼文已經有 WordPress 草稿。" : "已建立 WordPress 草稿佇列。",
+      message: result.duplicated ? "這篇貼文已經有 WordPress 草稿。" : "已建立 WordPress 可編輯草稿。",
       ...result
     });
   } catch (error) {
