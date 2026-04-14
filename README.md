@@ -1,12 +1,12 @@
 # Social Audio
 
-Threads-first 個人社群自動經營後台。
+Threads-first 個人內容操作台。
 
 ## Current Status
 
 - PRD: [docs/PRD.md](./docs/PRD.md)
-- MVP focus: Phase 1 + Phase 2
-- Stack: Next.js App Router, TypeScript, Tailwind CSS, Prisma, SQLite
+- Current focus: Threads publishing + WordPress draft studio + Source Inbox
+- Stack: Next.js App Router, TypeScript, Tailwind CSS, Prisma, PostgreSQL, Inngest
 
 ## Getting Started
 
@@ -26,7 +26,8 @@ Open `http://localhost:3000`.
 
 - 建立 Zeabur `PostgreSQL` addon，將連線字串填到 `DATABASE_URL`
 - 設定環境變數：`ADMIN_PASSWORD`、`ADMIN_SESSION_SECRET`、`THREADS_APP_ID`、`THREADS_APP_SECRET`、`THREADS_REDIRECT_URI`、`TOKEN_ENCRYPTION_KEY`
-- 若要使用 AI 草稿引擎，可設定 `OPENAI_API_KEY`、`GEMINI_API_KEY` 或 `ANTHROPIC_API_KEY`，目前會依序優先使用 OpenAI、Gemini、Claude
+- 若要使用 AI 草稿引擎，可設定 `OPENAI_API_KEY`、`GEMINI_API_KEY` 或 `ANTHROPIC_API_KEY`
+- AI provider 可在內容引擎中選擇 `Auto / Gemini / Claude / OpenAI`
 - 若要讓排程、metrics、keywords 與 automation 自動執行，另外設定 `INNGEST_EVENT_KEY`、`INNGEST_SIGNING_KEY`、`INNGEST_SERVE_ORIGIN`
 - `THREADS_REDIRECT_URI` 應設為 `https://social-audio.zeabur.app/api/threads/callback`
 - 首次部署後執行一次 `npm run db:push`
@@ -45,5 +46,15 @@ Open `http://localhost:3000`.
 - 每 6 小時：收集 metrics + 刷新即將到期 token
 - 每 30 分鐘：關鍵字掃描
 - 每 30 分鐘：自動化規則執行
+- 每 3 小時：刷新 Source Watchlist 最新內容
+
+## Current Product Shape
+
+- `Threads`：即時發文、排程、Queue、分析
+- `WordPress`：只建立 / 更新草稿，不直接發佈
+- `Content Engine`：輸入 URL / text / image，產出 Threads + WordPress draft
+- `Writing Style Memory`：從你自己的 WordPress 舊文學風格與聯盟連結規劃
+- `Source Watchlist`：追蹤 RSS / Blog 來源
+- `Inbox`：集中處理最新來源內容並做簡單改寫判斷
 
 建議上線前重設 `THREADS_APP_SECRET`，並把 `ADMIN_SESSION_SECRET` 與 `TOKEN_ENCRYPTION_KEY` 換成高熵隨機值。
