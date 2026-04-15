@@ -106,6 +106,20 @@ export default async function ComposePage({
     }
   }
 
+  const orderedAccounts = [...accounts].sort((a, b) => {
+    if (draftPost) {
+      if (a.id === draftPost.accountId) return -1;
+      if (b.id === draftPost.accountId) return 1;
+    }
+
+    if (a.platform === "threads" && b.platform !== "threads") return -1;
+    if (a.platform !== "threads" && b.platform === "threads") return 1;
+    return 0;
+  });
+
+  const preferredAccountId =
+    draftPost?.accountId ?? orderedAccounts.find((account) => account.platform === "threads")?.id ?? orderedAccounts[0]?.id ?? "";
+
   return (
     <div className="space-y-6">
       <PageIntro
@@ -119,7 +133,7 @@ export default async function ComposePage({
       />
       <DatabaseBanner status={databaseStatus} />
       <PostComposerForm
-        accounts={accounts.map((account) => ({
+        accounts={orderedAccounts.map((account) => ({
           id: account.id,
           username: `@${account.platformUsername}`,
           platform: account.platform
@@ -139,6 +153,7 @@ export default async function ComposePage({
         }}
         initialDraft={draftPost}
         reviewContext={reviewContext}
+        preferredAccountId={preferredAccountId}
       />
     </div>
   );

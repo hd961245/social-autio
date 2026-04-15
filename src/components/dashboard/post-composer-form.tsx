@@ -115,15 +115,17 @@ export function PostComposerForm({
   recentPosts,
   affiliateLibrary,
   initialDraft,
-  reviewContext
+  reviewContext,
+  preferredAccountId
 }: {
   accounts: AccountOption[];
   recentPosts: RecentPost[];
   affiliateLibrary: AffiliateLibrary;
   initialDraft?: DraftPost | null;
   reviewContext?: ReviewContext | null;
+  preferredAccountId?: string;
 }) {
-  const [accountId, setAccountId] = useState(initialDraft?.accountId ?? accounts[0]?.id ?? "");
+  const [accountId, setAccountId] = useState(initialDraft?.accountId ?? preferredAccountId ?? accounts[0]?.id ?? "");
   const [title, setTitle] = useState(initialDraft?.title ?? "");
   const [text, setText] = useState(initialDraft?.text ?? "");
   const [html, setHtml] = useState(initialDraft?.html ?? "");
@@ -298,6 +300,29 @@ export function PostComposerForm({
               </div>
             </div>
           ) : null}
+          <div className="grid gap-4 md:grid-cols-[1fr_auto]">
+            <label className="rounded-3xl bg-white/85 p-4">
+              <span className="mb-2 block text-sm text-[var(--muted)]">發布帳號</span>
+              <select
+                className="w-full rounded-2xl border border-[var(--border)] bg-transparent px-4 py-3 outline-none"
+                value={accountId}
+                onChange={(event) => setAccountId(event.target.value)}
+              >
+                {accounts.map((account) => (
+                  <option key={account.id} value={account.id}>
+                    {account.platform === "threads" ? "Threads" : "WordPress"} {account.username}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <div className="rounded-3xl border border-[var(--border-strong)] bg-[rgba(200,79,44,0.08)] px-4 py-4 text-sm text-[var(--foreground)] md:min-w-[180px]">
+              <p className="text-[11px] uppercase tracking-[0.24em] text-[var(--muted)]">Current Mode</p>
+              <p className="mt-2 text-base font-semibold">{isWordPress ? "WordPress Draft" : "Threads Publish"}</p>
+              <p className="mt-2 leading-6 text-[var(--muted)]">
+                {isWordPress ? "只會更新後台草稿，不直接發布。" : "可立即發布或加入排程。"}
+              </p>
+            </div>
+          </div>
           {isWordPress ? (
             <div className="rounded-3xl bg-white/85 p-4">
               <label className="mb-2 block text-sm text-[var(--muted)]">文章標題</label>
@@ -508,20 +533,10 @@ export function PostComposerForm({
           <div className="rounded-3xl bg-[var(--card-dark)] p-4 text-white">
             <p className="text-sm text-white/70">發文選項</p>
             <div className="mt-4 space-y-3 text-sm">
-            <label className="block">
-              <span className="mb-2 block text-white/60">帳號</span>
-              <select
-                className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 outline-none"
-                value={accountId}
-                onChange={(event) => setAccountId(event.target.value)}
-              >
-                {accounts.map((account) => (
-                  <option key={account.id} value={account.id}>
-                    {account.platform} {account.username}
-                  </option>
-                ))}
-              </select>
-            </label>
+              <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+                <p className="text-white/60">帳號</p>
+                <p className="mt-2 font-medium">{selectedAccount ? `${selectedAccount.platform} ${selectedAccount.username}` : "尚未選擇"}</p>
+              </div>
             <div className="rounded-2xl border border-white/10 p-3">
               類型：{isWordPress ? "文章 / 摘要 / 分類 / 標籤 / 特色圖" : "文字 / 單一媒體 / 排程回覆"}
             </div>
