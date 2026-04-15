@@ -8,14 +8,14 @@ export async function Topbar() {
       <div className="relative z-10 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <p className="text-[11px] uppercase tracking-[0.35em] text-[var(--muted)]">Operations Workspace</p>
-          <h2 className="mt-2 text-3xl font-semibold">Threads publishing, monitoring, and response control</h2>
+          <h2 className="mt-2 text-3xl font-semibold">Threads publishing lane, with WordPress drafts kept tidy</h2>
           <p className="mt-3 text-sm text-[var(--muted)]">
             {activeAccount
               ? `目前主控帳號：${activeAccount.platform} ${activeAccount.username} · 最後同步 ${activeAccount.lastSyncedAt}`
               : "目前尚未有啟用中的 Threads 帳號，先到 Accounts 完成授權。"}
           </p>
         </div>
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-3 lg:min-w-[420px]">
           <div className="rounded-[1.2rem] border border-[var(--border)] bg-white/60 px-4 py-3">
             <p className="text-[11px] uppercase tracking-[0.25em] text-[var(--muted)]">Mode</p>
             <p className="mt-1 text-sm font-semibold">Threads First</p>

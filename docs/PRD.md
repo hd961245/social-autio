@@ -341,6 +341,18 @@ The app should progressively remove repeated manual work:
 - repeated source entry
 - repeated content triage
 - repeated structural formatting
+- repeated page-hopping across scattered tools
+
+### 6.6 Navigation Should Follow Workflow
+
+Primary navigation should foreground the main lane:
+
+- Inbox
+- Compose
+- Queue
+- Analytics
+
+Secondary system pages should be grouped into horizontal navigation with dropdown-style reveal, instead of staying flattened in one long menu.
 - repeated CTA / affiliate block rebuilding
 
 ## 7. AI Design
