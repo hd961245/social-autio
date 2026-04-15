@@ -3,7 +3,7 @@ import { PageIntro } from "@/components/dashboard/page-intro";
 import { PostsList } from "@/components/dashboard/posts-list";
 import { SourceInbox } from "@/components/dashboard/source-inbox";
 import { SourceWatchlist } from "@/components/dashboard/source-watchlist";
-import { getPostSummaries } from "@/lib/dashboard-data";
+import { getAnalyticsOverview, getPostSummaries } from "@/lib/dashboard-data";
 import { scoreSourceItem } from "@/lib/content/source-inbox";
 import { prisma } from "@/lib/prisma";
 
@@ -33,6 +33,7 @@ export default async function DeskPage({
     Awaited<ReturnType<typeof prisma.post.findMany<{ include: { account: true } }>>>[number]
   > = [];
   const posts = await getPostSummaries();
+  const analytics = await getAnalyticsOverview({ window: "30d", accountId: "all" });
 
   try {
     [sourceItems, settings, ingestions, drafts] = await Promise.all([
@@ -124,6 +125,79 @@ export default async function DeskPage({
             </article>
           ))}
         </div>
+      </section>
+
+      <section className="grid gap-4 xl:grid-cols-[1.08fr_0.92fr]">
+        <article className="glass-panel rounded-[2rem] border border-[var(--border)] p-5">
+          <div className="flex items-end justify-between gap-4">
+            <div>
+              <p className="text-[11px] uppercase tracking-[0.3em] text-[var(--muted)]">Rewrite Radar</p>
+              <h2 className="mt-2 text-3xl font-semibold">最近值得重寫的 Threads</h2>
+            </div>
+            <a href="/analytics" className="text-sm font-medium text-[var(--accent)]">
+              看完整分析
+            </a>
+          </div>
+          <div className="mt-5 space-y-3">
+            {analytics.viralCandidates.slice(0, 3).map((post) => (
+              <article key={post.id} className="rounded-[1.5rem] border border-[var(--border)] bg-white/72 p-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">{post.account}</p>
+                  <span
+                    className={`rounded-full px-3 py-1 text-xs uppercase ${
+                      post.label === "high"
+                        ? "bg-emerald-100 text-emerald-700"
+                        : post.label === "medium"
+                          ? "bg-[var(--accent-soft)] text-[var(--accent-strong)]"
+                          : "bg-stone-200 text-stone-700"
+                    }`}
+                  >
+                    {post.label} · {post.score}
+                  </span>
+                </div>
+                <p className="mt-3 text-sm leading-7">{post.text}</p>
+                <p className="mt-3 text-sm text-[var(--muted)]">{post.suggestion}</p>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <a href={`/posts/${post.id}`} className="rounded-full border border-[var(--border)] bg-white px-4 py-2 text-sm">
+                    看復盤
+                  </a>
+                  <a href={`/compose?reviewId=${post.id}`} className="rounded-full bg-[var(--card-dark)] px-4 py-2 text-sm text-white">
+                    直接開新稿
+                  </a>
+                </div>
+              </article>
+            ))}
+            {analytics.viralCandidates.length === 0 ? (
+              <article className="rounded-[1.5rem] border border-dashed border-[var(--border)] p-4 text-sm text-[var(--muted)]">
+                目前還沒有足夠的 Threads metrics 可判斷下一篇該重寫哪一則。
+              </article>
+            ) : null}
+          </div>
+        </article>
+
+        <article className="rounded-[2rem] bg-[var(--card-dark)] p-5 text-white shadow-[0_24px_60px_rgba(15,10,7,0.22)]">
+          <p className="text-[11px] uppercase tracking-[0.3em] text-white/55">Desk Focus</p>
+          <h2 className="mt-2 text-3xl font-semibold">今天先做什麼</h2>
+          <div className="mt-5 space-y-3 text-sm text-white/78">
+            <p className="rounded-[1.2rem] border border-white/10 bg-white/5 px-4 py-3">
+              1. 先看 `Rewrite Radar`，挑一篇最近值得延伸的 Threads。
+            </p>
+            <p className="rounded-[1.2rem] border border-white/10 bg-white/5 px-4 py-3">
+              2. 去 `Inbox` 看有沒有新來源值得併進同一個主題。
+            </p>
+            <p className="rounded-[1.2rem] border border-white/10 bg-white/5 px-4 py-3">
+              3. 回 `Engine` 或 `Queue` 補成 Threads / WordPress draft。
+            </p>
+          </div>
+          <div className="mt-5 flex flex-wrap gap-2 text-sm">
+            <a href="/desk?tab=inbox" className="rounded-full border border-white/15 px-4 py-2 text-white">
+              去 Inbox
+            </a>
+            <a href="/desk?tab=queue" className="rounded-full border border-white/15 px-4 py-2 text-white">
+              去 Queue
+            </a>
+          </div>
+        </article>
       </section>
 
       <section className="glass-panel rounded-[2rem] border border-[var(--border)] p-5">
