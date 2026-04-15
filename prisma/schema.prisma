@@ -220,6 +220,8 @@ model SourceWatch {
   lastItemFingerprint String?
   lastHandledStatus String? @default("new")
   lastHandledAt DateTime?
+  importCount   Int      @default(0)
+  skipCount     Int      @default(0)
   lastError     String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt

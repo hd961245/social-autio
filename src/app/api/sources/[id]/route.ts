@@ -15,7 +15,13 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       where: { id },
       data: {
         lastHandledStatus: payload.lastHandledStatus,
-        lastHandledAt: payload.lastHandledStatus === "new" ? null : new Date()
+        lastHandledAt: payload.lastHandledStatus === "new" ? null : new Date(),
+        skipCount:
+          payload.lastHandledStatus === "skipped"
+            ? {
+                increment: 1
+              }
+            : undefined
       }
     });
 

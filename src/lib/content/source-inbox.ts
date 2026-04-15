@@ -4,13 +4,47 @@ export type SourceInboxScore = {
   commercialScore: number;
   recommendation: "threads-first" | "wordpress-first" | "dual";
   reasons: string[];
+  memoryNote?: string;
 };
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
 }
 
-export function scoreSourceItem(input: { title: string; excerpt: string; sourceType: string }): SourceInboxScore {
+function getMemoryBias(input: { importCount?: number; skipCount?: number }) {
+  const importCount = input.importCount ?? 0;
+  const skipCount = input.skipCount ?? 0;
+
+  if (importCount >= 3 && importCount > skipCount) {
+    return {
+      importBias: 12,
+      skipBias: 0,
+      note: "你過去常把這類來源拿來改寫，系統提高了優先度。"
+    };
+  }
+
+  if (skipCount >= 3 && skipCount >= importCount) {
+    return {
+      importBias: 0,
+      skipBias: 10,
+      note: "你過去常略過這類來源，系統先保守看待。"
+    };
+  }
+
+  return {
+    importBias: 0,
+    skipBias: 0,
+    note: undefined
+  };
+}
+
+export function scoreSourceItem(input: {
+  title: string;
+  excerpt: string;
+  sourceType: string;
+  importCount?: number;
+  skipCount?: number;
+}): SourceInboxScore {
   const text = `${input.title} ${input.excerpt}`.trim();
   const length = text.length;
   const hasNumbers = /\d/.test(text);
@@ -22,6 +56,7 @@ export function scoreSourceItem(input: { title: string; excerpt: string; sourceT
   let wordpressScore = 52;
   let commercialScore = 36;
   const reasons: string[] = [];
+  const memory = getMemoryBias({ importCount: input.importCount, skipCount: input.skipCount });
 
   if (length <= 180) {
     threadsScore += 14;
@@ -57,6 +92,18 @@ export function scoreSourceItem(input: { title: string; excerpt: string; sourceT
     wordpressScore += 6;
   }
 
+  if (memory.importBias) {
+    threadsScore += 4;
+    wordpressScore += 6;
+    commercialScore += memory.importBias;
+  }
+
+  if (memory.skipBias) {
+    threadsScore -= 4;
+    wordpressScore -= 4;
+    commercialScore -= 6;
+  }
+
   threadsScore = clamp(threadsScore, 0, 100);
   wordpressScore = clamp(wordpressScore, 0, 100);
   commercialScore = clamp(commercialScore, 0, 100);
@@ -73,6 +120,7 @@ export function scoreSourceItem(input: { title: string; excerpt: string; sourceT
     wordpressScore,
     commercialScore,
     recommendation,
-    reasons: reasons.slice(0, 3)
+    reasons: reasons.slice(0, 3),
+    memoryNote: memory.note
   };
 }

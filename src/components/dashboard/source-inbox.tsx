@@ -16,6 +16,7 @@ type InboxItem = {
   commercialScore: number;
   recommendation: "threads-first" | "wordpress-first" | "dual";
   reasons: string[];
+  memoryNote?: string;
 };
 
 export function SourceInbox({ initialItems }: { initialItems: InboxItem[] }) {
@@ -115,6 +116,11 @@ export function SourceInbox({ initialItems }: { initialItems: InboxItem[] }) {
                       <p key={reason}>{reason}</p>
                     ))}
                   </div>
+                ) : null}
+                {item.memoryNote ? (
+                  <p className="mt-4 rounded-2xl border border-[var(--border)] bg-white/70 px-4 py-3 text-sm text-[var(--foreground)]">
+                    {item.memoryNote}
+                  </p>
                 ) : null}
               </div>
               <div className="flex shrink-0 flex-wrap gap-3">

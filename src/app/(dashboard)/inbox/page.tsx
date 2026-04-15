@@ -32,7 +32,9 @@ export default async function InboxPage() {
           const score = scoreSourceItem({
             title: item.lastItemTitle ?? "",
             excerpt: item.lastExcerpt ?? "",
-            sourceType: item.sourceType
+            sourceType: item.sourceType,
+            importCount: item.importCount,
+            skipCount: item.skipCount
           });
 
           return {
@@ -48,7 +50,8 @@ export default async function InboxPage() {
             wordpressScore: score.wordpressScore,
             commercialScore: score.commercialScore,
             recommendation: score.recommendation,
-            reasons: score.reasons
+            reasons: score.reasons,
+            memoryNote: score.memoryNote
           };
         })}
       />

@@ -89,6 +89,9 @@ export async function PUT(_request: Request, { params }: { params: Promise<{ id:
         lastItemFingerprint: preview.fingerprint,
         lastHandledStatus: "imported",
         lastHandledAt: new Date(),
+        importCount: {
+          increment: 1
+        },
         lastError: null
       }
     });
