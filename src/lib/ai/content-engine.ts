@@ -40,7 +40,13 @@ function buildWordPressDraft(
   summary: string,
   personaPrompt: string,
   templateId: IngestionInput["wordpressTemplate"],
-  affiliatePolicy: string
+  affiliatePolicy: string,
+  affiliateLibrary: {
+    primary: string;
+    secondary: string;
+    disclosure: string;
+    cta: string;
+  }
 ) {
   const heading = title || "內容重寫草稿";
   const paragraphs = summary
@@ -64,7 +70,8 @@ function buildWordPressDraft(
       paragraphs,
       points,
       affiliatePolicy,
-      personaPrompt
+      personaPrompt,
+      affiliateLibrary
     })
   };
 }
@@ -89,6 +96,12 @@ export async function ingestAndGenerateDrafts(input: IngestionInput) {
     .join("\n\n");
   const tone = settings?.defaultTone?.trim() || "sharp-observer";
   const affiliatePolicy = settings?.affiliateLinkPolicy?.trim() || "";
+  const affiliateLibrary = {
+    primary: settings?.affiliateBlockPrimary?.trim() || "",
+    secondary: settings?.affiliateBlockSecondary?.trim() || "",
+    disclosure: settings?.affiliateDisclosure?.trim() || "",
+    cta: settings?.affiliateCta?.trim() || ""
+  };
   const preferredProvider = (settings?.aiProvider?.trim() as "auto" | "gemini" | "claude" | "openai" | undefined) || "auto";
 
   const [threadsAccount, wordpressAccount] = await Promise.all([
@@ -133,7 +146,14 @@ export async function ingestAndGenerateDrafts(input: IngestionInput) {
     threadsDraft: buildThreadsDraft(summary, personaPrompt, tone),
     wordpressTitle: safeTitle,
     wordpressExcerpt: summary.slice(0, 140),
-    wordpressHtml: buildWordPressDraft(safeTitle, summary, personaPrompt, input.wordpressTemplate, affiliatePolicy).html
+    wordpressHtml: buildWordPressDraft(
+      safeTitle,
+      summary,
+      personaPrompt,
+      input.wordpressTemplate,
+      affiliatePolicy,
+      affiliateLibrary
+    ).html
   };
 
   try {

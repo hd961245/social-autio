@@ -13,6 +13,7 @@ export default async function ComposePage({
 }) {
   const databaseStatus = await getDatabaseStatus();
   let accounts: Awaited<ReturnType<typeof prisma.platformAccount.findMany>> = [];
+  let settings: Awaited<ReturnType<typeof prisma.appSettings.findFirst>> = null;
   let posts: Awaited<
     ReturnType<
       typeof prisma.post.findMany<{
@@ -42,7 +43,7 @@ export default async function ComposePage({
 
   if (databaseStatus.ready) {
     const params = await searchParams;
-    [accounts, posts] = await Promise.all([
+    [accounts, posts, settings] = await Promise.all([
       prisma.platformAccount.findMany({
         where: { isActive: true },
         orderBy: { createdAt: "desc" }
@@ -51,7 +52,8 @@ export default async function ComposePage({
         include: { account: true },
         orderBy: { createdAt: "desc" },
         take: 5
-      })
+      }),
+      prisma.appSettings.findFirst()
     ]);
 
     if (params?.postId) {
@@ -105,6 +107,12 @@ export default async function ComposePage({
           account: `@${post.account.platformUsername}`,
           platform: post.account.platform
         }))}
+        affiliateLibrary={{
+          primary: settings?.affiliateBlockPrimary ?? "",
+          secondary: settings?.affiliateBlockSecondary ?? "",
+          disclosure: settings?.affiliateDisclosure ?? "",
+          cta: settings?.affiliateCta ?? ""
+        }}
         initialDraft={draftPost}
       />
     </div>

@@ -1,5 +1,12 @@
 export type WordPressTemplateId = "opinion" | "case-study" | "tool-review" | "weekly-recap";
 
+export type AffiliateLibrary = {
+  primary: string;
+  secondary: string;
+  disclosure: string;
+  cta: string;
+};
+
 type WordPressTemplateDefinition = {
   id: WordPressTemplateId;
   label: string;
@@ -58,16 +65,17 @@ export function getWordPressTemplate(templateId: string | undefined): WordPressT
   return WORDPRESS_TEMPLATES.find((template) => template.id === templateId) ?? WORDPRESS_TEMPLATES[0];
 }
 
-export function buildAffiliateSlotBlock(policy: string) {
+export function buildAffiliateSlotBlock(policy: string, library?: Partial<AffiliateLibrary>) {
   return `
 <section>
   <h2>推薦工具 / 聯盟連結插槽</h2>
   <p>這裡保留給你放聯盟連結、推廣連結、產品推薦或導購說明。正式發布前可依文章主題替換。</p>
   <ul>
-    <li>主推薦工具：待填寫</li>
-    <li>備用方案或延伸閱讀：待填寫</li>
-    <li>Disclosure / 利益揭露：${policy || "若本文含聯盟連結，請加上合適揭露說明。"}</li>
+    <li>主推薦工具：${library?.primary || "待填寫"}</li>
+    <li>備用方案或延伸閱讀：${library?.secondary || "待填寫"}</li>
+    <li>Disclosure / 利益揭露：${library?.disclosure || policy || "若本文含聯盟連結，請加上合適揭露說明。"}</li>
   </ul>
+  <p>${library?.cta || "這裡可以補一段導購 CTA 或下一步。"}</p>
 </section>`.trim();
 }
 
@@ -79,6 +87,7 @@ export function buildTemplateHtml(params: {
   points: string[];
   affiliatePolicy: string;
   personaPrompt: string;
+  affiliateLibrary?: Partial<AffiliateLibrary>;
 }) {
   const template = getWordPressTemplate(params.templateId);
   const personaBlock = params.personaPrompt
@@ -98,7 +107,7 @@ ${paragraphsHtml}
 <ul>
   ${pointsHtml}
 </ul>
-${buildAffiliateSlotBlock(params.affiliatePolicy)}
+${buildAffiliateSlotBlock(params.affiliatePolicy, params.affiliateLibrary)}
 <h2>${template.closingHeading}</h2>
 <p>${template.ctaLabel}</p>`.trim();
 }

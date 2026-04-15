@@ -7,7 +7,11 @@ const settingsSchema = z.object({
   keywordScanPaused: z.boolean().optional(),
   globalPersonaPrompt: z.string().trim().max(5000).optional(),
   defaultTone: z.string().trim().max(100).optional(),
-  aiProvider: z.enum(["auto", "gemini", "claude", "openai"]).optional()
+  aiProvider: z.enum(["auto", "gemini", "claude", "openai"]).optional(),
+  affiliateBlockPrimary: z.string().trim().max(1000).optional(),
+  affiliateBlockSecondary: z.string().trim().max(1000).optional(),
+  affiliateDisclosure: z.string().trim().max(1000).optional(),
+  affiliateCta: z.string().trim().max(1000).optional()
 });
 
 export async function GET() {
@@ -19,7 +23,11 @@ export async function GET() {
         keywordScanPaused: false,
         globalPersonaPrompt: "",
         defaultTone: "sharp-observer",
-        aiProvider: "auto"
+        aiProvider: "auto",
+        affiliateBlockPrimary: "",
+        affiliateBlockSecondary: "",
+        affiliateDisclosure: "",
+        affiliateCta: ""
       }
     });
 }
@@ -40,7 +48,11 @@ export async function PATCH(request: Request) {
             keywordScanPaused: payload.keywordScanPaused ?? false,
             globalPersonaPrompt: payload.globalPersonaPrompt,
             defaultTone: payload.defaultTone ?? "sharp-observer",
-            aiProvider: payload.aiProvider ?? "auto"
+            aiProvider: payload.aiProvider ?? "auto",
+            affiliateBlockPrimary: payload.affiliateBlockPrimary,
+            affiliateBlockSecondary: payload.affiliateBlockSecondary,
+            affiliateDisclosure: payload.affiliateDisclosure,
+            affiliateCta: payload.affiliateCta
           }
         });
 

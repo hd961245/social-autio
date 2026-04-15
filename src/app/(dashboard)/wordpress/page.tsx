@@ -1,4 +1,5 @@
 import { PageIntro } from "@/components/dashboard/page-intro";
+import { AffiliateSlotLibraryCard } from "@/components/dashboard/affiliate-slot-library-card";
 import { WordPressArchiveRewriteCard } from "@/components/dashboard/wordpress-archive-rewrite-card";
 import { WordPressConnectForm } from "@/components/dashboard/wordpress-connect-form";
 import { WordPressStyleProfileCard } from "@/components/dashboard/wordpress-style-profile-card";
@@ -74,6 +75,12 @@ export default async function WordPressPage() {
         }))}
         initialWritingStyleProfile={settings?.writingStyleProfile ?? ""}
         initialAffiliateLinkPolicy={settings?.affiliateLinkPolicy ?? ""}
+      />
+      <AffiliateSlotLibraryCard
+        initialPrimary={settings?.affiliateBlockPrimary ?? ""}
+        initialSecondary={settings?.affiliateBlockSecondary ?? ""}
+        initialDisclosure={settings?.affiliateDisclosure ?? ""}
+        initialCta={settings?.affiliateCta ?? ""}
       />
       <WordPressArchiveRewriteCard posts={archivePosts} />
       <section className="glass-panel rounded-[2rem] border border-[var(--border)] p-6">

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import type { AffiliateLibrary } from "@/lib/content/wordpress-templates";
 
 const wordpressTemplates = [
   {
@@ -71,13 +72,6 @@ const wordpressTemplates = [
   }
 ] as const;
 
-const affiliateBlock = `<h2>推薦工具 / 聯盟連結插槽</h2>
-<ul>
-  <li>主推薦連結：待填寫</li>
-  <li>備用推薦或延伸閱讀：待填寫</li>
-  <li>Disclosure：若本文含聯盟連結，正式發佈前請補上合適揭露。</li>
-</ul>`;
-
 type AccountOption = {
   id: string;
   username: string;
@@ -111,10 +105,12 @@ type DraftPost = {
 export function PostComposerForm({
   accounts,
   recentPosts,
+  affiliateLibrary,
   initialDraft
 }: {
   accounts: AccountOption[];
   recentPosts: RecentPost[];
+  affiliateLibrary: AffiliateLibrary;
   initialDraft?: DraftPost | null;
 }) {
   const [accountId, setAccountId] = useState(initialDraft?.accountId ?? accounts[0]?.id ?? "");
@@ -136,6 +132,13 @@ export function PostComposerForm({
 
   const selectedAccount = accounts.find((account) => account.id === accountId);
   const isWordPress = selectedAccount?.platform === "wordpress";
+  const affiliateBlock = `<h2>推薦工具 / 聯盟連結插槽</h2>
+<ul>
+  <li>主推薦連結：${affiliateLibrary.primary || "待填寫"}</li>
+  <li>備用推薦或延伸閱讀：${affiliateLibrary.secondary || "待填寫"}</li>
+  <li>Disclosure：${affiliateLibrary.disclosure || "若本文含聯盟連結，正式發佈前請補上合適揭露。"}</li>
+</ul>
+<p>${affiliateLibrary.cta || "這裡補上一段導購 CTA 或下一步。"}</p>`;
   const charactersLeft = 500 - text.length;
   const threadPreview = `${text}${mediaUrl ? `\n\n${mediaUrl}` : ""}`.trim();
   const wordpressPreviewTitle = title || "未命名草稿";
