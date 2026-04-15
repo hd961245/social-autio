@@ -24,10 +24,10 @@ export function Sidebar() {
           新增 Threads 草稿
         </a>
         <a
-          href="/content-engine"
+          href="/desk?tab=engine"
           className="rounded-[1.15rem] border border-[var(--border)] bg-white/72 px-4 py-3 text-sm font-semibold text-[var(--foreground)]"
         >
-          打開內容引擎
+          打開 Content Desk
         </a>
       </div>
 
@@ -60,8 +60,8 @@ export function Sidebar() {
 
       <div className="mt-6 rounded-[1.5rem] bg-[var(--card-dark)] p-5 text-sm text-white">
         <p className="text-[11px] uppercase tracking-[0.3em] text-white/55">Workflow</p>
-        <p className="mt-2 text-xl font-semibold">Inbox {"->"} Compose {"->"} Analytics</p>
-        <p className="mt-2 text-white/72">把最常用的链路放到中轴，剩下的帐号、来源、自动化、Ops 都收去上方横向导航。</p>
+        <p className="mt-2 text-xl font-semibold">Desk {"->"} Compose {"->"} Analytics</p>
+        <p className="mt-2 text-white/72">先在 Desk 看来源、改写成草稿，再回 Compose 和 Analytics 续修与复盘。</p>
       </div>
     </aside>
   );

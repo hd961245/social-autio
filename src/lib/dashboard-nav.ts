@@ -25,6 +25,18 @@ export const dashboardNavGroups: DashboardNavGroup[] = [
     ]
   },
   {
+    id: "desk",
+    label: "Desk",
+    hint: "看來源、改寫、回到隊列",
+    primaryHref: "/desk",
+    items: [
+      { href: "/desk", label: "Content Desk", hint: "inbox + sources + engine + queue" },
+      { href: "/inbox", label: "Inbox", hint: "ready to process" },
+      { href: "/sources", label: "來源", hint: "watchlist + import" },
+      { href: "/posts", label: "Queue", hint: "draft review + next moves" }
+    ]
+  },
+  {
     id: "publish",
     label: "發佈",
     hint: "寫、排、沉到草稿",
@@ -33,17 +45,6 @@ export const dashboardNavGroups: DashboardNavGroup[] = [
       { href: "/compose", label: "發文", hint: "publish + draft" },
       { href: "/content-engine", label: "內容引擎", hint: "rewrite + split" },
       { href: "/wordpress", label: "WP 草稿", hint: "connect + draft sync" }
-    ]
-  },
-  {
-    id: "discover",
-    label: "來源",
-    hint: "看來源、挑題、改寫",
-    primaryHref: "/inbox",
-    items: [
-      { href: "/inbox", label: "Inbox", hint: "ready to process" },
-      { href: "/sources", label: "來源", hint: "watchlist + import" },
-      { href: "/posts", label: "Queue", hint: "draft review + next moves" }
     ]
   },
   {
@@ -62,7 +63,7 @@ export const dashboardNavGroups: DashboardNavGroup[] = [
 
 export const dashboardPrimaryLinks: DashboardNavItem[] = [
   { href: "/dashboard", label: "總覽", hint: "Threads KPI + health" },
+  { href: "/desk", label: "Desk", hint: "content workflow hub" },
   { href: "/compose", label: "發文", hint: "publish + draft" },
-  { href: "/inbox", label: "Inbox", hint: "ready to process" },
   { href: "/analytics", label: "分析", hint: "insights + quota" }
 ];

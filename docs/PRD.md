@@ -78,6 +78,7 @@ Non-goals for target audience:
 - WordPress templates and affiliate slot blocks
 - Source Watchlist for repeat inputs
 - Source Inbox for daily triage
+- Content Desk for one-page workflow switching
 - source dedupe and handled-state tracking
 - automatic source refresh via Inngest
 
@@ -175,6 +176,16 @@ Non-goals for target audience:
    - rewrite now
    - skip
    - open source
+
+### 4.8 Content Desk Flow
+
+1. User opens `Content Desk`
+2. User switches between:
+   - Inbox
+   - Sources
+   - Engine
+   - Queue
+3. User stays inside one workflow surface instead of bouncing across multiple pages
 
 ## 5. Functional Requirements
 
@@ -297,7 +308,15 @@ Priority: P1
 - support skip action
 - support simple scoring and recommendation
 
-### F11. Source Auto Refresh
+### F11. Content Desk
+
+Priority: P1
+
+- consolidate inbox, source watchlist, content engine, and queue into one workflow-first workspace
+- use horizontal tab-style switching as the primary content workflow entry
+- keep the standalone pages available, but make the desk the default daily operating path
+
+### F12. Source Auto Refresh
 
 Priority: P2
 
@@ -305,7 +324,7 @@ Priority: P2
 - current cadence: every 3 hours
 - refresh should update latest item and reset handled state when content changes
 
-### F12. Analytics
+### F13. Analytics
 
 Priority: P1
 
@@ -347,13 +366,11 @@ The app should progressively remove repeated manual work:
 
 Primary navigation should foreground the main lane:
 
-- Inbox
+- Content Desk
 - Compose
-- Queue
 - Analytics
 
 Secondary system pages should be grouped into horizontal navigation with dropdown-style reveal, instead of staying flattened in one long menu.
-- repeated CTA / affiliate block rebuilding
 
 ## 7. AI Design
 
