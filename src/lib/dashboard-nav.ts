@@ -20,6 +20,7 @@ export const dashboardNavGroups: DashboardNavGroup[] = [
     primaryHref: "/dashboard",
     items: [
       { href: "/dashboard", label: "總覽", hint: "Threads KPI + health" },
+      { href: "/inventory", label: "Inventory", hint: "content stages + wp memory" },
       { href: "/analytics", label: "分析", hint: "insights + quota" },
       { href: "/posts", label: "Queue", hint: "threads queue + wp drafts" }
     ]
@@ -64,6 +65,7 @@ export const dashboardNavGroups: DashboardNavGroup[] = [
 export const dashboardPrimaryLinks: DashboardNavItem[] = [
   { href: "/dashboard", label: "總覽", hint: "Threads KPI + health" },
   { href: "/desk", label: "Desk", hint: "content workflow hub" },
+  { href: "/inventory", label: "Inventory", hint: "stage view + draft memory" },
   { href: "/compose", label: "發文", hint: "publish + draft" },
   { href: "/analytics", label: "分析", hint: "insights + quota" }
 ];

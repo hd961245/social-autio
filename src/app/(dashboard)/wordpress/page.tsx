@@ -3,6 +3,7 @@ import { AffiliateSlotLibraryCard } from "@/components/dashboard/affiliate-slot-
 import { WordPressArchiveRewriteCard } from "@/components/dashboard/wordpress-archive-rewrite-card";
 import { WordPressConnectForm } from "@/components/dashboard/wordpress-connect-form";
 import { WordPressStyleProfileCard } from "@/components/dashboard/wordpress-style-profile-card";
+import { getWordPressDraftStage } from "@/lib/content-inventory";
 import { fetchWordPressPosts } from "@/lib/platforms/wordpress/client";
 import { prisma } from "@/lib/prisma";
 
@@ -20,6 +21,7 @@ export default async function WordPressPage() {
     siteId: string;
     platformUrl: string | null;
     origin: "threads-sync" | "archive-rewrite" | "manual";
+    memory: ReturnType<typeof getWordPressDraftStage>;
   }> = [];
   let archivePosts: Array<{
     accountId: string;
@@ -66,6 +68,7 @@ export default async function WordPressPage() {
           siteUrl: post.account.platformUserId,
           siteId: post.accountId,
           platformUrl: post.platformUrl,
+          memory: getWordPressDraftStage(post),
           origin: (post.replyToPostId ? "threads-sync" : post.title?.includes("重寫") ? "archive-rewrite" : "manual") as
             | "threads-sync"
             | "archive-rewrite"
@@ -196,9 +199,23 @@ export default async function WordPressPage() {
                     <span className="pill-tag">
                       {draft.origin === "threads-sync" ? "From Threads" : draft.origin === "archive-rewrite" ? "Archive Rewrite" : "Manual Draft"}
                     </span>
+                    <span
+                      className={`rounded-full px-3 py-1 text-xs uppercase ${
+                        draft.memory.status === "backend"
+                          ? "bg-emerald-100 text-emerald-700"
+                          : draft.memory.status === "extend"
+                            ? "bg-[var(--accent-soft)] text-[var(--accent-strong)]"
+                            : draft.memory.status === "stale"
+                              ? "bg-stone-200 text-stone-700"
+                              : "bg-sky-100 text-sky-700"
+                      }`}
+                    >
+                      {draft.memory.statusLabel}
+                    </span>
                   </div>
                   <h3 className="mt-2 text-xl font-semibold">{draft.title}</h3>
                   <p className="mt-3 text-sm leading-7 text-[var(--muted)]">{draft.excerpt || "這篇草稿還沒有摘要，進去後可以先補前言與結論。"}</p>
+                  <p className="mt-3 text-sm leading-7 text-[var(--muted)]">{draft.memory.detail}</p>
                   <p className="mt-3 text-sm text-[var(--muted)]">最後更新：{draft.updatedAt}</p>
                 </div>
                 <div className="flex shrink-0 flex-wrap gap-3">

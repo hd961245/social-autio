@@ -89,9 +89,11 @@ Today the system already supports:
 - Threads publishing and scheduling
 - Threads analytics and post review
 - Content Desk for workflow-first daily operations
+- Content Inventory for stage-based content management
 - Content Engine for source rewrite
 - Source Watchlist and Inbox
 - WordPress draft creation and update
+- WordPress draft status memory
 - WordPress style learning from archive
 - WordPress archive rewrite
 - affiliate slot library
@@ -103,6 +105,8 @@ The future shape should look like a creator management console with these module
 
 - `Desk`
   daily command center
+- `Inventory`
+  stage view across source, draft, published, expandable, and monetizable content
 - `Compose`
   short-form and long-form draft editor
 - `Distribution`
@@ -165,7 +169,7 @@ The system should help the user do these jobs:
 6. Build Threads + WordPress draft
 7. Send Threads now or schedule it
 8. Leave WordPress in draft for later refinement
-9. Return to `Analytics` to see if the post deserves expansion
+9. Return to `Inventory` or `Analytics` to see if the post deserves expansion
 
 ### 5.2 Threads To WordPress Workflow
 

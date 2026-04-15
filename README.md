@@ -6,7 +6,7 @@ Threads-first 自媒體創業者管理中台。
 
 - PRD: [docs/PRD.md](./docs/PRD.md)
 - Deploy / Recovery: [docs/ZEABUR.md](./docs/ZEABUR.md)
-- Current focus: Threads publishing + WordPress draft studio + Content Desk + Source Inbox
+- Current focus: Threads publishing + WordPress draft studio + Content Desk + Content Inventory
 - Stack: Next.js App Router, TypeScript, Tailwind CSS, Prisma, PostgreSQL, Inngest
 
 ## Getting Started
@@ -57,7 +57,9 @@ Open `http://localhost:3000`.
 - `WordPress`：只建立 / 更新草稿，不直接發佈
 - `Content Engine`：輸入 URL / text / image，產出 Threads + WordPress draft
 - `Content Desk`：把 Inbox / Sources / Engine / Queue 收在同一個工作台
+- `Content Inventory`：用 source / draft / published / expandable / monetizable 看內容階段
 - `Writing Style Memory`：從你自己的 WordPress 舊文學風格與聯盟連結規劃
+- `WordPress Draft Memory`：判斷每篇草稿更像新稿、待補長文、後台待細修或已積壓
 - `Source Watchlist`：追蹤 RSS / Blog 來源
 - `Inbox`：集中處理最新來源內容並做簡單改寫判斷
 
