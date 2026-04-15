@@ -45,10 +45,20 @@ export default async function AnalyticsPage() {
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {totalCards.map((card) => (
-          <article key={card.label} className="rounded-[1.5rem] border border-[var(--border)] bg-white/75 p-5">
+          <article key={card.label} className="metric-card">
             <p className="text-xs uppercase tracking-[0.24em] text-[var(--muted)]">{card.label}</p>
             <p className="mt-3 text-3xl font-semibold">{card.value}</p>
             <p className="mt-2 text-sm text-[var(--muted)]">最近收集到的 Threads 貼文指標總量</p>
+          </article>
+        ))}
+      </section>
+
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        {analytics.benchmarks.map((card) => (
+          <article key={card.label} className="rounded-[1.5rem] border border-[var(--border)] bg-[rgba(255,250,244,0.78)] p-5">
+            <p className="text-xs uppercase tracking-[0.24em] text-[var(--muted)]">{card.label}</p>
+            <p className="mt-3 text-2xl font-semibold">{card.value}</p>
+            <p className="mt-2 text-sm leading-6 text-[var(--muted)]">{card.detail}</p>
           </article>
         ))}
       </section>
@@ -60,13 +70,18 @@ export default async function AnalyticsPage() {
           <p className="mt-4 text-base leading-7">{bestPost?.text ?? "等第一批 Threads metrics 回來後，這裡會顯示當前表現最好的內容。"}</p>
           {bestPost ? (
             <div className="mt-5 flex flex-wrap gap-3 text-sm text-[var(--muted)]">
-              <span className="rounded-full border border-[var(--border)] px-3 py-1">Views {bestPost.views}</span>
-              <span className="rounded-full border border-[var(--border)] px-3 py-1">Likes {bestPost.likes}</span>
-              <span className="rounded-full border border-[var(--border)] px-3 py-1">Replies {bestPost.replies}</span>
-              <span className="rounded-full border border-[var(--border)] px-3 py-1">Reposts {bestPost.reposts}</span>
-              <span className="rounded-full border border-[var(--border)] px-3 py-1">Quotes {bestPost.quotes}</span>
-              <span className="rounded-full border border-[var(--border)] px-3 py-1">Shares {bestPost.shares}</span>
+              <span className="pill-tag">Views {bestPost.views}</span>
+              <span className="pill-tag">Likes {bestPost.likes}</span>
+              <span className="pill-tag">Replies {bestPost.replies}</span>
+              <span className="pill-tag">Reposts {bestPost.reposts}</span>
+              <span className="pill-tag">Quotes {bestPost.quotes}</span>
+              <span className="pill-tag">Shares {bestPost.shares}</span>
             </div>
+          ) : null}
+          {bestPost ? (
+            <a href={`/posts/${bestPost.id}`} className="mt-5 inline-flex text-sm font-medium text-[var(--accent)]">
+              看這篇完整復盤
+            </a>
           ) : null}
         </article>
         <article className="rounded-[1.8rem] bg-[var(--card-dark)] p-6 text-white shadow-[0_24px_60px_rgba(15,10,7,0.22)]">
@@ -78,11 +93,16 @@ export default async function AnalyticsPage() {
             {strongestCandidate?.suggestion ?? "有足夠的貼文和 metrics 後，這裡會告訴你哪篇最值得重寫或延伸成系列。"}
           </p>
           {strongestCandidate?.reasons.length ? (
-            <div className="mt-5 space-y-2 text-sm text-white/78">
-              {strongestCandidate.reasons.map((reason) => (
-                <p key={reason}>- {reason}</p>
-              ))}
-            </div>
+              <div className="mt-5 space-y-2 text-sm text-white/78">
+                {strongestCandidate.reasons.map((reason) => (
+                  <p key={reason}>- {reason}</p>
+                ))}
+              </div>
+            ) : null}
+          {strongestCandidate ? (
+            <a href={`/posts/${strongestCandidate.id}`} className="mt-5 inline-flex text-sm font-medium text-white">
+              打開這篇完整指標
+            </a>
           ) : null}
         </article>
       </section>
@@ -150,12 +170,15 @@ export default async function AnalyticsPage() {
               <p className="mt-2 text-base">{post.text}</p>
               <div className="mt-4 flex flex-wrap gap-2 text-sm text-[var(--muted)]">
                 {post.reasons.map((reason) => (
-                  <span key={reason} className="rounded-full border border-[var(--border)] px-3 py-1">
+                  <span key={reason} className="pill-tag">
                     {reason}
                   </span>
                 ))}
               </div>
               <p className="mt-4 text-sm text-[var(--muted)]">{post.suggestion}</p>
+              <a href={`/posts/${post.id}`} className="mt-4 inline-flex text-sm font-medium text-[var(--accent)]">
+                看完整復盤
+              </a>
             </article>
           ))}
           {analytics.viralCandidates.length === 0 ? (
@@ -172,13 +195,13 @@ export default async function AnalyticsPage() {
             <article key={post.id} className="rounded-[1.5rem] border border-[var(--border)] bg-white/70 p-4">
               <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">{post.account}</p>
               <p className="mt-2 text-base">{post.text}</p>
-              <div className="mt-4 flex flex-wrap gap-4 text-sm text-[var(--muted)]">
-                <span>Views {post.views}</span>
-                <span>Likes {post.likes}</span>
-                <span>Replies {post.replies}</span>
-                <span>Reposts {post.reposts}</span>
-                <span>Quotes {post.quotes}</span>
-                <span>Shares {post.shares}</span>
+              <div className="mt-4 flex flex-wrap gap-2 text-sm text-[var(--muted)]">
+                <span className="pill-tag">Views {post.views}</span>
+                <span className="pill-tag">Likes {post.likes}</span>
+                <span className="pill-tag">Replies {post.replies}</span>
+                <span className="pill-tag">Reposts {post.reposts}</span>
+                <span className="pill-tag">Quotes {post.quotes}</span>
+                <span className="pill-tag">Shares {post.shares}</span>
               </div>
               <a href={`/posts/${post.id}`} className="mt-4 inline-flex text-sm font-medium text-[var(--accent)]">
                 看完整指標

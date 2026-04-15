@@ -71,6 +71,22 @@ h4 {
   box-shadow: var(--shadow-md);
 }
 
+.metric-card {
+  border: 1px solid var(--border);
+  border-radius: 1.5rem;
+  background: linear-gradient(180deg, rgba(255, 252, 247, 0.88), rgba(255, 250, 244, 0.72));
+  padding: 1.25rem;
+}
+
+.pill-tag {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: rgba(255, 251, 246, 0.82);
+  padding: 0.35rem 0.8rem;
+}
+
 .soft-grid {
   position: relative;
 }

@@ -312,6 +312,8 @@ Priority: P1
 - stay focused on Threads
 - support editorial decisions
 - identify promising posts and rewrite opportunities
+- show benchmark-style rates, not just raw counts
+- include per-post deep dive with timeline, momentum read, and next-step recommendation
 
 ## 6. UX Principles
 

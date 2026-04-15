@@ -74,6 +74,11 @@ export type AnalyticsOverview = {
     quotes: number;
     shares: number;
   };
+  benchmarks: Array<{
+    label: string;
+    value: string;
+    detail: string;
+  }>;
   topPosts: Array<{
     id: string;
     text: string;
@@ -101,8 +106,38 @@ export type AnalyticsOverview = {
   tokenWarning: string | null;
 };
 
+export type ThreadPostDeepDive = {
+  id: string;
+  account: string;
+  text: string;
+  platformUrl: string | null;
+  publishedAt: string;
+  latest: {
+    views: number;
+    likes: number;
+    replies: number;
+    reposts: number;
+    quotes: number;
+    shares: number;
+  };
+  health: {
+    engagementRate: number;
+    conversationRate: number;
+    amplificationRate: number;
+    momentum: "spiking" | "steady" | "cooling";
+    momentumLabel: string;
+  };
+  insights: string[];
+  nextAction: string;
+  timeline: ThreadMetricTimelinePoint[];
+};
+
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
+}
+
+function toPercent(value: number) {
+  return `${(value * 100).toFixed(value >= 0.1 ? 0 : 1)}%`;
 }
 
 function getViralLabel(score: number): "high" | "medium" | "low" {
@@ -197,6 +232,97 @@ function analyzeViralPotential(input: {
     label,
     reasons: reasons.slice(0, 3),
     suggestion
+  };
+}
+
+function summarizePostHealth(input: {
+  text: string;
+  latest: {
+    views: number;
+    likes: number;
+    replies: number;
+    reposts: number;
+    quotes: number;
+    shares: number;
+  };
+  history: Array<{
+    views: number;
+    likes: number;
+    replies: number;
+    reposts: number;
+    quotes: number;
+    shares: number;
+  }>;
+}) {
+  const { latest, history, text } = input;
+  const engagementRate =
+    latest.views > 0 ? (latest.likes + latest.replies + latest.reposts + latest.quotes + latest.shares) / latest.views : 0;
+  const conversationRate = latest.views > 0 ? (latest.replies + latest.quotes) / latest.views : 0;
+  const amplificationRate = latest.views > 0 ? (latest.reposts + latest.quotes + latest.shares) / latest.views : 0;
+  const previous = history.at(-2);
+  const first = history[0];
+  const latestViewDelta = previous ? latest.views - previous.views : latest.views;
+  const previousViewDelta = history.length >= 3 ? history.at(-2)!.views - history.at(-3)!.views : latestViewDelta;
+  const totalGrowth = first ? latest.views - first.views : latest.views;
+  const textLength = text.trim().length;
+
+  let momentum: "spiking" | "steady" | "cooling" = "steady";
+  if (latestViewDelta > 0 && latestViewDelta >= previousViewDelta * 1.15) {
+    momentum = "spiking";
+  } else if (latestViewDelta <= 0 || (previousViewDelta > 0 && latestViewDelta <= previousViewDelta * 0.55)) {
+    momentum = "cooling";
+  }
+
+  const insights: string[] = [];
+
+  if (engagementRate >= 0.12) {
+    insights.push(`整體互動率來到 ${toPercent(engagementRate)}，這篇已經不只是被看見，是真的有被接住。`);
+  } else if (engagementRate >= 0.06) {
+    insights.push(`互動率約 ${toPercent(engagementRate)}，屬於可以再推一次的穩定素材。`);
+  } else {
+    insights.push(`互動率目前約 ${toPercent(engagementRate)}，更適合先重寫 hook 或切角再測。`);
+  }
+
+  if (conversationRate >= 0.03) {
+    insights.push(`留言加引用比例有 ${toPercent(conversationRate)}，很適合延伸成觀點文或系列回應。`);
+  } else if (amplificationRate >= 0.02) {
+    insights.push(`轉發擴散比例約 ${toPercent(amplificationRate)}，比較像值得二次分發的內容。`);
+  } else {
+    insights.push("目前擴散和對話都偏保守，先補更鮮明的立場或數字證據會比較有效。");
+  }
+
+  if (momentum === "spiking") {
+    insights.push(`最新一段觀看增量還在加速，從首個快照到現在多了 ${Math.max(totalGrowth, 0)} views，值得趁熱再發一次。`);
+  } else if (momentum === "cooling") {
+    insights.push("熱度已經開始放慢，適合改寫成另一個角度，而不是原句再發一次。");
+  } else {
+    insights.push("這篇屬於穩定累積型，可以用更精煉的版本再打一輪。");
+  }
+
+  if (textLength > 260) {
+    insights.push("文案本體偏長，下一版建議把第一屏壓得更狠一點。");
+  } else if (textLength < 55) {
+    insights.push("文案略短，下一版可以多補一個具體案例或數字，讓記憶點更強。");
+  }
+
+  let nextAction = "保留觀點，重寫第一句 hook，做成更俐落的 Threads 二次版本。";
+  if (momentum === "spiking" && amplificationRate >= 0.02) {
+    nextAction = "這篇還在往上，優先延伸成系列文，並同步整理成 WordPress draft。";
+  } else if (conversationRate >= 0.03) {
+    nextAction = "把留言與引用裡的爭議點拉出來，寫成下一篇立場更鮮明的 follow-up。";
+  } else if (engagementRate < 0.05) {
+    nextAction = "不要直接重發原句，先換切角、加案例，再重新測試。";
+  }
+
+  return {
+    engagementRate,
+    conversationRate,
+    amplificationRate,
+    momentum,
+    momentumLabel:
+      momentum === "spiking" ? "還在加速" : momentum === "cooling" ? "熱度轉冷" : "穩定累積",
+    insights: insights.slice(0, 4),
+    nextAction
   };
 }
 
@@ -313,7 +439,10 @@ export async function getAnalyticsOverview(): Promise<AnalyticsOverview> {
             take: 1
           }
         },
-        take: 5
+        orderBy: {
+          publishedAt: "desc"
+        },
+        take: 12
       }),
       prisma.platformAccount.findFirst({
         where: {
@@ -333,6 +462,42 @@ export async function getAnalyticsOverview(): Promise<AnalyticsOverview> {
       } catch {}
     }
 
+    const rankedPosts = posts
+      .map((post) => ({
+        id: post.id,
+        text: post.textContent ?? "(無文字內容)",
+        views: post.metrics[0]?.views ?? 0,
+        likes: post.metrics[0]?.likes ?? 0,
+        replies: post.metrics[0]?.replies ?? 0,
+        reposts: post.metrics[0]?.reposts ?? 0,
+        quotes: post.metrics[0]?.quotes ?? 0,
+        shares: post.metrics[0]?.shares ?? 0,
+        account: `@${post.account.platformUsername}`
+      }))
+      .sort((a, b) => {
+        const scoreA = a.views + a.likes * 8 + a.replies * 10 + a.reposts * 12 + a.quotes * 12 + a.shares * 14;
+        const scoreB = b.views + b.likes * 8 + b.replies * 10 + b.reposts * 12 + b.quotes * 12 + b.shares * 14;
+        return scoreB - scoreA;
+      });
+
+    const benchmarkBase = posts.reduce(
+      (acc, post) => {
+        const metric = post.metrics[0];
+
+        if (!metric || metric.views <= 0) {
+          return acc;
+        }
+
+        acc.postsTracked += 1;
+        acc.engagementRate +=
+          (metric.likes + metric.replies + metric.reposts + metric.quotes + metric.shares) / metric.views;
+        acc.conversationRate += (metric.replies + metric.quotes) / metric.views;
+        acc.amplificationRate += (metric.reposts + metric.quotes + metric.shares) / metric.views;
+        return acc;
+      },
+      { postsTracked: 0, engagementRate: 0, conversationRate: 0, amplificationRate: 0 }
+    );
+
     return {
       followerTrend: snapshots.map((snapshot) => ({
         label: snapshot.capturedAt.toLocaleDateString("zh-TW", { month: "numeric", day: "numeric" }),
@@ -351,17 +516,29 @@ export async function getAnalyticsOverview(): Promise<AnalyticsOverview> {
         }),
         { views: 0, likes: 0, replies: 0, reposts: 0, quotes: 0, shares: 0 }
       ),
-      topPosts: posts.map((post) => ({
-        id: post.id,
-        text: post.textContent ?? "(無文字內容)",
-        views: post.metrics[0]?.views ?? 0,
-        likes: post.metrics[0]?.likes ?? 0,
-        replies: post.metrics[0]?.replies ?? 0,
-        reposts: post.metrics[0]?.reposts ?? 0,
-        quotes: post.metrics[0]?.quotes ?? 0,
-        shares: post.metrics[0]?.shares ?? 0,
-        account: `@${post.account.platformUsername}`
-      })),
+      benchmarks: [
+        {
+          label: "Tracked Posts",
+          value: String(benchmarkBase.postsTracked),
+          detail: "最近拿來判讀的已發布 Threads 篇數"
+        },
+        {
+          label: "Avg Engagement",
+          value: benchmarkBase.postsTracked ? toPercent(benchmarkBase.engagementRate / benchmarkBase.postsTracked) : "0%",
+          detail: "按讚、留言、轉發、引用、分享相對於觀看的平均值"
+        },
+        {
+          label: "Conversation Rate",
+          value: benchmarkBase.postsTracked ? toPercent(benchmarkBase.conversationRate / benchmarkBase.postsTracked) : "0%",
+          detail: "留言與引用比重，越高越適合延伸觀點"
+        },
+        {
+          label: "Amplification Rate",
+          value: benchmarkBase.postsTracked ? toPercent(benchmarkBase.amplificationRate / benchmarkBase.postsTracked) : "0%",
+          detail: "轉發、引用、分享比重，越高越值得二次分發"
+        }
+      ],
+      topPosts: rankedPosts.slice(0, 6),
       viralCandidates: posts.map((post) => {
         const analysis = analyzeViralPotential({
           text: post.textContent ?? post.title ?? "(無文字內容)",
@@ -392,6 +569,7 @@ export async function getAnalyticsOverview(): Promise<AnalyticsOverview> {
     return {
       followerTrend: [],
       totals: { views: 0, likes: 0, replies: 0, reposts: 0, quotes: 0, shares: 0 },
+      benchmarks: [],
       topPosts: [],
       viralCandidates: [],
       quota: { used: 0, limit: 250 },
@@ -482,7 +660,7 @@ export async function getPostSummaries(): Promise<PostSummary[]> {
   }
 }
 
-export async function getThreadPostDeepDive(postId: string) {
+export async function getThreadPostDeepDive(postId: string): Promise<ThreadPostDeepDive | null> {
   try {
     const post = await prisma.post.findUnique({
       where: { id: postId },
@@ -517,20 +695,43 @@ export async function getThreadPostDeepDive(postId: string) {
       shares: metric.shares
     }));
 
+    const latestMetrics = {
+      views: latest?.views ?? 0,
+      likes: latest?.likes ?? 0,
+      replies: latest?.replies ?? 0,
+      reposts: latest?.reposts ?? 0,
+      quotes: latest?.quotes ?? 0,
+      shares: latest?.shares ?? 0
+    };
+    const health = summarizePostHealth({
+      text: post.textContent ?? post.title ?? "(無文字內容)",
+      latest: latestMetrics,
+      history: post.metrics.map((metric) => ({
+        views: metric.views,
+        likes: metric.likes,
+        replies: metric.replies,
+        reposts: metric.reposts,
+        quotes: metric.quotes,
+        shares: metric.shares
+      }))
+    });
+
     return {
       id: post.id,
       account: `@${post.account.platformUsername}`,
       text: post.textContent ?? post.title ?? "(無文字內容)",
       platformUrl: post.platformUrl,
       publishedAt: formatDate(post.publishedAt ?? post.createdAt),
-      latest: {
-        views: latest?.views ?? 0,
-        likes: latest?.likes ?? 0,
-        replies: latest?.replies ?? 0,
-        reposts: latest?.reposts ?? 0,
-        quotes: latest?.quotes ?? 0,
-        shares: latest?.shares ?? 0
+      latest: latestMetrics,
+      health: {
+        engagementRate: health.engagementRate,
+        conversationRate: health.conversationRate,
+        amplificationRate: health.amplificationRate,
+        momentum: health.momentum,
+        momentumLabel: health.momentumLabel
       },
+      insights: health.insights,
+      nextAction: health.nextAction,
       timeline
     };
   } catch {

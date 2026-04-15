@@ -35,6 +35,12 @@ export default async function PostDetailPage({ params }: { params: Promise<{ id:
       <section className="glass-panel rounded-[2rem] border border-[var(--border)] p-6">
         <p className="text-xs uppercase tracking-[0.24em] text-[var(--muted)]">{post.account} · {post.publishedAt}</p>
         <h2 className="mt-3 text-3xl font-semibold">{post.text}</h2>
+        <div className="mt-5 flex flex-wrap gap-2">
+          <span className="pill-tag">互動率 {(post.health.engagementRate * 100).toFixed(1)}%</span>
+          <span className="pill-tag">對話率 {(post.health.conversationRate * 100).toFixed(1)}%</span>
+          <span className="pill-tag">擴散率 {(post.health.amplificationRate * 100).toFixed(1)}%</span>
+          <span className="pill-tag">{post.health.momentumLabel}</span>
+        </div>
         {post.platformUrl ? (
           <a href={post.platformUrl} target="_blank" rel="noreferrer" className="mt-4 inline-flex text-sm text-[var(--accent)]">
             打開 Threads 原文
@@ -51,11 +57,36 @@ export default async function PostDetailPage({ params }: { params: Promise<{ id:
           { label: "Quotes", value: post.latest.quotes },
           { label: "Shares", value: post.latest.shares }
         ].map((item) => (
-          <article key={item.label} className="rounded-[1.5rem] border border-[var(--border)] bg-white/75 p-5">
+          <article key={item.label} className="metric-card">
             <p className="text-xs uppercase tracking-[0.24em] text-[var(--muted)]">{item.label}</p>
             <p className="mt-3 text-3xl font-semibold">{item.value}</p>
           </article>
         ))}
+      </section>
+
+      <section className="grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">
+        <article className="glass-panel rounded-[2rem] border border-[var(--border)] p-6">
+          <p className="text-[11px] uppercase tracking-[0.3em] text-[var(--muted)]">Read</p>
+          <h2 className="mt-2 text-3xl font-semibold">這篇現在的判讀</h2>
+          <div className="mt-6 space-y-3">
+            {post.insights.map((insight) => (
+              <p key={insight} className="rounded-[1.2rem] border border-[var(--border)] bg-white/72 px-4 py-3 text-sm leading-7 text-[var(--muted)]">
+                {insight}
+              </p>
+            ))}
+          </div>
+        </article>
+        <article className="rounded-[2rem] bg-[var(--card-dark)] p-6 text-white shadow-[0_24px_60px_rgba(15,10,7,0.22)]">
+          <p className="text-[11px] uppercase tracking-[0.3em] text-white/55">Next Move</p>
+          <h2 className="mt-2 text-3xl font-semibold">下一步怎麼處理</h2>
+          <p className="mt-5 text-base leading-8 text-white/78">{post.nextAction}</p>
+          <a
+            href={`/compose?postId=${post.id}`}
+            className="mt-6 inline-flex rounded-full bg-white px-4 py-2 text-sm font-medium text-[var(--card-dark)]"
+          >
+            去 Compose 續寫這篇
+          </a>
+        </article>
       </section>
 
       <section className="glass-panel rounded-[2rem] border border-[var(--border)] p-6">
