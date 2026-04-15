@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import type { AffiliateLibrary } from "@/lib/content/wordpress-templates";
 
 const wordpressTemplates = [
@@ -127,6 +128,7 @@ export function PostComposerForm({
   reviewContext?: ReviewContext | null;
   preferredAccountId?: string;
 }) {
+  const router = useRouter();
   const baseDraft = initialDraft ?? initialSeed ?? null;
   const [accountId, setAccountId] = useState(baseDraft?.accountId ?? preferredAccountId ?? accounts[0]?.id ?? "");
   const [title, setTitle] = useState(baseDraft?.title ?? "");
@@ -143,10 +145,19 @@ export function PostComposerForm({
   );
   const [scheduledAt, setScheduledAt] = useState(initialDraft?.scheduledAt ?? "");
   const [message, setMessage] = useState<string | null>(null);
+  const [messageTone, setMessageTone] = useState<"neutral" | "success" | "error">("neutral");
+  const [lastAction, setLastAction] = useState<null | { href: string; label: string }>(null);
   const [isPending, startTransition] = useTransition();
 
   const selectedAccount = accounts.find((account) => account.id === accountId);
   const isWordPress = selectedAccount?.platform === "wordpress";
+  const hasThreadsAccount = accounts.some((account) => account.platform === "threads");
+  const submitDisabled =
+    isPending ||
+    !accountId ||
+    !text.trim() ||
+    (!isWordPress && !hasThreadsAccount) ||
+    (!isWordPress && publishMode === "scheduled" && !scheduledAt);
   const reviewBrief = reviewContext
     ? [`重寫方向：${reviewContext.nextAction}`, ...reviewContext.insights.map((insight, index) => `${index + 1}. ${insight}`)].join("\n")
     : "";
@@ -182,6 +193,32 @@ export function PostComposerForm({
 
             startTransition(async () => {
               setMessage(null);
+              setMessageTone("neutral");
+              setLastAction(null);
+
+              if (!accountId) {
+                setMessage("請先選一個可用帳號。");
+                setMessageTone("error");
+                return;
+              }
+
+              if (!text.trim()) {
+                setMessage("請先填寫貼文內容。");
+                setMessageTone("error");
+                return;
+              }
+
+              if (!isWordPress && !hasThreadsAccount) {
+                setMessage("目前沒有可用的 Threads 帳號，先到 Accounts 完成授權。");
+                setMessageTone("error");
+                return;
+              }
+
+              if (!isWordPress && publishMode === "scheduled" && !scheduledAt) {
+                setMessage("排程模式需要先填好發佈時間。");
+                setMessageTone("error");
+                return;
+              }
 
               const endpoint = initialDraft ? `/api/posts/${initialDraft.id}` : "/api/threads/publish";
               const response = await fetch(endpoint, {
@@ -219,6 +256,7 @@ export function PostComposerForm({
 
               if (!response.ok) {
                 setMessage(result.message ?? "發文失敗，請稍後再試");
+                setMessageTone("error");
                 return;
               }
 
@@ -230,6 +268,14 @@ export function PostComposerForm({
                       ? "已加入 Threads 排程佇列。"
                       : "已更新 Threads 草稿。")
               );
+              setMessageTone("success");
+
+              if (result.postId) {
+                setLastAction({
+                  href: isWordPress ? `/compose?postId=${result.postId}` : publishMode === "scheduled" ? "/desk?tab=queue" : `/posts/${result.postId}`,
+                  label: isWordPress ? "打開這篇草稿" : publishMode === "scheduled" ? "去 Queue 看排程" : "看這篇 Threads 指標"
+                });
+              }
 
               if (!initialDraft) {
                 setTitle("");
@@ -241,6 +287,9 @@ export function PostComposerForm({
                 setCategories("");
                 setTags("");
                 setScheduledAt("");
+                if (isWordPress && result.postId) {
+                  router.refresh();
+                }
               }
             });
           }}
@@ -331,6 +380,11 @@ export function PostComposerForm({
               </p>
             </div>
           </div>
+          {!hasThreadsAccount ? (
+            <div className="rounded-3xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+              目前沒有 Threads 帳號，現在只能建立 WordPress 草稿。若要直接發布 Threads，先到 Accounts 完成授權。
+            </div>
+          ) : null}
           {isWordPress ? (
             <div className="rounded-3xl bg-white/85 p-4">
               <label className="mb-2 block text-sm text-[var(--muted)]">文章標題</label>
@@ -481,7 +535,7 @@ export function PostComposerForm({
 
           <button
             type="submit"
-            disabled={isPending || !accountId}
+            disabled={submitDisabled}
             className="w-full rounded-2xl bg-[var(--accent)] px-4 py-3 text-white shadow-[0_16px_40px_rgba(187,90,54,0.24)] disabled:opacity-60"
           >
             {isPending
@@ -496,7 +550,24 @@ export function PostComposerForm({
                     ? "更新 Threads 草稿"
                     : "立即發文"}
           </button>
-          {message ? <p className="text-sm text-[var(--muted)]">{message}</p> : null}
+          {message ? (
+            <div
+              className={`rounded-2xl px-4 py-3 text-sm ${
+                messageTone === "error"
+                  ? "border border-rose-200 bg-rose-50 text-rose-700"
+                  : messageTone === "success"
+                    ? "border border-emerald-200 bg-emerald-50 text-emerald-700"
+                    : "border border-[var(--border)] bg-white/70 text-[var(--muted)]"
+              }`}
+            >
+              <p>{message}</p>
+              {lastAction ? (
+                <a href={lastAction.href} className="mt-2 inline-flex font-medium text-current underline underline-offset-4">
+                  {lastAction.label}
+                </a>
+              ) : null}
+            </div>
+          ) : null}
         </form>
 
         <div className="space-y-4">
