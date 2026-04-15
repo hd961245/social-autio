@@ -5,6 +5,7 @@ Threads-first 個人內容操作台。
 ## Current Status
 
 - PRD: [docs/PRD.md](./docs/PRD.md)
+- Deploy / Recovery: [docs/ZEABUR.md](./docs/ZEABUR.md)
 - Current focus: Threads publishing + WordPress draft studio + Source Inbox
 - Stack: Next.js App Router, TypeScript, Tailwind CSS, Prisma, PostgreSQL, Inngest
 
@@ -31,6 +32,8 @@ Open `http://localhost:3000`.
 - 若要讓排程、metrics、keywords 與 automation 自動執行，另外設定 `INNGEST_EVENT_KEY`、`INNGEST_SIGNING_KEY`、`INNGEST_SERVE_ORIGIN`
 - `THREADS_REDIRECT_URI` 應設為 `https://social-audio.zeabur.app/api/threads/callback`
 - 首次部署後執行一次 `npm run db:push`
+
+如果你遇到「之前串好的 WordPress / Threads 帳號突然不見」，先看 [docs/ZEABUR.md](./docs/ZEABUR.md) 的 recovery checklist。
 
 ## Inngest Jobs
 
