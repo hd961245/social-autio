@@ -11,29 +11,57 @@ function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
 }
 
-function getMemoryBias(input: { importCount?: number; skipCount?: number }) {
+function getMemoryBias(input: {
+  importCount?: number;
+  skipCount?: number;
+  threadsPickCount?: number;
+  wordpressPickCount?: number;
+}) {
   const importCount = input.importCount ?? 0;
   const skipCount = input.skipCount ?? 0;
+  const threadsPickCount = input.threadsPickCount ?? 0;
+  const wordpressPickCount = input.wordpressPickCount ?? 0;
 
   if (importCount >= 3 && importCount > skipCount) {
+    if (threadsPickCount >= wordpressPickCount + 2) {
+      return {
+        threadsBias: 14,
+        wordpressBias: 0,
+        commercialBias: 8,
+        note: "你過去更常把這類來源先拆成 Threads，系統把推薦往短內容推。"
+      };
+    }
+
+    if (wordpressPickCount >= threadsPickCount + 2) {
+      return {
+        threadsBias: 0,
+        wordpressBias: 14,
+        commercialBias: 10,
+        note: "你過去更常把這類來源沉成長文，系統把推薦往 WordPress 推。"
+      };
+    }
+
     return {
-      importBias: 12,
-      skipBias: 0,
+      threadsBias: 4,
+      wordpressBias: 6,
+      commercialBias: 12,
       note: "你過去常把這類來源拿來改寫，系統提高了優先度。"
     };
   }
 
   if (skipCount >= 3 && skipCount >= importCount) {
     return {
-      importBias: 0,
-      skipBias: 10,
+      threadsBias: -4,
+      wordpressBias: -4,
+      commercialBias: -6,
       note: "你過去常略過這類來源，系統先保守看待。"
     };
   }
 
   return {
-    importBias: 0,
-    skipBias: 0,
+    threadsBias: 0,
+    wordpressBias: 0,
+    commercialBias: 0,
     note: undefined
   };
 }
@@ -44,6 +72,8 @@ export function scoreSourceItem(input: {
   sourceType: string;
   importCount?: number;
   skipCount?: number;
+  threadsPickCount?: number;
+  wordpressPickCount?: number;
 }): SourceInboxScore {
   const text = `${input.title} ${input.excerpt}`.trim();
   const length = text.length;
@@ -56,7 +86,12 @@ export function scoreSourceItem(input: {
   let wordpressScore = 52;
   let commercialScore = 36;
   const reasons: string[] = [];
-  const memory = getMemoryBias({ importCount: input.importCount, skipCount: input.skipCount });
+  const memory = getMemoryBias({
+    importCount: input.importCount,
+    skipCount: input.skipCount,
+    threadsPickCount: input.threadsPickCount,
+    wordpressPickCount: input.wordpressPickCount
+  });
 
   if (length <= 180) {
     threadsScore += 14;
@@ -92,17 +127,9 @@ export function scoreSourceItem(input: {
     wordpressScore += 6;
   }
 
-  if (memory.importBias) {
-    threadsScore += 4;
-    wordpressScore += 6;
-    commercialScore += memory.importBias;
-  }
-
-  if (memory.skipBias) {
-    threadsScore -= 4;
-    wordpressScore -= 4;
-    commercialScore -= 6;
-  }
+  threadsScore += memory.threadsBias;
+  wordpressScore += memory.wordpressBias;
+  commercialScore += memory.commercialBias;
 
   threadsScore = clamp(threadsScore, 0, 100);
   wordpressScore = clamp(wordpressScore, 0, 100);

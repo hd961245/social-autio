@@ -49,7 +49,7 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
   }
 }
 
-export async function PUT(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
   try {
@@ -72,11 +72,15 @@ export async function PUT(_request: Request, { params }: { params: Promise<{ id:
         preview
       });
     }
+    const body = await request.json().catch(() => ({}));
+    const preferredOutcome =
+      body?.preferredOutcome === "threads" || body?.preferredOutcome === "wordpress" ? body.preferredOutcome : "threads";
     const result = await ingestAndGenerateDrafts({
       sourceType: "url",
       sourceUrl: preview.url,
       title: preview.title,
-      rawText: preview.excerpt
+      rawText: preview.excerpt,
+      wordpressTemplate: preferredOutcome === "wordpress" ? "case-study" : "opinion"
     });
 
     await prisma.sourceWatch.update({
@@ -92,6 +96,18 @@ export async function PUT(_request: Request, { params }: { params: Promise<{ id:
         importCount: {
           increment: 1
         },
+        threadsPickCount:
+          preferredOutcome === "threads"
+            ? {
+                increment: 1
+              }
+            : undefined,
+        wordpressPickCount:
+          preferredOutcome === "wordpress"
+            ? {
+                increment: 1
+              }
+            : undefined,
         lastError: null
       }
     });

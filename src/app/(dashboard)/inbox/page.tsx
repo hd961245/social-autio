@@ -34,7 +34,9 @@ export default async function InboxPage() {
             excerpt: item.lastExcerpt ?? "",
             sourceType: item.sourceType,
             importCount: item.importCount,
-            skipCount: item.skipCount
+            skipCount: item.skipCount,
+            threadsPickCount: item.threadsPickCount,
+            wordpressPickCount: item.wordpressPickCount
           });
 
           return {

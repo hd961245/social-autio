@@ -138,7 +138,11 @@ export function SourceInbox({ initialItems }: { initialItems: InboxItem[] }) {
                   onClick={() =>
                     startTransition(async () => {
                       setMessage(null);
-                      const response = await fetch(`/api/sources/${item.id}/refresh`, { method: "PUT" });
+                      const response = await fetch(`/api/sources/${item.id}/refresh`, {
+                        method: "PUT",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ preferredOutcome: "threads" })
+                      });
                       const result = await response.json();
 
                       if (!response.ok) {
@@ -152,12 +156,47 @@ export function SourceInbox({ initialItems }: { initialItems: InboxItem[] }) {
                         )
                       );
                       setMessage(
-                        result.duplicated ? "這篇內容之前已改寫過。" : "已從 Inbox 建立新草稿，去 Queue 或 Compose 接著修。"
+                        result.duplicated
+                          ? "這篇內容之前已改寫過。"
+                          : "已按 Threads 優先建立新草稿，去 Queue 或 Compose 接著修。"
                       );
                     })
                   }
                 >
-                  一鍵改寫
+                  先做 Threads
+                </button>
+                <button
+                  disabled={isPending}
+                  className="rounded-full border border-[var(--border-strong)] bg-white px-4 py-2 text-sm"
+                  onClick={() =>
+                    startTransition(async () => {
+                      setMessage(null);
+                      const response = await fetch(`/api/sources/${item.id}/refresh`, {
+                        method: "PUT",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ preferredOutcome: "wordpress" })
+                      });
+                      const result = await response.json();
+
+                      if (!response.ok) {
+                        setMessage(result.message ?? "建立草稿失敗");
+                        return;
+                      }
+
+                      setItems((current) =>
+                        current.map((source) =>
+                          source.id === item.id ? { ...source, status: result.duplicated ? source.status : "imported" } : source
+                        )
+                      );
+                      setMessage(
+                        result.duplicated
+                          ? "這篇內容之前已改寫過。"
+                          : "已按長文優先建立新草稿，去 Queue 或 Compose 接著修。"
+                      );
+                    })
+                  }
+                >
+                  先做長文
                 </button>
                 <button
                   disabled={isPending}

@@ -222,6 +222,8 @@ model SourceWatch {
   lastHandledAt DateTime?
   importCount   Int      @default(0)
   skipCount     Int      @default(0)
+  threadsPickCount Int   @default(0)
+  wordpressPickCount Int @default(0)
   lastError     String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
