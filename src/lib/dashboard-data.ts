@@ -65,6 +65,11 @@ export type DatabaseStatus = {
 };
 
 export type AnalyticsOverview = {
+  filters: {
+    window: "7d" | "30d" | "all";
+    accountId: string;
+    accountOptions: Array<{ id: string; label: string }>;
+  };
   followerTrend: Array<{ label: string; followers: number; engagement: number }>;
   totals: {
     views: number;
@@ -414,10 +419,38 @@ export async function getDatabaseStatus(): Promise<DatabaseStatus> {
   }
 }
 
-export async function getAnalyticsOverview(): Promise<AnalyticsOverview> {
+export async function getAnalyticsOverview(input?: {
+  window?: "7d" | "30d" | "all";
+  accountId?: string;
+}): Promise<AnalyticsOverview> {
   try {
+    const window = input?.window ?? "30d";
+    const since =
+      window === "7d" ? new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+      : window === "30d" ? new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+      : null;
+
+    const [accounts, activeAccount] = await Promise.all([
+      prisma.platformAccount.findMany({
+        where: { platform: "threads" },
+        orderBy: [{ isActive: "desc" }, { createdAt: "asc" }]
+      }),
+      prisma.platformAccount.findFirst({
+        where: { isActive: true, platform: "threads" },
+        orderBy: { lastSyncedAt: "desc" }
+      })
+    ]);
+
+    const requestedAccountId = input?.accountId ?? "all";
+    const scopedAccountId =
+      requestedAccountId !== "all" && accounts.some((account) => account.id === requestedAccountId) ? requestedAccountId : "all";
+
     const [snapshots, posts, account] = await Promise.all([
       prisma.metricsSnapshot.findMany({
+        where: {
+          ...(since ? { capturedAt: { gte: since } } : {}),
+          ...(scopedAccountId !== "all" ? { accountId: scopedAccountId } : {})
+        },
         include: {
           account: true
         },
@@ -428,7 +461,9 @@ export async function getAnalyticsOverview(): Promise<AnalyticsOverview> {
       }),
       prisma.post.findMany({
         where: {
-          status: "published"
+          status: "published",
+          ...(since ? { publishedAt: { gte: since } } : {}),
+          ...(scopedAccountId !== "all" ? { accountId: scopedAccountId } : {})
         },
         include: {
           account: true,
@@ -446,7 +481,9 @@ export async function getAnalyticsOverview(): Promise<AnalyticsOverview> {
       }),
       prisma.platformAccount.findFirst({
         where: {
-          isActive: true
+          isActive: true,
+          ...(scopedAccountId !== "all" ? { id: scopedAccountId } : {}),
+          platform: "threads"
         },
         orderBy: {
           lastSyncedAt: "desc"
@@ -499,6 +536,17 @@ export async function getAnalyticsOverview(): Promise<AnalyticsOverview> {
     );
 
     return {
+      filters: {
+        window,
+        accountId: scopedAccountId,
+        accountOptions: [
+          { id: "all", label: "全部帳號" },
+          ...accounts.map((account) => ({
+            id: account.id,
+            label: `@${account.platformUsername}${activeAccount?.id === account.id ? " · active" : ""}`
+          }))
+        ]
+      },
       followerTrend: snapshots.map((snapshot) => ({
         label: snapshot.capturedAt.toLocaleDateString("zh-TW", { month: "numeric", day: "numeric" }),
         followers: snapshot.followerCount,
@@ -567,6 +615,11 @@ export async function getAnalyticsOverview(): Promise<AnalyticsOverview> {
     };
   } catch {
     return {
+      filters: {
+        window: input?.window ?? "30d",
+        accountId: "all",
+        accountOptions: [{ id: "all", label: "全部帳號" }]
+      },
       followerTrend: [],
       totals: { views: 0, likes: 0, replies: 0, reposts: 0, quotes: 0, shares: 0 },
       benchmarks: [],

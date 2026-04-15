@@ -4,8 +4,24 @@ import { getAnalyticsOverview, getDatabaseStatus } from "@/lib/dashboard-data";
 
 export const dynamic = "force-dynamic";
 
-export default async function AnalyticsPage() {
-  const [databaseStatus, analytics] = await Promise.all([getDatabaseStatus(), getAnalyticsOverview()]);
+const WINDOW_OPTIONS = [
+  { id: "7d", label: "7天" },
+  { id: "30d", label: "30天" },
+  { id: "all", label: "全部" }
+] as const;
+
+export default async function AnalyticsPage({
+  searchParams
+}: {
+  searchParams: Promise<{ window?: string; accountId?: string }>;
+}) {
+  const params = await searchParams;
+  const window = params.window === "7d" || params.window === "30d" || params.window === "all" ? params.window : "30d";
+  const accountId = params.accountId ?? "all";
+  const [databaseStatus, analytics] = await Promise.all([
+    getDatabaseStatus(),
+    getAnalyticsOverview({ window, accountId })
+  ]);
   const bestPost = analytics.topPosts[0] ?? null;
   const strongestCandidate = analytics.viralCandidates[0] ?? null;
   const totalCards = [
@@ -25,6 +41,50 @@ export default async function AnalyticsPage() {
         description="這裡只看 Threads：配額、token 健康、成長趨勢、爆款候選和目前最值得改寫再打一次的內容。"
       />
       <DatabaseBanner status={databaseStatus} />
+
+      <section className="glass-panel rounded-[1.8rem] border border-[var(--border)] p-5">
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+          <div>
+            <p className="text-xs uppercase tracking-[0.24em] text-[var(--muted)]">Filters</p>
+            <h2 className="mt-2 text-2xl font-semibold">切你現在要看的區間</h2>
+          </div>
+          <form className="grid gap-3 sm:grid-cols-[1fr_180px] xl:w-[520px]">
+            <input type="hidden" name="window" value={analytics.filters.window} />
+            <select
+              name="accountId"
+              defaultValue={analytics.filters.accountId}
+              className="rounded-[1rem] border border-[var(--border)] bg-white/80 px-4 py-3 text-sm outline-none"
+            >
+              {analytics.filters.accountOptions.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+            <button className="rounded-full bg-[var(--accent)] px-4 py-3 text-sm text-white">切換帳號</button>
+          </form>
+        </div>
+        <div className="mt-4 flex flex-wrap gap-2">
+          {WINDOW_OPTIONS.map((option) => {
+            const isActive = analytics.filters.window === option.id;
+            const href = `/analytics?window=${option.id}&accountId=${analytics.filters.accountId}`;
+
+            return (
+              <a
+                key={option.id}
+                href={href}
+                className={`rounded-full px-4 py-2 text-sm ${
+                  isActive
+                    ? "bg-[var(--card-dark)] text-white"
+                    : "border border-[var(--border)] bg-white/70 text-[var(--foreground)]"
+                }`}
+              >
+                {option.label}
+              </a>
+            );
+          })}
+        </div>
+      </section>
 
       <section className="grid gap-4 lg:grid-cols-3">
         <article className="glass-panel rounded-[1.6rem] border border-[var(--border)] p-5">
@@ -111,7 +171,13 @@ export default async function AnalyticsPage() {
         <div className="flex items-center justify-between gap-4">
           <div>
             <p className="text-[11px] uppercase tracking-[0.3em] text-[var(--muted)]">Follower Trend</p>
-            <h2 className="mt-2 text-3xl font-semibold">近 7 次 Threads 快照</h2>
+            <h2 className="mt-2 text-3xl font-semibold">
+              {analytics.filters.window === "7d"
+                ? "近 7 天 Threads 快照"
+                : analytics.filters.window === "30d"
+                  ? "近 30 天 Threads 快照"
+                  : "全部可用 Threads 快照"}
+            </h2>
           </div>
           <form action="/api/cron/metrics" method="post">
             <button className="rounded-full bg-[var(--accent)] px-4 py-2 text-sm text-white">立即收集指標</button>

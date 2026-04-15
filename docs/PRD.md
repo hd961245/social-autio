@@ -314,6 +314,7 @@ Priority: P1
 - identify promising posts and rewrite opportunities
 - show benchmark-style rates, not just raw counts
 - include per-post deep dive with timeline, momentum read, and next-step recommendation
+- support account-level and time-window filtering for daily review
 
 ## 6. UX Principles
 
