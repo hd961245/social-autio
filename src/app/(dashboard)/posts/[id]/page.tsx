@@ -80,12 +80,20 @@ export default async function PostDetailPage({ params }: { params: Promise<{ id:
           <p className="text-[11px] uppercase tracking-[0.3em] text-white/55">Next Move</p>
           <h2 className="mt-2 text-3xl font-semibold">下一步怎麼處理</h2>
           <p className="mt-5 text-base leading-8 text-white/78">{post.nextAction}</p>
-          <a
-            href={`/compose?postId=${post.id}`}
-            className="mt-6 inline-flex rounded-full bg-white px-4 py-2 text-sm font-medium text-[var(--card-dark)]"
-          >
-            去 Compose 續寫這篇
-          </a>
+          <div className="mt-6 flex flex-wrap gap-3">
+            <a
+              href={`/compose?postId=${post.id}&reviewId=${post.id}`}
+              className="inline-flex rounded-full bg-white px-4 py-2 text-sm font-medium text-[var(--card-dark)]"
+            >
+              帶著復盤去續寫
+            </a>
+            <a
+              href={`/compose?reviewId=${post.id}`}
+              className="inline-flex rounded-full border border-white/20 px-4 py-2 text-sm font-medium text-white"
+            >
+              用這篇開新稿
+            </a>
+          </div>
         </article>
       </section>
 

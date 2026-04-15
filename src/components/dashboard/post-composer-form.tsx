@@ -102,16 +102,26 @@ type DraftPost = {
   scheduledAt: string;
 };
 
+type ReviewContext = {
+  sourcePostId: string;
+  account: string;
+  nextAction: string;
+  momentumLabel: string;
+  insights: string[];
+};
+
 export function PostComposerForm({
   accounts,
   recentPosts,
   affiliateLibrary,
-  initialDraft
+  initialDraft,
+  reviewContext
 }: {
   accounts: AccountOption[];
   recentPosts: RecentPost[];
   affiliateLibrary: AffiliateLibrary;
   initialDraft?: DraftPost | null;
+  reviewContext?: ReviewContext | null;
 }) {
   const [accountId, setAccountId] = useState(initialDraft?.accountId ?? accounts[0]?.id ?? "");
   const [title, setTitle] = useState(initialDraft?.title ?? "");
@@ -132,6 +142,9 @@ export function PostComposerForm({
 
   const selectedAccount = accounts.find((account) => account.id === accountId);
   const isWordPress = selectedAccount?.platform === "wordpress";
+  const reviewBrief = reviewContext
+    ? [`重寫方向：${reviewContext.nextAction}`, ...reviewContext.insights.map((insight, index) => `${index + 1}. ${insight}`)].join("\n")
+    : "";
   const affiliateBlock = `<h2>推薦工具 / 聯盟連結插槽</h2>
 <ul>
   <li>主推薦連結：${affiliateLibrary.primary || "待填寫"}</li>
@@ -231,6 +244,58 @@ export function PostComposerForm({
             <div className="rounded-3xl border border-[var(--border-strong)] bg-[var(--accent-soft)] p-4 text-sm text-[var(--foreground)]">
               正在編輯：
               <span className="ml-2 font-semibold">{initialDraft.platform === "wordpress" ? "WordPress 草稿" : "Threads 草稿"}</span>
+            </div>
+          ) : null}
+          {reviewContext ? (
+            <div className="rounded-3xl border border-[var(--border-strong)] bg-[rgba(200,79,44,0.08)] p-4">
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                <div>
+                  <p className="text-[11px] uppercase tracking-[0.28em] text-[var(--muted)]">Editor Review Mode</p>
+                  <h3 className="mt-2 text-xl font-semibold">{reviewContext.account} · {reviewContext.momentumLabel}</h3>
+                  <p className="mt-3 text-sm leading-7 text-[var(--muted)]">{reviewContext.nextAction}</p>
+                </div>
+                <div className="flex shrink-0 flex-wrap gap-2">
+                  <button
+                    type="button"
+                    className="rounded-full bg-[var(--card-dark)] px-4 py-2 text-sm text-white"
+                    onClick={() => {
+                      if (isWordPress) {
+                        setHtml((current) =>
+                          `<h2>這篇延伸要怎麼寫</h2>\n<p>${reviewContext.nextAction}</p>\n<ul>\n${reviewContext.insights
+                            .map((insight) => `<li>${insight}</li>`)
+                            .join("\n")}\n</ul>\n\n${current}`.trim()
+                        );
+                      } else {
+                        setText((current) =>
+                          [`先說這篇想延伸的重點：`, reviewContext.nextAction, "", current].filter(Boolean).join("\n")
+                        );
+                      }
+                    }}
+                  >
+                    套用重寫骨架
+                  </button>
+                  <button
+                    type="button"
+                    className="rounded-full border border-[var(--border)] bg-white px-4 py-2 text-sm"
+                    onClick={() => {
+                      if (isWordPress) {
+                        setExcerpt((current) => (current ? `${current}\n${reviewContext.nextAction}` : reviewContext.nextAction));
+                      } else {
+                        setText((current) => `${current}${current ? "\n\n" : ""}${reviewBrief}`.trim());
+                      }
+                    }}
+                  >
+                    帶入編輯備忘
+                  </button>
+                </div>
+              </div>
+              <div className="mt-4 space-y-2 text-sm text-[var(--muted)]">
+                {reviewContext.insights.map((insight) => (
+                  <p key={insight} className="rounded-[1rem] border border-[var(--border)] bg-white/72 px-3 py-2">
+                    {insight}
+                  </p>
+                ))}
+              </div>
             </div>
           ) : null}
           {isWordPress ? (
@@ -402,6 +467,17 @@ export function PostComposerForm({
         </form>
 
         <div className="space-y-4">
+          {reviewContext ? (
+            <div className="rounded-3xl bg-[var(--card-dark)] p-4 text-white">
+              <p className="text-sm text-white/70">Review Brief</p>
+              <p className="mt-3 text-base leading-7 text-white/82">{reviewContext.nextAction}</p>
+              <div className="mt-4 space-y-2 text-sm text-white/70">
+                {reviewContext.insights.map((insight) => (
+                  <p key={insight}>- {insight}</p>
+                ))}
+              </div>
+            </div>
+          ) : null}
           <div className="rounded-3xl bg-[var(--card-dark)] p-4 text-white">
             <p className="text-sm text-white/70">即時預覽</p>
             {isWordPress ? (

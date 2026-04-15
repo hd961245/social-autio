@@ -1,7 +1,7 @@
 import { DatabaseBanner } from "@/components/dashboard/database-banner";
 import { PageIntro } from "@/components/dashboard/page-intro";
 import { PostComposerForm } from "@/components/dashboard/post-composer-form";
-import { getDatabaseStatus } from "@/lib/dashboard-data";
+import { getDatabaseStatus, getThreadPostDeepDive } from "@/lib/dashboard-data";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 export default async function ComposePage({
   searchParams
 }: {
-  searchParams?: Promise<{ postId?: string }>;
+  searchParams?: Promise<{ postId?: string; reviewId?: string }>;
 }) {
   const databaseStatus = await getDatabaseStatus();
   let accounts: Awaited<ReturnType<typeof prisma.platformAccount.findMany>> = [];
@@ -38,6 +38,15 @@ export default async function ComposePage({
         tags: string;
         status: string;
         scheduledAt: string;
+      }
+    | null = null;
+  let reviewContext:
+    | {
+        sourcePostId: string;
+        account: string;
+        nextAction: string;
+        momentumLabel: string;
+        insights: string[];
       }
     | null = null;
 
@@ -80,6 +89,21 @@ export default async function ComposePage({
         };
       }
     }
+
+    const reviewId = params?.reviewId ?? params?.postId;
+    if (reviewId) {
+      const reviewPost = await getThreadPostDeepDive(reviewId);
+
+      if (reviewPost) {
+        reviewContext = {
+          sourcePostId: reviewPost.id,
+          account: reviewPost.account,
+          nextAction: reviewPost.nextAction,
+          momentumLabel: reviewPost.health.momentumLabel,
+          insights: reviewPost.insights
+        };
+      }
+    }
   }
 
   return (
@@ -114,6 +138,7 @@ export default async function ComposePage({
           cta: settings?.affiliateCta ?? ""
         }}
         initialDraft={draftPost}
+        reviewContext={reviewContext}
       />
     </div>
   );
