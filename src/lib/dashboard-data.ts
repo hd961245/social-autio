@@ -22,6 +22,16 @@ export type PostSummary = {
   platformUrl?: string | null;
 };
 
+export type ThreadMetricTimelinePoint = {
+  label: string;
+  views: number;
+  likes: number;
+  replies: number;
+  reposts: number;
+  quotes: number;
+  shares: number;
+};
+
 export type KeywordHitSummary = {
   id: string;
   keyword: string;
@@ -469,6 +479,62 @@ export async function getPostSummaries(): Promise<PostSummary[]> {
     }));
   } catch {
     return [];
+  }
+}
+
+export async function getThreadPostDeepDive(postId: string) {
+  try {
+    const post = await prisma.post.findUnique({
+      where: { id: postId },
+      include: {
+        account: true,
+        metrics: {
+          orderBy: {
+            capturedAt: "asc"
+          }
+        }
+      }
+    });
+
+    if (!post || post.account.platform !== "threads") {
+      return null;
+    }
+
+    const latest = post.metrics.at(-1);
+    const timeline: ThreadMetricTimelinePoint[] = post.metrics.map((metric) => ({
+      label: metric.capturedAt.toLocaleString("zh-TW", {
+        month: "numeric",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false
+      }),
+      views: metric.views,
+      likes: metric.likes,
+      replies: metric.replies,
+      reposts: metric.reposts,
+      quotes: metric.quotes,
+      shares: metric.shares
+    }));
+
+    return {
+      id: post.id,
+      account: `@${post.account.platformUsername}`,
+      text: post.textContent ?? post.title ?? "(無文字內容)",
+      platformUrl: post.platformUrl,
+      publishedAt: formatDate(post.publishedAt ?? post.createdAt),
+      latest: {
+        views: latest?.views ?? 0,
+        likes: latest?.likes ?? 0,
+        replies: latest?.replies ?? 0,
+        reposts: latest?.reposts ?? 0,
+        quotes: latest?.quotes ?? 0,
+        shares: latest?.shares ?? 0
+      },
+      timeline
+    };
+  } catch {
+    return null;
   }
 }
 

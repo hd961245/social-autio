@@ -180,6 +180,9 @@ export default async function AnalyticsPage() {
                 <span>Quotes {post.quotes}</span>
                 <span>Shares {post.shares}</span>
               </div>
+              <a href={`/posts/${post.id}`} className="mt-4 inline-flex text-sm font-medium text-[var(--accent)]">
+                看完整指標
+              </a>
             </article>
           ))}
           {analytics.topPosts.length === 0 ? (

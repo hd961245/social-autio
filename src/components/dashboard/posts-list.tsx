@@ -134,6 +134,11 @@ export function PostsList({ posts }: { posts: PostSummary[] }) {
                 繼續編輯
               </a>
             ) : null}
+            {post.platform === "threads" && post.status === "published" ? (
+              <a href={`/posts/${post.id}`} className="rounded-full border border-[var(--border)] bg-white/70 px-4 py-2 text-sm">
+                看完整指標
+              </a>
+            ) : null}
           </div>
         </article>
       ))}
