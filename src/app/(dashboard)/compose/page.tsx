@@ -9,10 +9,11 @@ export const dynamic = "force-dynamic";
 export default async function ComposePage({
   searchParams
 }: {
-  searchParams?: Promise<{ postId?: string; reviewId?: string; seedPostId?: string }>;
+  searchParams?: Promise<{ postId?: string; reviewId?: string; seedPostId?: string; accountId?: string }>;
 }) {
   const databaseStatus = await getDatabaseStatus();
   const composeHealth = await getComposeHealth();
+  const params = await searchParams;
   let accounts: Awaited<ReturnType<typeof prisma.platformAccount.findMany>> = [];
   let settings: Awaited<ReturnType<typeof prisma.appSettings.findFirst>> = null;
   let posts: Awaited<
@@ -52,7 +53,6 @@ export default async function ComposePage({
     | null = null;
 
   if (databaseStatus.ready) {
-    const params = await searchParams;
     [accounts, posts, settings] = await Promise.all([
       prisma.platformAccount.findMany({
         where: { isActive: true },
@@ -143,8 +143,13 @@ export default async function ComposePage({
     return 0;
   });
 
+  const requestedAccountId = databaseStatus.ready ? params?.accountId ?? "" : "";
   const preferredAccountId =
-    draftPost?.accountId ?? orderedAccounts.find((account) => account.platform === "threads")?.id ?? orderedAccounts[0]?.id ?? "";
+    draftPost?.accountId ??
+    (requestedAccountId && orderedAccounts.some((account) => account.id === requestedAccountId) ? requestedAccountId : "") ??
+    orderedAccounts.find((account) => account.platform === "threads")?.id ??
+    orderedAccounts[0]?.id ??
+    "";
 
   return (
     <div className="space-y-6">
