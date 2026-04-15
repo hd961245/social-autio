@@ -1,507 +1,436 @@
 # Social Audio PRD
 
-> Version: v2.3  
-> Updated: 2026-04-14  
+> Version: v3.0  
+> Updated: 2026-04-15  
 > Status: Active Build  
 > Repo: https://github.com/hd961245/social-autio
 
-## 1. Product Summary
+## 1. Product Direction
 
-### 1.1 Positioning
+### 1.1 New Positioning
 
-Social Audio is a `Threads-first personal publishing OS`.
+Social Audio is moving from a `Threads-first personal publishing OS`
 
-It is designed for one operator who wants to:
+to a
 
-- publish and schedule Threads content
-- collect outside material and rewrite it fast
-- keep WordPress as a draft-only longform studio
-- preserve monetization structure such as affiliate links, promo blocks, and CTA sections
+`self-media entrepreneur management console`.
 
-This is not a team SaaS and not a broad social media suite.
-It is a focused personal content operating system.
+It should help one operator manage four connected layers in one place:
 
-### 1.2 Product Thesis
+- content sourcing
+- editorial production
+- distribution and repurposing
+- monetization and operating review
 
-The user does not need more dashboards.
-The user needs one place where source collection, rewrite, editorial triage, and draft production are connected.
+The current product is still Threads-first, but the long-term shape is no longer just “write a post faster.”
+It is a control layer for running a small creator business.
 
-The core promise is:
+### 1.2 Core Thesis
 
-- less time moving material around
-- more consistent voice
-- better reuse of old content
-- faster path from source to editable draft
+A self-media entrepreneur does not need ten disconnected tools.
+
+They need one operating surface where they can:
+
+- see what to write next
+- turn short-form into long-form
+- preserve their own voice
+- keep affiliate / CTA logic consistent
+- understand which content deserves another push
+- run their content business with less switching cost
 
 ### 1.3 Product Promise
 
-If the user gives the system a source URL, RSS item, pasted text, screenshot, or one of their old WordPress posts, the system should quickly turn it into:
+If the user gives the system:
 
-- a sharper Threads draft
-- a more structured WordPress draft
-- both editable
-- with WordPress always staying in `draft`, never auto-published
+- a Threads post
+- a source URL
+- an RSS item
+- raw notes
+- a past WordPress article
+
+the system should turn it into:
+
+- a usable Threads draft
+- a usable WordPress draft
+- a clearer editorial next step
+- a monetization-aware content package
+
+with WordPress staying draft-first and the user retaining final editorial control.
 
 ## 2. Target User
 
-This product is built for `one person running their own content machine`.
+This product is for:
 
-Typical user traits:
+`a self-media entrepreneur or solo content operator`
 
-- writes on Threads often
-- also runs a WordPress blog
-- republishes ideas across formats
-- wants AI acceleration without losing editorial control
-- uses recommendations, affiliate links, or promo links intentionally
+Typical traits:
 
-Non-goals for target audience:
+- publishes on Threads often
+- keeps a WordPress site as long-form home base
+- repackages the same idea across formats
+- wants repeatable workflow, not one-off AI tricks
+- uses CTA, affiliate links, product recommendations, or service offers
+- treats content as both brand-building and revenue-generating
+
+Non-target users for now:
 
 - agencies
-- teams
-- enterprise content ops
-- multi-user review workflows
-- billing / subscription products
+- content teams
+- enterprise marketing orgs
+- multi-user approval chains
+- generic social media managers
 
-## 3. Product Scope
+## 3. Product Shape
 
-### 3.1 Current Scope
+### 3.1 Current Product Shape
 
-- Threads account connection and publishing
-- Threads queue, scheduling, and draft editing
-- Threads-first analytics
-- Content Engine for source ingestion and rewrite
-- URL preview before rewrite
-- WordPress connection via Application Password
-- WordPress draft create / update only
-- WordPress writing-style analysis from old posts
-- WordPress archive rewrite into fresh drafts
-- WordPress templates and affiliate slot blocks
-- Source Watchlist for repeat inputs
-- Source Inbox for daily triage
-- Content Desk for one-page workflow switching
-- source dedupe and handled-state tracking
-- automatic source refresh via Inngest
+Today the system already supports:
 
-### 3.2 Non-Goals Right Now
+- Threads publishing and scheduling
+- Threads analytics and post review
+- Content Desk for workflow-first daily operations
+- Content Engine for source rewrite
+- Source Watchlist and Inbox
+- WordPress draft creation and update
+- WordPress style learning from archive
+- WordPress archive rewrite
+- affiliate slot library
+- Threads to WordPress sync
 
-- direct WordPress publishing
-- automatic crawling of followed Threads accounts
-- Facebook profile crawling
-- multi-user accounts and permissions
-- SaaS billing
-- generalized cross-platform management
+### 3.2 Future Product Shape
 
-## 4. Main User Flows
+The future shape should look like a creator management console with these modules:
 
-### 4.1 Threads Flow
+- `Desk`
+  daily command center
+- `Compose`
+  short-form and long-form draft editor
+- `Distribution`
+  Threads-first publishing lane, later selective downstream distribution
+- `WordPress Studio`
+  long-form draft inbox, site sync, archive mining
+- `Revenue Layer`
+  affiliate blocks, CTA modules, offer slots, conversion-aware article structure
+- `Review Layer`
+  post outcomes, rewrite radar, follow-up opportunities
+- `Ops Layer`
+  env, token, queue, and health diagnostics
 
-1. User opens `Compose`
-2. User writes or edits a Threads draft
-3. User publishes immediately or schedules it
-4. System tracks status and surfaces it in Queue
-5. Published Threads posts can later become WordPress drafts
+## 4. Product Jobs To Be Done
 
-### 4.2 Content Engine Flow
+The system should help the user do these jobs:
 
-1. User opens `Content Engine`
-2. User inputs a source:
-   - URL
-   - raw text
-   - image-led input
-3. User optionally previews extracted content
-4. User selects AI provider
-5. User selects WordPress article template
-6. System creates:
-   - Threads draft
-   - WordPress draft
-7. User opens drafts in `Compose` for refinement
+### 4.1 Find What To Work On
 
-### 4.3 WordPress Draft Studio Flow
+- collect repeat sources
+- score incoming material
+- identify what is worth turning into Threads
+- identify what is worth becoming a long-form article
 
-1. User connects a WordPress site
-2. System can create or update a draft on that site
-3. Draft stays in WordPress backend as `draft`
-4. User can continue editing in:
-   - this app
-   - WordPress backend
+### 4.2 Produce Faster Without Losing Voice
 
-### 4.4 Style Learning Flow
+- generate first drafts
+- preserve writing rhythm
+- preserve title and opening habits
+- preserve monetization structure
 
-1. User opens `WordPress`
-2. User clicks `分析我的舊文`
-3. System reads the user’s own past articles
-4. AI produces:
-   - writing style profile
-   - affiliate / promo planning profile
-5. Future drafts use those profiles automatically
+### 4.3 Turn Short-Form Into Long-Form
 
-### 4.5 Archive Rewrite Flow
+- sync high-performing Threads into WordPress draft
+- add article scaffold, context, and CTA structure
+- keep original post context visible
 
-1. User opens `WordPress`
-2. System lists recent old articles
-3. User clicks `複寫成新草稿`
-4. System generates a fresh WordPress draft with a new angle
-5. Draft preserves room for:
-   - affiliate links
-   - tool recommendations
-   - CTA blocks
+### 4.4 Reuse Existing Assets
 
-### 4.6 Source Watchlist Flow
+- mine old WordPress posts
+- rewrite archive into fresh drafts
+- turn existing ideas into new angles
 
-1. User opens `來源`
-2. User adds a recurring source:
-   - RSS
-   - article page
-   - blog URL
-3. User manually refreshes, or waits for scheduled refresh
-4. System stores the latest fetched item and marks it as:
-   - `待處理`
-   - `已改寫`
-   - `已跳過`
-5. System avoids duplicate import for already-handled latest items
+### 4.5 Operate Like A Business
 
-### 4.7 Source Inbox Flow
+- know what is ready to publish
+- know what deserves another push
+- know what content pattern performs
+- keep affiliate / promo structure reusable
 
-1. User opens `Inbox`
-2. System shows the latest candidate item from each tracked source
-3. Each item gets lightweight scoring:
-   - Threads score
-   - WordPress score
-   - commercial potential
-4. System recommends:
+## 5. Primary Workflows
+
+### 5.1 Daily Operator Workflow
+
+1. Open `Desk`
+2. Check `Rewrite Radar`
+3. Check `Inbox`
+4. Pick one content direction for today
+5. Open `Engine` or `Compose`
+6. Build Threads + WordPress draft
+7. Send Threads now or schedule it
+8. Leave WordPress in draft for later refinement
+9. Return to `Analytics` to see if the post deserves expansion
+
+### 5.2 Threads To WordPress Workflow
+
+1. Publish or review a Threads post
+2. Identify that it deserves long-form expansion
+3. Click sync to WordPress
+4. System creates a richer WordPress draft, not a thin copy
+5. Draft includes:
+   - context block
+   - article scaffold
+   - extension prompts
+   - affiliate / CTA slot
+   - source Threads reference
+6. User refines draft before WordPress backend publishing
+
+### 5.3 Archive Expansion Workflow
+
+1. Open `WordPress`
+2. Browse archive rewrite candidates
+3. Choose an older article
+4. Create a fresh draft with a new angle
+5. Use writing style memory + affiliate planning automatically
+6. Edit and ship later
+
+### 5.4 Source To Draft Workflow
+
+1. Track sources in `Source Watchlist`
+2. Review latest items in `Inbox`
+3. See rewrite scores and recommendation
+4. Choose:
    - Threads first
    - WordPress first
-   - dual use
-5. User triages with:
-   - rewrite now
-   - skip
-   - open source
+   - dual route
+5. Generate draft package
+6. Move to `Queue` or `Compose`
 
-### 4.8 Content Desk Flow
+## 6. Functional Requirements
 
-1. User opens `Content Desk`
-2. User switches between:
-   - Inbox
-   - Sources
-   - Engine
-   - Queue
-3. User stays inside one workflow surface instead of bouncing across multiple pages
-
-## 5. Functional Requirements
-
-### F1. Threads Account Management
+### F1. Desk As Daily Command Center
 
 Priority: P0
 
-- connect Threads via OAuth
-- store token state
-- surface account identity and freshness
-- keep UI centered around Threads-first publishing
+- make `Desk` the default daily entry
+- show today’s rewrite opportunities
+- show source triage status
+- show draft workload
+- connect directly into Compose, Queue, and Analytics
 
-### F2. Threads Drafting and Scheduling
+### F2. Threads Publishing Lane
 
 Priority: P0
 
 - create draft
-- edit draft
 - publish now
 - schedule post
-- manage queue
-- search and filter queue
-- convert published Threads posts into WordPress drafts
+- show publish health before submission
+- show success / failure feedback clearly
+- preserve a clean Threads-first default path
 
-### F3. Content Engine
-
-Priority: P0
-
-- accept source URL, text, and image-style input
-- preview URL extraction before rewrite
-- allow provider selection:
-  - Auto
-  - Gemini
-  - Claude
-  - OpenAI
-- generate Threads + WordPress outputs together
-- keep outputs editable
-
-### F4. WordPress Draft Studio
+### F3. WordPress Draft Studio
 
 Priority: P0
 
-- connect via site URL + username + Application Password
 - create WordPress draft
 - update WordPress draft
-- show connected sites
-- never auto-publish
+- keep WordPress draft-only
+- show local draft inbox before settings
+- support opening draft in app and in WordPress backend
 
-### F5. Writing Style Memory
+### F4. Threads To WordPress Expansion
+
+Priority: P0
+
+- sync high-performing Threads into WordPress draft
+- do not produce a shallow mirror
+- generate a long-form-ready structure
+- preserve source link
+- carry writing style memory forward
+- carry affiliate library forward
+
+### F5. Content Engine
+
+Priority: P0
+
+- accept URL, raw text, and image-led input
+- preview extraction before rewrite
+- produce Threads + WordPress together
+- let user choose provider
+- let user choose WordPress template
+
+### F6. Source Watchlist And Inbox
 
 Priority: P1
 
-- learn from the user’s own WordPress archive
-- infer style habits:
-  - title shape
-  - opening rhythm
-  - paragraph pacing
-  - analysis style
-  - closing pattern
-- infer monetization pattern:
-  - affiliate link positioning
-  - promo tone
-  - CTA structure
+- save repeat sources
+- refresh manually and automatically
+- avoid duplicate latest imports
+- score candidates for Threads / WordPress / business potential
+- support skip / import / prioritize actions
 
-### F6. Archive Rewrite
+### F7. Writing Style Memory
+
+Priority: P1
+
+- learn from own WordPress archive
+- infer style instruction set
+- infer monetization placement rules
+- reuse those instructions across generated drafts
+
+### F8. Affiliate And Offer Layer
+
+Priority: P1
+
+- save reusable affiliate modules
+- save CTA modules
+- save disclosure text
+- inject these into WordPress drafts
+- make them available in Compose
+
+### F9. Archive Rewrite
 
 Priority: P1
 
 - list old WordPress posts
-- one-click rewrite into a fresh new draft
+- create fresh draft from archive
 - do not overwrite source article
-- generate a distinct angle rather than shallow paraphrase
+- bias toward new angle, not shallow paraphrase
 
-### F7. WordPress Templates
-
-Priority: P1
-
-Support at least:
-
-- `觀點文`
-- `案例拆解`
-- `工具推薦`
-- `週報 Recap`
-
-Template behavior:
-
-- shape the WordPress draft structure
-- guide headings and CTA logic
-- preserve room for monetization blocks
-
-### F8. Affiliate Slot Support
+### F10. Analytics And Rewrite Radar
 
 Priority: P1
 
-- generated WordPress drafts must preserve a recommendation / affiliate section
-- Compose should allow manual insertion of affiliate slot blocks
-- system should carry affiliate planning forward from writing-style learning
+- show raw counts and benchmark-style rates
+- identify top posts
+- identify rewrite candidates
+- support account and time-window filtering
+- support per-post review with next-step recommendation
 
-### F9. Source Watchlist
-
-Priority: P1
-
-- user can save repeat sources
-- sources support at least `rss` and `url`
-- source can be refreshed on demand
-- latest fetched item is stored on the source record
-- source status can be marked as:
-  - new
-  - imported
-  - skipped
-- duplicate latest items should not create repeated drafts
-
-### F10. Source Inbox
+### F11. Ops And Recovery
 
 Priority: P1
 
-- show latest candidates across tracked sources
-- support daily triage
-- support one-click rewrite from inbox
-- support skip action
-- support simple scoring and recommendation
+- show DB readiness
+- show env health
+- show token health
+- show account counts
+- show likely recovery hints when cloud state looks wrong
 
-### F11. Content Desk
+## 7. UX Principles
 
-Priority: P1
+### 7.1 Workflow Over Feature Listing
 
-- consolidate inbox, source watchlist, content engine, and queue into one workflow-first workspace
-- use horizontal tab-style switching as the primary content workflow entry
-- keep the standalone pages available, but make the desk the default daily operating path
+The UI should not feel like a pile of tools.
+It should feel like one operator moving through a continuous content business workflow.
 
-### F12. Source Auto Refresh
+### 7.2 Draft Before Publish
 
-Priority: P2
+WordPress stays draft-first.
+The system helps prepare long-form output, not auto-publish it.
 
-- tracked active sources should auto-refresh on a schedule
-- current cadence: every 3 hours
-- refresh should update latest item and reset handled state when content changes
+### 7.3 Revenue Without Sloppiness
 
-### F13. Analytics
+Affiliate blocks and CTA logic should feel intentional and editable, not spammy or auto-inserted in a careless way.
 
-Priority: P1
+### 7.4 Review Must Lead To Action
 
-- stay focused on Threads
-- support editorial decisions
-- identify promising posts and rewrite opportunities
-- show benchmark-style rates, not just raw counts
-- include per-post deep dive with timeline, momentum read, and next-step recommendation
-- support account-level and time-window filtering for daily review
+Analytics is not for passive dashboard watching.
+Every review surface should point toward:
 
-## 6. UX Principles
+- rewrite
+- expansion
+- series follow-up
+- archive reuse
 
-### 6.1 Threads First
+### 7.5 Daily Entry Must Be Short
 
-The app should always feel like a Threads control room first, with WordPress as the longform drafting layer.
+The operator should be able to open the app and know:
 
-### 6.2 Draft Before Publish
+- what to work on
+- what can publish
+- what deserves long-form treatment
 
-WordPress is a draft destination, not an auto-publishing channel.
+within one or two screens.
 
-### 6.3 Rewrite, Don’t Just Summarize
+## 8. Product Boundaries
 
-AI should output useful drafts, not flat notes.
+### 8.1 What This Product Is
 
-### 6.4 Preserve Monetization Intent
+- a solo creator operating console
+- a Threads-first publishing and review system
+- a WordPress draft studio
+- a repurposing engine
+- a monetization-aware content workspace
 
-The system should not erase affiliate structure or CTA logic when rewriting content.
+### 8.2 What This Product Is Not
 
-### 6.5 Reduce Daily Friction
+- a generalized social media SaaS
+- a team collaboration suite
+- a paid subscriber platform
+- a CRM
+- an email marketing tool
+- a universal publishing bus
 
-The app should progressively remove repeated manual work:
+## 9. Next PRD Roadmap
 
-- repeated source entry
-- repeated content triage
-- repeated structural formatting
-- repeated page-hopping across scattered tools
+### Phase 1. Already Built
 
-### 6.6 Navigation Should Follow Workflow
-
-Primary navigation should foreground the main lane:
-
+- Threads publish / schedule
 - Content Desk
-- Compose
-- Analytics
-
-Secondary system pages should be grouped into horizontal navigation with dropdown-style reveal, instead of staying flattened in one long menu.
-
-## 7. AI Design
-
-### 7.1 AI Responsibilities
-
-- summarize source material
-- rewrite in the user’s voice
-- create platform-shaped outputs
-- learn from past WordPress writing
-- preserve affiliate and promo intent
-- help turn archives into fresh drafts
-
-### 7.2 AI Constraints
-
-- Threads output stays concise
-- WordPress output must feel like article skeletons, not note dumps
-- archive rewrites should feel meaningfully fresh
-- drafts must leave room for human editorial judgment
-
-### 7.3 Provider Strategy
-
-Supported providers:
-
-- Gemini
-- Claude
-- OpenAI
-- Auto fallback mode
-
-Provider selection remains user-controlled for rewrite tasks.
-
-## 8. Technical Direction
-
-### 8.1 Stack
-
-- Next.js App Router
-- TypeScript
-- Tailwind CSS
-- Prisma
-- PostgreSQL
-- Inngest
-
-### 8.2 Core Stored Entities
-
-- `PlatformAccount`
-- `Post`
-- `IngestionRecord`
-- `AppSettings`
-- `SourceWatch`
-
-### 8.3 AppSettings Responsibilities
-
-- default tone
-- AI provider preference
-- global persona prompt
-- writing style profile
-- affiliate link policy
-
-### 8.4 Integration Direction
-
-Threads:
-
-- publish and read owned-account data through official API flows
-
-WordPress:
-
-- connect via REST API + Application Password
-- read own posts
-- create and update drafts
-
-Sources:
-
-- RSS and direct article URLs
-- latest-item tracking with dedupe fingerprint
-
-## 9. Success Criteria
-
-### 9.1 Product Success
-
-The system is successful if the user can regularly do this without friction:
-
-- monitor repeat sources
-- open Inbox and know what to process first
-- rewrite source material fast
-- keep their own voice across Threads and WordPress
-- re-use old content without starting from zero
-- preserve commercial intent while staying editorially natural
-
-### 9.2 Quality Bar
-
-- WordPress drafts should look like editable article structures
-- Threads drafts should feel sharper than the original source
-- source triage should reduce cognitive load
-- duplicate content should not repeatedly create drafts
-- affiliate sections should feel intentional, not spammy
-
-## 10. Near-Term Roadmap
-
-### Phase A: Already In
-
-- Threads-first publishing
-- WordPress draft-only flow
-- URL import preview
-- style learning from archive
+- Source Watchlist + Inbox
+- Content Engine
+- WordPress draft flow
 - archive rewrite
-- WordPress templates
-- affiliate slot sections
-- source watchlist
-- source inbox
-- dedupe and handled states
-- scheduled source refresh
+- writing style memory
+- affiliate slot library
+- publish health
+- post review and rewrite mode
 
-### Phase B: Next High-Value Additions
+### Phase 2. Next High-Value Moves
 
-- affiliate slot library with reusable real CTA blocks
-- learning loop from user triage behavior
-- richer source extraction controls
-- better scoring tuned to user output patterns
-- RSS history instead of latest-item only
+- WordPress draft status memory
+  learn which drafts actually get finished and used
+- richer Threads to WordPress expansion templates
+  different long-form shapes from different Threads post types
+- better editorial routing
+  know when a post should become:
+  - a Threads follow-up
+  - a WordPress article
+  - both
+- outcome-aware monetization suggestions
+  know when to use soft CTA vs hard CTA
 
-### Phase C: Later If Still Valuable
+### Phase 3. Management Console Direction
 
-- Facebook Page copy generation
-- more import formats
-- smarter performance feedback loop
-- deeper editorial scoring from post outcomes
+- topic / pillar tracking
+- campaign or launch-mode content grouping
+- offer-aware content mapping
+- content inventory by stage:
+  - source
+  - draft
+  - published
+  - expandable
+  - monetizable
+- simple revenue-aware editorial planning
 
-## 11. Final Product Rule
+## 10. Success Criteria
 
-This product should keep moving toward:
+The product is successful when the user can operate like this:
 
-`one-person content operating system`
+- run daily content triage from one desk
+- publish Threads without friction
+- turn strong Threads into long-form drafts fast
+- preserve voice and monetization structure
+- keep WordPress as a controlled editorial back office
+- feel like the system is helping run a creator business, not just generating text
+
+## 11. Final Rule
+
+The product should continue moving toward:
+
+`self-media entrepreneur management console`
+
+and away from:
+
+`generic AI content toy`
 
 and away from:
 

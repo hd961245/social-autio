@@ -1,12 +1,12 @@
 # Social Audio
 
-Threads-first 個人內容操作台。
+Threads-first 自媒體創業者管理中台。
 
 ## Current Status
 
 - PRD: [docs/PRD.md](./docs/PRD.md)
 - Deploy / Recovery: [docs/ZEABUR.md](./docs/ZEABUR.md)
-- Current focus: Threads publishing + WordPress draft studio + Source Inbox
+- Current focus: Threads publishing + WordPress draft studio + Content Desk + Source Inbox
 - Stack: Next.js App Router, TypeScript, Tailwind CSS, Prisma, PostgreSQL, Inngest
 
 ## Getting Started
@@ -56,8 +56,21 @@ Open `http://localhost:3000`.
 - `Threads`：即時發文、排程、Queue、分析
 - `WordPress`：只建立 / 更新草稿，不直接發佈
 - `Content Engine`：輸入 URL / text / image，產出 Threads + WordPress draft
+- `Content Desk`：把 Inbox / Sources / Engine / Queue 收在同一個工作台
 - `Writing Style Memory`：從你自己的 WordPress 舊文學風格與聯盟連結規劃
 - `Source Watchlist`：追蹤 RSS / Blog 來源
 - `Inbox`：集中處理最新來源內容並做簡單改寫判斷
+
+## Product Direction
+
+這個專案正在從「個人內容工具」往「自媒體創業者管理中台」演進。
+
+下一階段的核心不是多做幾個平台，而是把這幾層收成一個可運作的內容生意後台：
+
+- 內容來源與選題
+- Threads 發布與復盤
+- WordPress 長文草稿工作流
+- 聯盟連結 / CTA / 推廣模組
+- 自己的寫作風格與內容資產複用
 
 建議上線前重設 `THREADS_APP_SECRET`，並把 `ADMIN_SESSION_SECRET` 與 `TOKEN_ENCRYPTION_KEY` 換成高熵隨機值。
