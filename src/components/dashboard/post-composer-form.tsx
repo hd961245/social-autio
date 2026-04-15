@@ -115,6 +115,7 @@ export function PostComposerForm({
   recentPosts,
   affiliateLibrary,
   initialDraft,
+  initialSeed,
   reviewContext,
   preferredAccountId
 }: {
@@ -122,18 +123,20 @@ export function PostComposerForm({
   recentPosts: RecentPost[];
   affiliateLibrary: AffiliateLibrary;
   initialDraft?: DraftPost | null;
+  initialSeed?: DraftPost | null;
   reviewContext?: ReviewContext | null;
   preferredAccountId?: string;
 }) {
-  const [accountId, setAccountId] = useState(initialDraft?.accountId ?? preferredAccountId ?? accounts[0]?.id ?? "");
-  const [title, setTitle] = useState(initialDraft?.title ?? "");
-  const [text, setText] = useState(initialDraft?.text ?? "");
-  const [html, setHtml] = useState(initialDraft?.html ?? "");
-  const [excerpt, setExcerpt] = useState(initialDraft?.excerpt ?? "");
-  const [mediaUrl, setMediaUrl] = useState(initialDraft?.mediaUrl ?? "");
-  const [featuredImageUrl, setFeaturedImageUrl] = useState(initialDraft?.featuredImageUrl ?? "");
-  const [categories, setCategories] = useState(initialDraft?.categories ?? "");
-  const [tags, setTags] = useState(initialDraft?.tags ?? "");
+  const baseDraft = initialDraft ?? initialSeed ?? null;
+  const [accountId, setAccountId] = useState(baseDraft?.accountId ?? preferredAccountId ?? accounts[0]?.id ?? "");
+  const [title, setTitle] = useState(baseDraft?.title ?? "");
+  const [text, setText] = useState(baseDraft?.text ?? "");
+  const [html, setHtml] = useState(baseDraft?.html ?? "");
+  const [excerpt, setExcerpt] = useState(baseDraft?.excerpt ?? "");
+  const [mediaUrl, setMediaUrl] = useState(baseDraft?.mediaUrl ?? "");
+  const [featuredImageUrl, setFeaturedImageUrl] = useState(baseDraft?.featuredImageUrl ?? "");
+  const [categories, setCategories] = useState(baseDraft?.categories ?? "");
+  const [tags, setTags] = useState(baseDraft?.tags ?? "");
   const [selectedTemplate, setSelectedTemplate] = useState<(typeof wordpressTemplates)[number]["id"]>("opinion");
   const [publishMode, setPublishMode] = useState<"immediate" | "scheduled">(
     initialDraft?.status === "scheduled" ? "scheduled" : "immediate"
@@ -167,7 +170,7 @@ export function PostComposerForm({
           <h2 className="mt-2 text-3xl font-semibold">{initialDraft ? "回到草稿繼續修" : "Threads 發文台 + WordPress 草稿台"}</h2>
         </div>
         <span className="rounded-full bg-[var(--accent)] px-3 py-1 text-xs uppercase tracking-[0.2em] text-white">
-          {initialDraft ? "edit mode" : "threads first"}
+          {initialDraft ? "edit mode" : initialSeed ? "rewrite seed" : "threads first"}
         </span>
       </div>
 
@@ -246,6 +249,11 @@ export function PostComposerForm({
             <div className="rounded-3xl border border-[var(--border-strong)] bg-[var(--accent-soft)] p-4 text-sm text-[var(--foreground)]">
               正在編輯：
               <span className="ml-2 font-semibold">{initialDraft.platform === "wordpress" ? "WordPress 草稿" : "Threads 草稿"}</span>
+            </div>
+          ) : null}
+          {!initialDraft && initialSeed ? (
+            <div className="rounded-3xl border border-[var(--border-strong)] bg-[var(--accent-soft)] p-4 text-sm text-[var(--foreground)]">
+              已帶入一篇已發布內容作為新稿底本。這次會建立新的 Threads 草稿，不會回寫原本那篇。
             </div>
           ) : null}
           {reviewContext ? (

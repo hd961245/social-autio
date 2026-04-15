@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 export default async function ComposePage({
   searchParams
 }: {
-  searchParams?: Promise<{ postId?: string; reviewId?: string }>;
+  searchParams?: Promise<{ postId?: string; reviewId?: string; seedPostId?: string }>;
 }) {
   const databaseStatus = await getDatabaseStatus();
   let accounts: Awaited<ReturnType<typeof prisma.platformAccount.findMany>> = [];
@@ -90,6 +90,31 @@ export default async function ComposePage({
       }
     }
 
+    if (params?.seedPostId && !draftPost) {
+      const seedPost = await prisma.post.findUnique({
+        where: { id: params.seedPostId },
+        include: { account: true }
+      });
+
+      if (seedPost) {
+        draftPost = {
+          id: "",
+          accountId: seedPost.account.platform === "threads" ? seedPost.accountId : "",
+          platform: seedPost.account.platform,
+          title: seedPost.title ?? "",
+          text: seedPost.textContent ?? "",
+          html: seedPost.htmlContent ?? "",
+          excerpt: seedPost.excerpt ?? "",
+          mediaUrl: seedPost.mediaUrls ? ((JSON.parse(seedPost.mediaUrls) as string[])[0] ?? "") : "",
+          featuredImageUrl: seedPost.featuredImageUrl ?? "",
+          categories: seedPost.categories ? (JSON.parse(seedPost.categories) as string[]).join(", ") : "",
+          tags: seedPost.tags ? (JSON.parse(seedPost.tags) as string[]).join(", ") : "",
+          status: "draft",
+          scheduledAt: ""
+        };
+      }
+    }
+
     const reviewId = params?.reviewId ?? params?.postId;
     if (reviewId) {
       const reviewPost = await getThreadPostDeepDive(reviewId);
@@ -151,7 +176,8 @@ export default async function ComposePage({
           disclosure: settings?.affiliateDisclosure ?? "",
           cta: settings?.affiliateCta ?? ""
         }}
-        initialDraft={draftPost}
+        initialDraft={draftPost?.id ? draftPost : null}
+        initialSeed={!draftPost?.id && draftPost ? draftPost : null}
         reviewContext={reviewContext}
         preferredAccountId={preferredAccountId}
       />

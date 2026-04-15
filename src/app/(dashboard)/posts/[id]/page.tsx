@@ -82,7 +82,7 @@ export default async function PostDetailPage({ params }: { params: Promise<{ id:
           <p className="mt-5 text-base leading-8 text-white/78">{post.nextAction}</p>
           <div className="mt-6 flex flex-wrap gap-3">
             <a
-              href={`/compose?postId=${post.id}&reviewId=${post.id}`}
+              href={`/compose?seedPostId=${post.id}&reviewId=${post.id}`}
               className="inline-flex rounded-full bg-white px-4 py-2 text-sm font-medium text-[var(--card-dark)]"
             >
               帶著復盤去續寫
