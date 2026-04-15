@@ -64,6 +64,15 @@ export type DatabaseStatus = {
   message: string;
 };
 
+export type ComposeHealth = {
+  threadsReady: boolean;
+  threadsMessage: string;
+  tokenStatus: "healthy" | "expiring" | "missing";
+  tokenMessage: string;
+  queueCount: number;
+  queueMessage: string;
+};
+
 export type AnalyticsOverview = {
   filters: {
     window: "7d" | "30d" | "all";
@@ -682,6 +691,56 @@ export async function getDashboardStats() {
       { label: "排程佇列", value: "0", detail: "目前沒有待發布貼文" },
       { label: "關鍵字命中", value: "0", detail: "尚未掃到命中資料" }
     ];
+  }
+}
+
+export async function getComposeHealth(): Promise<ComposeHealth> {
+  try {
+    const [threadsAccount, scheduledCount] = await Promise.all([
+      prisma.platformAccount.findFirst({
+        where: { isActive: true, platform: "threads" },
+        orderBy: [{ lastSyncedAt: "desc" }, { createdAt: "desc" }]
+      }),
+      prisma.post.count({
+        where: {
+          status: "scheduled",
+          account: {
+            platform: "threads"
+          }
+        }
+      })
+    ]);
+
+    if (!threadsAccount) {
+      return {
+        threadsReady: false,
+        threadsMessage: "尚未連接可用的 Threads 帳號",
+        tokenStatus: "missing",
+        tokenMessage: "沒有 Threads token 可用",
+        queueCount: scheduledCount,
+        queueMessage: scheduledCount > 0 ? `目前有 ${scheduledCount} 筆 Threads 排程待送出` : "目前沒有待送出的 Threads 排程"
+      };
+    }
+
+    const expiringSoon = threadsAccount.tokenExpiresAt.getTime() <= Date.now() + 7 * 24 * 60 * 60 * 1000;
+
+    return {
+      threadsReady: true,
+      threadsMessage: `目前可用帳號：@${threadsAccount.platformUsername}`,
+      tokenStatus: expiringSoon ? "expiring" : "healthy",
+      tokenMessage: expiringSoon ? "Threads token 7 天內將到期，建議儘快重新授權" : "Threads token 狀態正常",
+      queueCount: scheduledCount,
+      queueMessage: scheduledCount > 0 ? `目前有 ${scheduledCount} 筆 Threads 排程待送出` : "目前沒有待送出的 Threads 排程"
+    };
+  } catch {
+    return {
+      threadsReady: false,
+      threadsMessage: "目前無法讀取發佈狀態",
+      tokenStatus: "missing",
+      tokenMessage: "尚未讀到 token 狀態",
+      queueCount: 0,
+      queueMessage: "尚未讀到排程資料"
+    };
   }
 }
 

@@ -1,7 +1,7 @@
 import { DatabaseBanner } from "@/components/dashboard/database-banner";
 import { PageIntro } from "@/components/dashboard/page-intro";
 import { PostComposerForm } from "@/components/dashboard/post-composer-form";
-import { getDatabaseStatus, getThreadPostDeepDive } from "@/lib/dashboard-data";
+import { getComposeHealth, getDatabaseStatus, getThreadPostDeepDive } from "@/lib/dashboard-data";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -12,6 +12,7 @@ export default async function ComposePage({
   searchParams?: Promise<{ postId?: string; reviewId?: string; seedPostId?: string }>;
 }) {
   const databaseStatus = await getDatabaseStatus();
+  const composeHealth = await getComposeHealth();
   let accounts: Awaited<ReturnType<typeof prisma.platformAccount.findMany>> = [];
   let settings: Awaited<ReturnType<typeof prisma.appSettings.findFirst>> = null;
   let posts: Awaited<
@@ -157,6 +158,25 @@ export default async function ComposePage({
         }
       />
       <DatabaseBanner status={databaseStatus} />
+      <section className="grid gap-4 md:grid-cols-3">
+        <article className="metric-card">
+          <p className="text-xs uppercase tracking-[0.24em] text-[var(--muted)]">Threads Ready</p>
+          <p className="mt-3 text-2xl font-semibold">{composeHealth.threadsReady ? "Ready" : "Blocked"}</p>
+          <p className="mt-2 text-sm text-[var(--muted)]">{composeHealth.threadsMessage}</p>
+        </article>
+        <article className="metric-card">
+          <p className="text-xs uppercase tracking-[0.24em] text-[var(--muted)]">Token Health</p>
+          <p className="mt-3 text-2xl font-semibold">
+            {composeHealth.tokenStatus === "healthy" ? "Healthy" : composeHealth.tokenStatus === "expiring" ? "Expiring" : "Missing"}
+          </p>
+          <p className="mt-2 text-sm text-[var(--muted)]">{composeHealth.tokenMessage}</p>
+        </article>
+        <article className="metric-card">
+          <p className="text-xs uppercase tracking-[0.24em] text-[var(--muted)]">Scheduled Queue</p>
+          <p className="mt-3 text-2xl font-semibold">{composeHealth.queueCount}</p>
+          <p className="mt-2 text-sm text-[var(--muted)]">{composeHealth.queueMessage}</p>
+        </article>
+      </section>
       <PostComposerForm
         accounts={orderedAccounts.map((account) => ({
           id: account.id,
