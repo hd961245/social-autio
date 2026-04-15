@@ -8,6 +8,14 @@ export default async function AnalyticsPage() {
   const [databaseStatus, analytics] = await Promise.all([getDatabaseStatus(), getAnalyticsOverview()]);
   const bestPost = analytics.topPosts[0] ?? null;
   const strongestCandidate = analytics.viralCandidates[0] ?? null;
+  const totalCards = [
+    { label: "Views", value: analytics.totals.views },
+    { label: "Likes", value: analytics.totals.likes },
+    { label: "Replies", value: analytics.totals.replies },
+    { label: "Reposts", value: analytics.totals.reposts },
+    { label: "Quotes", value: analytics.totals.quotes },
+    { label: "Shares", value: analytics.totals.shares }
+  ];
 
   return (
     <div className="space-y-6">
@@ -35,6 +43,16 @@ export default async function AnalyticsPage() {
         </article>
       </section>
 
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        {totalCards.map((card) => (
+          <article key={card.label} className="rounded-[1.5rem] border border-[var(--border)] bg-white/75 p-5">
+            <p className="text-xs uppercase tracking-[0.24em] text-[var(--muted)]">{card.label}</p>
+            <p className="mt-3 text-3xl font-semibold">{card.value}</p>
+            <p className="mt-2 text-sm text-[var(--muted)]">最近收集到的 Threads 貼文指標總量</p>
+          </article>
+        ))}
+      </section>
+
       <section className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
         <article className="glass-panel rounded-[1.8rem] border border-[var(--border)] p-6">
           <p className="text-xs uppercase tracking-[0.24em] text-[var(--muted)]">Best Current Post</p>
@@ -45,6 +63,9 @@ export default async function AnalyticsPage() {
               <span className="rounded-full border border-[var(--border)] px-3 py-1">Views {bestPost.views}</span>
               <span className="rounded-full border border-[var(--border)] px-3 py-1">Likes {bestPost.likes}</span>
               <span className="rounded-full border border-[var(--border)] px-3 py-1">Replies {bestPost.replies}</span>
+              <span className="rounded-full border border-[var(--border)] px-3 py-1">Reposts {bestPost.reposts}</span>
+              <span className="rounded-full border border-[var(--border)] px-3 py-1">Quotes {bestPost.quotes}</span>
+              <span className="rounded-full border border-[var(--border)] px-3 py-1">Shares {bestPost.shares}</span>
             </div>
           ) : null}
         </article>
@@ -151,10 +172,13 @@ export default async function AnalyticsPage() {
             <article key={post.id} className="rounded-[1.5rem] border border-[var(--border)] bg-white/70 p-4">
               <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">{post.account}</p>
               <p className="mt-2 text-base">{post.text}</p>
-              <div className="mt-4 flex gap-4 text-sm text-[var(--muted)]">
+              <div className="mt-4 flex flex-wrap gap-4 text-sm text-[var(--muted)]">
                 <span>Views {post.views}</span>
                 <span>Likes {post.likes}</span>
                 <span>Replies {post.replies}</span>
+                <span>Reposts {post.reposts}</span>
+                <span>Quotes {post.quotes}</span>
+                <span>Shares {post.shares}</span>
               </div>
             </article>
           ))}

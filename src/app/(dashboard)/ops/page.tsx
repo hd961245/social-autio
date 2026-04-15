@@ -69,6 +69,23 @@ export default async function OpsPage() {
           ) : null}
         </div>
       </section>
+
+      <section className="glass-panel rounded-[2rem] border border-[var(--border)] p-6">
+        <p className="text-[11px] uppercase tracking-[0.3em] text-[var(--muted)]">Recovery Hints</p>
+        <h2 className="mt-2 text-3xl font-semibold">下一步建議</h2>
+        <div className="mt-6 space-y-3">
+          {diagnostics.hints.map((hint) => (
+            <article key={hint} className="rounded-[1.4rem] border border-[var(--border)] bg-white/75 p-4 text-sm text-[var(--foreground)]">
+              {hint}
+            </article>
+          ))}
+          {diagnostics.hints.length === 0 ? (
+            <article className="rounded-[1.4rem] border border-[var(--border)] bg-white/75 p-4 text-sm text-[var(--muted)]">
+              目前沒有特別需要處理的異常建議。
+            </article>
+          ) : null}
+        </div>
+      </section>
     </div>
   );
 }

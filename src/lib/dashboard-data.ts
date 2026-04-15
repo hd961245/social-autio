@@ -56,12 +56,23 @@ export type DatabaseStatus = {
 
 export type AnalyticsOverview = {
   followerTrend: Array<{ label: string; followers: number; engagement: number }>;
+  totals: {
+    views: number;
+    likes: number;
+    replies: number;
+    reposts: number;
+    quotes: number;
+    shares: number;
+  };
   topPosts: Array<{
     id: string;
     text: string;
     views: number;
     likes: number;
     replies: number;
+    reposts: number;
+    quotes: number;
+    shares: number;
     account: string;
   }>;
   viralCandidates: Array<{
@@ -319,12 +330,26 @@ export async function getAnalyticsOverview(): Promise<AnalyticsOverview> {
         engagement:
           snapshot.totalLikes + snapshot.totalReplies + snapshot.totalReposts + snapshot.totalQuotes
       })),
+      totals: posts.reduce(
+        (acc, post) => ({
+          views: acc.views + (post.metrics[0]?.views ?? 0),
+          likes: acc.likes + (post.metrics[0]?.likes ?? 0),
+          replies: acc.replies + (post.metrics[0]?.replies ?? 0),
+          reposts: acc.reposts + (post.metrics[0]?.reposts ?? 0),
+          quotes: acc.quotes + (post.metrics[0]?.quotes ?? 0),
+          shares: acc.shares + (post.metrics[0]?.shares ?? 0)
+        }),
+        { views: 0, likes: 0, replies: 0, reposts: 0, quotes: 0, shares: 0 }
+      ),
       topPosts: posts.map((post) => ({
         id: post.id,
         text: post.textContent ?? "(無文字內容)",
         views: post.metrics[0]?.views ?? 0,
         likes: post.metrics[0]?.likes ?? 0,
         replies: post.metrics[0]?.replies ?? 0,
+        reposts: post.metrics[0]?.reposts ?? 0,
+        quotes: post.metrics[0]?.quotes ?? 0,
+        shares: post.metrics[0]?.shares ?? 0,
         account: `@${post.account.platformUsername}`
       })),
       viralCandidates: posts.map((post) => {
@@ -356,6 +381,7 @@ export async function getAnalyticsOverview(): Promise<AnalyticsOverview> {
   } catch {
     return {
       followerTrend: [],
+      totals: { views: 0, likes: 0, replies: 0, reposts: 0, quotes: 0, shares: 0 },
       topPosts: [],
       viralCandidates: [],
       quota: { used: 0, limit: 250 },
@@ -366,13 +392,19 @@ export async function getAnalyticsOverview(): Promise<AnalyticsOverview> {
 
 export async function getDashboardStats() {
   try {
-    const [accountCount, postCount, publishedCount, keywordCount, queuedPosts] = await Promise.all([
+    const [accountCount, postCount, publishedCount, keywordCount, queuedPosts, latestPostMetrics] = await Promise.all([
       prisma.platformAccount.count({ where: { isActive: true, platform: "threads" } }),
       prisma.post.count(),
       prisma.post.count({ where: { status: "published" } }),
       prisma.keywordMatch.count(),
-      prisma.post.count({ where: { status: { in: ["scheduled", "publishing"] } } })
+      prisma.post.count({ where: { status: { in: ["scheduled", "publishing"] } } }),
+      prisma.postMetrics.findMany({
+        orderBy: { capturedAt: "desc" },
+        take: 20
+      })
     ]);
+
+    const totalViews = latestPostMetrics.reduce((sum, metric) => sum + metric.views, 0);
 
     return [
       {
@@ -384,6 +416,11 @@ export async function getDashboardStats() {
         label: "貼文總數",
         value: String(postCount),
         detail: publishedCount > 0 ? `已發布 ${publishedCount} 篇` : "還沒有成功發布紀錄"
+      },
+      {
+        label: "總觀看",
+        value: String(totalViews),
+        detail: totalViews > 0 ? "最近收集到的貼文 views 總量" : "還沒有 metrics 資料"
       },
       {
         label: "排程佇列",
@@ -400,6 +437,7 @@ export async function getDashboardStats() {
     return [
       { label: "活躍帳號", value: "0", detail: "資料庫尚未初始化或尚未完成帳號授權" },
       { label: "貼文總數", value: "0", detail: "目前沒有可讀取的貼文紀錄" },
+      { label: "總觀看", value: "0", detail: "還沒有 metrics 資料" },
       { label: "排程佇列", value: "0", detail: "目前沒有待發布貼文" },
       { label: "關鍵字命中", value: "0", detail: "尚未掃到命中資料" }
     ];
