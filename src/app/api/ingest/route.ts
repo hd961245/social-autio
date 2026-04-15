@@ -8,6 +8,7 @@ const ingestSchema = z.object({
   title: z.string().trim().max(200).optional(),
   rawText: z.string().trim().max(30000).optional(),
   imageUrls: z.array(z.string().url()).optional(),
+  threadsAccountId: z.string().trim().min(1).optional(),
   wordpressTemplate: z.enum(["opinion", "case-study", "tool-review", "weekly-recap"]).optional()
 });
 

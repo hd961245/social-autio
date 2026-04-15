@@ -30,6 +30,13 @@ export function AccountCardItem({ account }: { account: AccountCard }) {
         </div>
       </div>
 
+      {account.personaLabel || account.defaultTone ? (
+        <div className="mt-5 flex flex-wrap gap-2">
+          {account.personaLabel ? <span className="pill-tag text-xs">{account.personaLabel}</span> : null}
+          {account.defaultTone ? <span className="pill-tag text-xs">{account.defaultTone}</span> : null}
+        </div>
+      ) : null}
+
       <div className="mt-5 flex items-center justify-between border-t border-[var(--border)] pt-4 text-sm">
         <p className="text-[var(--muted)]">最後同步：{account.lastSyncedAt}</p>
         <span className="text-[var(--accent)]">查看詳情</span>

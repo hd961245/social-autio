@@ -25,16 +25,26 @@ type IngestionSummary = {
   generatedCount: number;
 };
 
+type ThreadsAccountOption = {
+  id: string;
+  username: string;
+  personaLabel: string;
+  personaPrompt: string;
+  defaultTone: string;
+};
+
 export function ContentEngineForm({
   initialPersonaPrompt,
   initialTone,
   initialAiProvider,
+  threadsAccounts,
   recentIngestions,
   recentDrafts
 }: {
   initialPersonaPrompt: string;
   initialTone: string;
   initialAiProvider: "auto" | "gemini" | "claude" | "openai";
+  threadsAccounts: ThreadsAccountOption[];
   recentIngestions: IngestionSummary[];
   recentDrafts: DraftSummary[];
 }) {
@@ -51,14 +61,16 @@ export function ContentEngineForm({
   const [sourceUrl, setSourceUrl] = useState("");
   const [rawText, setRawText] = useState("");
   const [imageUrls, setImageUrls] = useState("");
-  const [personaPrompt, setPersonaPrompt] = useState(initialPersonaPrompt);
-  const [tone, setTone] = useState(initialTone);
+  const [threadsAccountId, setThreadsAccountId] = useState(threadsAccounts[0]?.id ?? "");
+  const [personaPrompt, setPersonaPrompt] = useState(threadsAccounts[0]?.personaPrompt || initialPersonaPrompt);
+  const [tone, setTone] = useState(threadsAccounts[0]?.defaultTone || initialTone);
   const [aiProvider, setAiProvider] = useState<"auto" | "gemini" | "claude" | "openai">(initialAiProvider);
   const [message, setMessage] = useState<string | null>(null);
   const [ingestions, setIngestions] = useState(recentIngestions);
   const [drafts, setDrafts] = useState(recentDrafts);
   const [isPending, startTransition] = useTransition();
   const [isPreviewPending, startPreviewTransition] = useTransition();
+  const selectedThreadsAccount = threadsAccounts.find((account) => account.id === threadsAccountId) ?? null;
 
   return (
     <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
@@ -95,6 +107,7 @@ export function ContentEngineForm({
                   sourceUrl: sourceType === "url" ? sourceUrl : undefined,
                   title,
                   rawText,
+                  threadsAccountId: threadsAccountId || undefined,
                   wordpressTemplate,
                   imageUrls: imageUrls
                     .split(",")
@@ -135,6 +148,31 @@ export function ContentEngineForm({
           }}
         >
           <div className="grid gap-4 md:grid-cols-2">
+            <label className="rounded-3xl bg-white/85 p-4">
+              <span className="mb-2 block text-sm text-[var(--muted)]">目標 Threads 帳號</span>
+              <select
+                className="w-full rounded-2xl border border-[var(--border)] bg-transparent px-4 py-3 outline-none"
+                value={threadsAccountId}
+                onChange={(event) => {
+                  const nextAccountId = event.target.value;
+                  const nextAccount = threadsAccounts.find((account) => account.id === nextAccountId) ?? null;
+                  setThreadsAccountId(nextAccountId);
+                  setPersonaPrompt(nextAccount?.personaPrompt || initialPersonaPrompt);
+                  setTone(nextAccount?.defaultTone || initialTone);
+                }}
+              >
+                {threadsAccounts.map((account) => (
+                  <option key={account.id} value={account.id}>
+                    {account.username}{account.personaLabel ? ` · ${account.personaLabel}` : ""}
+                  </option>
+                ))}
+              </select>
+              <p className="mt-3 text-sm text-[var(--muted)]">
+                {selectedThreadsAccount
+                  ? `目前會用 ${selectedThreadsAccount.username}${selectedThreadsAccount.personaLabel ? ` 的「${selectedThreadsAccount.personaLabel}」` : ""} 來生成 Threads 草稿。`
+                  : "尚未選擇 Threads 帳號。"}
+              </p>
+            </label>
             <label className="rounded-3xl bg-white/85 p-4">
               <span className="mb-2 block text-sm text-[var(--muted)]">來源類型</span>
               <select
@@ -243,6 +281,9 @@ export function ContentEngineForm({
                 value={personaPrompt}
                 onChange={(event) => setPersonaPrompt(event.target.value)}
               />
+              <p className="mt-3 text-sm text-[var(--muted)]">
+                這裡會先帶入帳號人設，你也可以針對這次題目再微調。
+              </p>
             </div>
             <label className="rounded-3xl bg-white/85 p-4">
               <span className="mb-2 block text-sm text-[var(--muted)]">預設語氣</span>

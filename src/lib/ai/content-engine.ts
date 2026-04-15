@@ -9,6 +9,7 @@ type IngestionInput = {
   title?: string;
   rawText?: string;
   imageUrls?: string[];
+  threadsAccountId?: string;
   wordpressTemplate?: "opinion" | "case-study" | "tool-review" | "weekly-recap";
 };
 
@@ -87,14 +88,6 @@ export async function ingestAndGenerateDrafts(input: IngestionInput) {
   });
 
   const settings = await prisma.appSettings.findFirst();
-  const personaPrompt = [
-    settings?.globalPersonaPrompt?.trim() || "用冷靜、有觀點、像內容策略師一樣的語氣，幫我拆解重點。",
-    settings?.writingStyleProfile?.trim() ? `寫作風格基底：${settings.writingStyleProfile.trim()}` : "",
-    settings?.affiliateLinkPolicy?.trim() ? `聯盟與推廣連結策略：${settings.affiliateLinkPolicy.trim()}` : ""
-  ]
-    .filter(Boolean)
-    .join("\n\n");
-  const tone = settings?.defaultTone?.trim() || "sharp-observer";
   const affiliatePolicy = settings?.affiliateLinkPolicy?.trim() || "";
   const affiliateLibrary = {
     primary: settings?.affiliateBlockPrimary?.trim() || "",
@@ -105,10 +98,14 @@ export async function ingestAndGenerateDrafts(input: IngestionInput) {
   const preferredProvider = (settings?.aiProvider?.trim() as "auto" | "gemini" | "claude" | "openai" | undefined) || "auto";
 
   const [threadsAccount, wordpressAccount] = await Promise.all([
-    prisma.platformAccount.findFirst({
-      where: { userId: user.id, platform: "threads", isActive: true },
-      orderBy: [{ lastSyncedAt: "desc" }, { createdAt: "desc" }]
-    }),
+    input.threadsAccountId
+      ? prisma.platformAccount.findFirst({
+          where: { id: input.threadsAccountId, userId: user.id, platform: "threads", isActive: true }
+        })
+      : prisma.platformAccount.findFirst({
+          where: { userId: user.id, platform: "threads", isActive: true },
+          orderBy: [{ lastSyncedAt: "desc" }, { createdAt: "desc" }]
+        }),
     prisma.platformAccount.findFirst({
       where: { userId: user.id, platform: "wordpress", isActive: true },
       orderBy: [{ lastSyncedAt: "desc" }, { createdAt: "desc" }]
@@ -118,6 +115,17 @@ export async function ingestAndGenerateDrafts(input: IngestionInput) {
   if (!threadsAccount && !wordpressAccount) {
     throw new Error("至少需要先連接一個 Threads 或 WordPress 帳號，才能生成草稿。");
   }
+
+  const personaPrompt = [
+    threadsAccount?.personaLabel?.trim() ? `帳號人設：${threadsAccount.personaLabel.trim()}` : "",
+    threadsAccount?.personaPrompt?.trim() ? threadsAccount.personaPrompt.trim() : "",
+    settings?.globalPersonaPrompt?.trim() || "用冷靜、有觀點、像內容策略師一樣的語氣，幫我拆解重點。",
+    settings?.writingStyleProfile?.trim() ? `寫作風格基底：${settings.writingStyleProfile.trim()}` : "",
+    settings?.affiliateLinkPolicy?.trim() ? `聯盟與推廣連結策略：${settings.affiliateLinkPolicy.trim()}` : ""
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+  const tone = threadsAccount?.defaultTone?.trim() || settings?.defaultTone?.trim() || "sharp-observer";
 
   const sourceUrl = input.sourceUrl?.trim();
   let extractedTitle = "";

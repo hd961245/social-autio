@@ -54,6 +54,7 @@ Open `http://localhost:3000`.
 ## Current Product Shape
 
 - `Threads`：即時發文、排程、Queue、分析
+- `Threads Personas`：每個 Threads 帳號可維護不同人設與預設語氣
 - `WordPress`：只建立 / 更新草稿，不直接發佈
 - `Content Engine`：輸入 URL / text / image，產出 Threads + WordPress draft
 - `Content Desk`：把 Inbox / Sources / Engine / Queue 收在同一個工作台

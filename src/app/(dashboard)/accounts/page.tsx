@@ -1,11 +1,17 @@
 import { AccountCardItem } from "@/components/dashboard/account-card";
+import { AccountPersonaManager } from "@/components/dashboard/account-persona-manager";
 import { PageIntro } from "@/components/dashboard/page-intro";
+import { prisma } from "@/lib/prisma";
 import { getAccountSummaries } from "@/lib/dashboard-data";
 
 export const dynamic = "force-dynamic";
 
 export default async function AccountsPage() {
   const displayAccounts = await getAccountSummaries();
+  const rawAccounts = await prisma.platformAccount.findMany({
+    where: { isActive: true },
+    orderBy: [{ platform: "asc" }, { createdAt: "desc" }]
+  }).catch(() => []);
 
   return (
     <div className="space-y-6">
@@ -30,6 +36,17 @@ export default async function AccountsPage() {
           </article>
         ) : null}
       </div>
+
+      <AccountPersonaManager
+        accounts={rawAccounts.map((account) => ({
+          id: account.id,
+          username: `@${account.platformUsername}`,
+          platform: account.platform,
+          personaLabel: account.personaLabel ?? "",
+          personaPrompt: account.personaPrompt ?? "",
+          defaultTone: account.defaultTone ?? ""
+        }))}
+      />
     </div>
   );
 }

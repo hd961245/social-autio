@@ -4,6 +4,8 @@ export type AccountSummary = {
   id: string;
   username: string;
   platform: string;
+  personaLabel?: string;
+  defaultTone?: string;
   tokenStatus: "healthy" | "expiring";
   lastSyncedAt: string;
   followers: number;
@@ -378,6 +380,8 @@ export async function getAccountSummaries(): Promise<AccountSummary[]> {
         id: account.id,
         username: `@${account.platformUsername}`,
         platform: account.platform[0]?.toUpperCase() + account.platform.slice(1),
+        personaLabel: account.personaLabel ?? undefined,
+        defaultTone: account.defaultTone ?? undefined,
         tokenStatus: getTokenStatus(account.tokenExpiresAt),
         lastSyncedAt: formatDate(account.lastSyncedAt),
         followers: latestMetrics?.followerCount ?? 0,

@@ -87,6 +87,7 @@ Non-target users for now:
 Today the system already supports:
 
 - Threads publishing and scheduling
+- account-level Threads personas and tone presets
 - Threads analytics and post review
 - Content Desk for workflow-first daily operations
 - Content Inventory for stage-based content management

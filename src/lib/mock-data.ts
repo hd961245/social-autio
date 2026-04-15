@@ -2,6 +2,8 @@ export type AccountCard = {
   id: string;
   username: string;
   platform: string;
+  personaLabel?: string;
+  defaultTone?: string;
   tokenStatus: "healthy" | "expiring";
   lastSyncedAt: string;
   followers: number;

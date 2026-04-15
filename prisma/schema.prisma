@@ -26,6 +26,9 @@ model PlatformAccount {
   platform          String
   platformUserId    String
   platformUsername  String
+  personaLabel      String?
+  personaPrompt     String?
+  defaultTone       String?
   profilePictureUrl String?
   accessToken       String
   tokenType         String

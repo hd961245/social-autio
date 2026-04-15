@@ -29,6 +29,7 @@ export default async function DeskPage({
   let sourceItems: Awaited<ReturnType<typeof prisma.sourceWatch.findMany>> = [];
   let settings: Awaited<ReturnType<typeof prisma.appSettings.findFirst>> = null;
   let ingestions: Awaited<ReturnType<typeof prisma.ingestionRecord.findMany>> = [];
+  let threadsAccounts: Awaited<ReturnType<typeof prisma.platformAccount.findMany>> = [];
   let drafts: Array<
     Awaited<ReturnType<typeof prisma.post.findMany<{ include: { account: true } }>>>[number]
   > = [];
@@ -36,7 +37,7 @@ export default async function DeskPage({
   const analytics = await getAnalyticsOverview({ window: "30d", accountId: "all" });
 
   try {
-    [sourceItems, settings, ingestions, drafts] = await Promise.all([
+    [sourceItems, settings, ingestions, drafts, threadsAccounts] = await Promise.all([
       prisma.sourceWatch.findMany({
         orderBy: [{ updatedAt: "desc" }, { createdAt: "desc" }]
       }),
@@ -50,6 +51,10 @@ export default async function DeskPage({
         include: { account: true },
         orderBy: { createdAt: "desc" },
         take: 8
+      }),
+      prisma.platformAccount.findMany({
+        where: { platform: "threads", isActive: true },
+        orderBy: [{ isActive: "desc" }, { createdAt: "asc" }]
       })
     ]);
   } catch {}
@@ -231,6 +236,13 @@ export default async function DeskPage({
           initialPersonaPrompt={settings?.globalPersonaPrompt ?? "像一位冷靜但有觀點的內容策略師，幫我把素材整理成可發佈版本。"}
           initialTone={settings?.defaultTone ?? "sharp-observer"}
           initialAiProvider={(settings?.aiProvider as "auto" | "gemini" | "claude" | "openai" | undefined) ?? "auto"}
+          threadsAccounts={threadsAccounts.map((account) => ({
+            id: account.id,
+            username: `@${account.platformUsername}`,
+            personaLabel: account.personaLabel ?? "",
+            personaPrompt: account.personaPrompt ?? "",
+            defaultTone: account.defaultTone ?? ""
+          }))}
           recentIngestions={ingestions.map((item) => ({
             id: item.id,
             sourceType: item.sourceType,
