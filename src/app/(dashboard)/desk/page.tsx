@@ -16,6 +16,39 @@ const DESK_TABS = [
   { id: "queue", label: "Queue", description: "編修草稿、排程與查看發布紀錄" }
 ] as const;
 
+const ONBOARDING_STEPS = [
+  {
+    label: "1. 看信號",
+    detail: "先從 Rewrite Radar 和 Inbox 決定今天打哪個題目，不要一打開就空白開稿。",
+    href: "/desk?tab=inbox",
+    action: "去 Inbox"
+  },
+  {
+    label: "2. 定 persona",
+    detail: "讓來源先路由到對的 Threads 人設；如果系統已推薦 persona，就先照它走。",
+    href: "/accounts",
+    action: "看 Accounts"
+  },
+  {
+    label: "3. 出 Threads",
+    detail: "到 Compose 用 persona assist、hook 和 CTA 寫稿，先測市場反應。",
+    href: "/compose",
+    action: "去 Compose"
+  },
+  {
+    label: "4. 沉長文",
+    detail: "有起來的題目再轉 WordPress draft，不要一開始就把所有題目都寫成長文。",
+    href: "/wordpress",
+    action: "去 WordPress"
+  },
+  {
+    label: "5. 做復盤",
+    detail: "最後回 Analytics 看哪個帳號 / persona 贏，再把結果帶回下一輪寫法。",
+    href: "/analytics",
+    action: "看 Analytics"
+  }
+] as const;
+
 type DeskTab = (typeof DESK_TABS)[number]["id"];
 
 export default async function DeskPage({
@@ -131,6 +164,47 @@ export default async function DeskPage({
         title="內容工作台"
         description="把看來源、選題改寫、生成草稿、回到 Queue 續修這條線收在同一頁。平常只要從這裡進，就不用在四五個頁面來回切。"
       />
+
+      <section className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
+        <article className="glass-panel rounded-[2rem] border border-[var(--border)] p-6">
+          <div className="flex items-end justify-between gap-4">
+            <div>
+              <p className="text-[11px] uppercase tracking-[0.3em] text-[var(--muted)]">Operator Guide</p>
+              <h2 className="mt-2 text-3xl font-semibold">每天照這條線走就夠了</h2>
+            </div>
+            <a href="/inventory" className="text-sm font-medium text-[var(--accent)]">
+              去 Inventory
+            </a>
+          </div>
+          <div className="mt-6 grid gap-4 xl:grid-cols-5">
+            {ONBOARDING_STEPS.map((step) => (
+              <article key={step.label} className="rounded-[1.35rem] border border-[var(--border)] bg-white/74 p-4">
+                <p className="text-xs uppercase tracking-[0.22em] text-[var(--muted)]">{step.label}</p>
+                <p className="mt-3 text-sm leading-7 text-[var(--foreground)]">{step.detail}</p>
+                <a href={step.href} className="mt-4 inline-flex text-sm font-medium text-[var(--accent)]">
+                  {step.action}
+                </a>
+              </article>
+            ))}
+          </div>
+        </article>
+
+        <article className="rounded-[2rem] bg-[var(--card-dark)] p-6 text-white shadow-[0_24px_60px_rgba(15,10,7,0.22)]">
+          <p className="text-[11px] uppercase tracking-[0.3em] text-white/55">Daily Rule</p>
+          <h2 className="mt-2 text-3xl font-semibold">不要先想平台，先想題目和聲音</h2>
+          <div className="mt-5 space-y-3 text-sm text-white/78">
+            <p className="rounded-[1.2rem] border border-white/10 bg-white/5 px-4 py-3">
+              來源先進 Inbox，題目先配 persona，再進 Compose，不要反過來。
+            </p>
+            <p className="rounded-[1.2rem] border border-white/10 bg-white/5 px-4 py-3">
+              Threads 先驗證，WordPress 後沉澱。長文不是起點，是放大器。
+            </p>
+            <p className="rounded-[1.2rem] border border-white/10 bg-white/5 px-4 py-3">
+              每次看 Analytics，不只是看數字，而是看哪個 persona 的聲音在贏。
+            </p>
+          </div>
+        </article>
+      </section>
 
       <section className="glass-panel rounded-[2rem] border border-[var(--border)] p-5">
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
