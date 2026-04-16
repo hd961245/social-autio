@@ -17,6 +17,7 @@ export type PostSummary = {
   account: string;
   accountId: string;
   platform: string;
+  personaLabel?: string;
   status: string;
   scheduledAt: string;
   text: string;
@@ -847,6 +848,7 @@ export async function getPostSummaries(): Promise<PostSummary[]> {
       account: `@${post.account.platformUsername}`,
       accountId: post.accountId,
       platform: post.account.platform,
+      personaLabel: post.account.personaLabel ?? undefined,
       status: post.status,
       scheduledAt: formatDate(post.scheduledAt ?? post.createdAt),
       text: post.title ?? post.textContent ?? "(無文字內容)",

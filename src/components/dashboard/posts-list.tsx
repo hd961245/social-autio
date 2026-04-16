@@ -7,18 +7,33 @@ export function PostsList({ posts }: { posts: PostSummary[] }) {
   const [items, setItems] = useState(posts);
   const [platformFilter, setPlatformFilter] = useState<"all" | "threads" | "wordpress">("all");
   const [statusFilter, setStatusFilter] = useState<"all" | "draft" | "scheduled" | "published" | "failed">("all");
+  const [personaFilter, setPersonaFilter] = useState("all");
   const [query, setQuery] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
+  const personaOptions = Array.from(
+    new Set(
+      items
+        .filter((post) => post.platform === "threads")
+        .map((post) => post.personaLabel || post.account)
+        .filter(Boolean)
+    )
+  );
+
   const visibleItems = items.filter((post) => {
     const matchesPlatform = platformFilter === "all" || post.platform === platformFilter;
     const matchesStatus = statusFilter === "all" || post.status === statusFilter;
+    const matchesPersona =
+      personaFilter === "all" ||
+      (post.platform === "threads" && (post.personaLabel || post.account) === personaFilter);
     const matchesQuery =
       !query.trim() ||
-      `${post.account} ${post.platform} ${post.text} ${post.title ?? ""}`.toLowerCase().includes(query.trim().toLowerCase());
+      `${post.account} ${post.personaLabel ?? ""} ${post.platform} ${post.text} ${post.title ?? ""}`
+        .toLowerCase()
+        .includes(query.trim().toLowerCase());
 
-    return matchesPlatform && matchesStatus && matchesQuery;
+    return matchesPlatform && matchesStatus && matchesPersona && matchesQuery;
   });
 
   function getStatusClasses(status: string) {
@@ -49,7 +64,7 @@ export function PostsList({ posts }: { posts: PostSummary[] }) {
               {option.label}
             </button>
           ))}
-          {[
+          {[ 
             { value: "all", label: "所有狀態" },
             { value: "draft", label: "草稿" },
             { value: "scheduled", label: "排程" },
@@ -69,6 +84,20 @@ export function PostsList({ posts }: { posts: PostSummary[] }) {
               {option.label}
             </button>
           ))}
+          {personaOptions.length > 0 ? (
+            <select
+              className="rounded-full border border-[var(--border)] bg-white px-4 py-2 text-sm outline-none"
+              value={personaFilter}
+              onChange={(event) => setPersonaFilter(event.target.value)}
+            >
+              <option value="all">全部 persona</option>
+              {personaOptions.map((persona) => (
+                <option key={persona} value={persona}>
+                  {persona}
+                </option>
+              ))}
+            </select>
+          ) : null}
         </div>
         <input
           className="w-full rounded-full border border-[var(--border)] bg-white px-4 py-2 text-sm outline-none lg:max-w-xs"
@@ -84,6 +113,7 @@ export function PostsList({ posts }: { posts: PostSummary[] }) {
               <p className="text-sm text-[var(--muted)]">
                 {post.account} · {post.platform === "wordpress" ? "WordPress Draft" : "Threads"}
               </p>
+              {post.personaLabel ? <p className="mt-1 text-xs uppercase tracking-[0.18em] text-[var(--muted)]">{post.personaLabel}</p> : null}
               <h2 className="mt-1 text-xl font-semibold">{post.text}</h2>
             </div>
             <span className={`rounded-full border px-3 py-1 text-xs uppercase ${getStatusClasses(post.status)}`}>{post.status}</span>
