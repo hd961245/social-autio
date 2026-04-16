@@ -114,6 +114,14 @@ type ReviewContext = {
   insights: string[];
 };
 
+type PersonaMemory = {
+  accountId: string;
+  topOpeners: string[];
+  topClosers: string[];
+  patternNote: string;
+  recommendedMove: string;
+};
+
 function buildHookSuggestions(account: AccountOption | undefined) {
   const label = account?.personaLabel || account?.defaultTone || "default";
 
@@ -149,7 +157,8 @@ export function PostComposerForm({
   initialDraft,
   initialSeed,
   reviewContext,
-  preferredAccountId
+  preferredAccountId,
+  personaMemories
 }: {
   accounts: AccountOption[];
   recentPosts: RecentPost[];
@@ -158,6 +167,7 @@ export function PostComposerForm({
   initialSeed?: DraftPost | null;
   reviewContext?: ReviewContext | null;
   preferredAccountId?: string;
+  personaMemories: Record<string, PersonaMemory>;
 }) {
   const router = useRouter();
   const baseDraft = initialDraft ?? initialSeed ?? null;
@@ -181,6 +191,7 @@ export function PostComposerForm({
   const [isPending, startTransition] = useTransition();
 
   const selectedAccount = accounts.find((account) => account.id === accountId);
+  const selectedMemory = selectedAccount ? personaMemories[selectedAccount.id] : undefined;
   const isWordPress = selectedAccount?.platform === "wordpress";
   const hasThreadsAccount = accounts.some((account) => account.platform === "threads");
   const hookSuggestions = buildHookSuggestions(selectedAccount);
@@ -434,6 +445,13 @@ export function PostComposerForm({
                   <p className="mt-3 text-sm leading-7 text-[var(--muted)]">
                     {selectedAccount.personaPrompt || "這個帳號還沒有獨立 persona prompt，建議去 Accounts 補上，之後多帳號會更穩。"}
                   </p>
+                  {selectedMemory ? (
+                    <>
+                      <p className="mt-3 text-sm font-medium text-[var(--foreground)]">近期內容記憶</p>
+                      <p className="mt-2 text-sm leading-7 text-[var(--muted)]">{selectedMemory.patternNote}</p>
+                      <p className="mt-2 text-sm leading-7 text-[var(--muted)]">{selectedMemory.recommendedMove}</p>
+                    </>
+                  ) : null}
                 </div>
                 <div className="flex shrink-0 flex-wrap gap-2">
                   {hookSuggestions.map((hook) => (
@@ -460,6 +478,40 @@ export function PostComposerForm({
                   </button>
                 ))}
               </div>
+              {selectedMemory?.topOpeners?.length ? (
+                <div className="mt-4 rounded-[1.2rem] border border-[var(--border)] bg-white/78 p-4">
+                  <p className="text-[11px] uppercase tracking-[0.22em] text-[var(--muted)]">這個帳號最近比較吃香的開頭</p>
+                  <div className="mt-3 grid gap-2">
+                    {selectedMemory.topOpeners.map((opener) => (
+                      <button
+                        key={opener}
+                        type="button"
+                        className="rounded-[1rem] border border-[var(--border)] bg-white px-4 py-3 text-left text-sm"
+                        onClick={() => setText((current) => `${opener}${current ? `\n\n${current}` : ""}`)}
+                      >
+                        {opener}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+              {selectedMemory?.topClosers?.length ? (
+                <div className="mt-4 rounded-[1.2rem] border border-[var(--border)] bg-white/78 p-4">
+                  <p className="text-[11px] uppercase tracking-[0.22em] text-[var(--muted)]">這個帳號最近比較吃香的結尾</p>
+                  <div className="mt-3 grid gap-2">
+                    {selectedMemory.topClosers.map((closer) => (
+                      <button
+                        key={closer}
+                        type="button"
+                        className="rounded-[1rem] border border-[var(--border)] bg-white px-4 py-3 text-left text-sm"
+                        onClick={() => setText((current) => `${current.trim()}${current.trim() ? "\n\n" : ""}${closer}`)}
+                      >
+                        {closer}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
             </div>
           ) : null}
           {isWordPress ? (
