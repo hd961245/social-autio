@@ -76,6 +76,16 @@ export type ComposeHealth = {
   queueMessage: string;
 };
 
+export type PublishOutcomeSummary = {
+  id: string;
+  actionType: string;
+  status: string;
+  detail: string;
+  executedAt: string;
+  accountLabel: string;
+  postHref: string;
+};
+
 export type AnalyticsOverview = {
   filters: {
     window: "7d" | "30d" | "all";
@@ -828,6 +838,45 @@ export async function getComposeHealth(): Promise<ComposeHealth> {
       queueCount: 0,
       queueMessage: "尚未讀到排程資料"
     };
+  }
+}
+
+export async function getPublishOutcomeLogs(): Promise<PublishOutcomeSummary[]> {
+  try {
+    const logs = await prisma.automationLog.findMany({
+      where: {
+        actionType: {
+          in: [
+            "threads_publish",
+            "threads_schedule",
+            "threads_publish_failed",
+            "threads_scheduled_publish",
+            "threads_scheduled_failed",
+            "wordpress_draft_sync",
+            "wordpress_draft_sync_failed"
+          ]
+        }
+      },
+      include: {
+        account: true
+      },
+      orderBy: {
+        executedAt: "desc"
+      },
+      take: 8
+    });
+
+    return logs.map((log) => ({
+      id: log.id,
+      actionType: log.actionType,
+      status: log.status,
+      detail: log.detail ?? "已記錄發佈結果",
+      executedAt: formatDate(log.executedAt),
+      accountLabel: log.account ? `@${log.account.platformUsername}` : "未知帳號",
+      postHref: log.postId ? (log.account?.platform === "wordpress" ? `/compose?postId=${log.postId}` : `/posts/${log.postId}`) : "/compose"
+    }));
+  } catch {
+    return [];
   }
 }
 

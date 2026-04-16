@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getDatabaseStatus } from "@/lib/dashboard-data";
+import { logPublishEvent } from "@/lib/publish-log";
 import { getPlatformAdapter } from "@/lib/platforms";
 import { prisma } from "@/lib/prisma";
 
@@ -143,6 +144,14 @@ export async function POST(request: Request) {
     });
 
     if (payload.publishMode === "scheduled") {
+      await logPublishEvent({
+        accountId: createdPost.accountId,
+        postId: createdPost.id,
+        actionType: "threads_schedule",
+        status: "scheduled",
+        detail: `已加入 Threads 排程，預計 ${createdPost.scheduledAt?.toLocaleString("zh-TW", { hour12: false }) ?? "稍後"} 送出`
+      });
+
       return NextResponse.json({
         ok: true,
         scheduled: true,
@@ -175,12 +184,28 @@ export async function POST(request: Request) {
         }
       });
 
+      await logPublishEvent({
+        accountId: createdPost.accountId,
+        postId: createdPost.id,
+        actionType: "threads_publish",
+        status: "executed",
+        detail: "Threads 已成功發布"
+      });
+
       return NextResponse.json({
         ok: true,
         result,
         postId: post.id
       });
     } catch (error) {
+      await logPublishEvent({
+        accountId: createdPost.accountId,
+        postId: createdPost.id,
+        actionType: "threads_publish_failed",
+        status: "failed",
+        detail: error instanceof Error ? error.message : "Threads 發布失敗"
+      });
+
       await prisma.post.update({
         where: { id: createdPost.id },
         data: {

@@ -17,6 +17,7 @@ type WordPressDiagnostic = {
 type WordPressPostListItem = {
   id: number;
   date?: string;
+  modified?: string;
   link?: string;
   title?: {
     rendered?: string;
@@ -193,7 +194,7 @@ export async function fetchWordPressPosts(accountId: string, perPage = 20): Prom
     account.siteUrl,
     account.username,
     account.appPassword,
-    `/wp-json/wp/v2/posts?context=edit&per_page=${Math.min(Math.max(perPage, 1), 50)}&_fields=id,date,link,slug,status,title,excerpt,content`
+    `/wp-json/wp/v2/posts?context=edit&per_page=${Math.min(Math.max(perPage, 1), 50)}&_fields=id,date,modified,link,slug,status,title,excerpt,content`
   );
 }
 
@@ -204,6 +205,6 @@ export async function fetchWordPressPostById(accountId: string, postId: number |
     account.siteUrl,
     account.username,
     account.appPassword,
-    `/wp-json/wp/v2/posts/${postId}?context=edit&_fields=id,date,link,slug,status,title,excerpt,content`
+    `/wp-json/wp/v2/posts/${postId}?context=edit&_fields=id,date,modified,link,slug,status,title,excerpt,content`
   );
 }

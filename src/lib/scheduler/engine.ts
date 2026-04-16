@@ -1,5 +1,6 @@
 export async function runScheduledPosts() {
   const { getPlatformAdapter } = await import("@/lib/platforms");
+  const { logPublishEvent } = await import("@/lib/publish-log");
   const { prisma } = await import("@/lib/prisma");
 
   const duePosts = await prisma.post.findMany({
@@ -55,6 +56,14 @@ export async function runScheduledPosts() {
         }
       });
 
+      await logPublishEvent({
+        accountId: post.accountId,
+        postId: post.id,
+        actionType: "threads_scheduled_publish",
+        status: "executed",
+        detail: "排程 Threads 已成功送出"
+      });
+
       if (post.sourceMatchId) {
         await prisma.keywordMatch.update({
           where: { id: post.sourceMatchId },
@@ -83,6 +92,14 @@ export async function runScheduledPosts() {
           status: "failed",
           errorMessage: error instanceof Error ? error.message : "Unknown scheduled publish failure"
         }
+      });
+
+      await logPublishEvent({
+        accountId: post.accountId,
+        postId: post.id,
+        actionType: "threads_scheduled_failed",
+        status: "failed",
+        detail: error instanceof Error ? error.message : "Unknown scheduled publish failure"
       });
 
       if (post.sourceMatchId) {

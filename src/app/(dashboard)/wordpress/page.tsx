@@ -4,7 +4,7 @@ import { WordPressArchiveRewriteCard } from "@/components/dashboard/wordpress-ar
 import { WordPressConnectForm } from "@/components/dashboard/wordpress-connect-form";
 import { WordPressStyleProfileCard } from "@/components/dashboard/wordpress-style-profile-card";
 import { getWordPressDraftStage } from "@/lib/content-inventory";
-import { fetchWordPressPosts } from "@/lib/platforms/wordpress/client";
+import { fetchWordPressPostById, fetchWordPressPosts } from "@/lib/platforms/wordpress/client";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -20,8 +20,11 @@ export default async function WordPressPage() {
     siteUrl: string;
     siteId: string;
     platformUrl: string | null;
+    platformPostId: string | null;
     origin: "threads-sync" | "archive-rewrite" | "manual";
     memory: ReturnType<typeof getWordPressDraftStage>;
+    remoteStatus: string | null;
+    remoteModifiedAt: string | null;
   }> = [];
   let archivePosts: Array<{
     accountId: string;
@@ -68,7 +71,10 @@ export default async function WordPressPage() {
           siteUrl: post.account.platformUserId,
           siteId: post.accountId,
           platformUrl: post.platformUrl,
+          platformPostId: post.platformPostId,
           memory: getWordPressDraftStage(post),
+          remoteStatus: null,
+          remoteModifiedAt: null,
           origin: (post.replyToPostId ? "threads-sync" : post.title?.includes("重寫") ? "archive-rewrite" : "manual") as
             | "threads-sync"
             | "archive-rewrite"
@@ -98,6 +104,29 @@ export default async function WordPressPage() {
     );
 
     archivePosts = sitePosts.flat();
+
+    localDrafts = await Promise.all(
+      localDrafts.map(async (draft) => {
+        if (!draft.platformPostId) {
+          return draft;
+        }
+
+        try {
+          const remotePost = await fetchWordPressPostById(draft.siteId, draft.platformPostId);
+
+          return {
+            ...draft,
+            platformUrl: remotePost.link ?? draft.platformUrl,
+            remoteStatus: remotePost.status ?? null,
+            remoteModifiedAt: remotePost.modified
+              ? new Date(remotePost.modified).toLocaleString("zh-TW", { hour12: false })
+              : null
+          };
+        } catch {
+          return draft;
+        }
+      })
+    );
   } catch {}
 
   return (
@@ -212,11 +241,19 @@ export default async function WordPressPage() {
                     >
                       {draft.memory.statusLabel}
                     </span>
+                    {draft.remoteStatus ? (
+                      <span className="pill-tag">
+                        後台 {draft.remoteStatus === "draft" ? "draft" : draft.remoteStatus === "future" ? "scheduled" : draft.remoteStatus}
+                      </span>
+                    ) : null}
                   </div>
                   <h3 className="mt-2 text-xl font-semibold">{draft.title}</h3>
                   <p className="mt-3 text-sm leading-7 text-[var(--muted)]">{draft.excerpt || "這篇草稿還沒有摘要，進去後可以先補前言與結論。"}</p>
                   <p className="mt-3 text-sm leading-7 text-[var(--muted)]">{draft.memory.detail}</p>
                   <p className="mt-3 text-sm text-[var(--muted)]">最後更新：{draft.updatedAt}</p>
+                  {draft.remoteModifiedAt ? (
+                    <p className="mt-2 text-sm text-[var(--muted)]">後台最後變更：{draft.remoteModifiedAt}</p>
+                  ) : null}
                 </div>
                 <div className="flex shrink-0 flex-wrap gap-3">
                   <a href={`/compose?postId=${draft.id}`} className="rounded-full bg-[var(--accent)] px-4 py-2 text-sm text-white">

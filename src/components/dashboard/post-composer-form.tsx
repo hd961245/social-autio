@@ -126,6 +126,16 @@ type PersonaMemory = {
   recommendedMove: string;
 };
 
+type PublishOutcomeLog = {
+  id: string;
+  actionType: string;
+  status: string;
+  detail: string;
+  executedAt: string;
+  accountLabel: string;
+  postHref: string;
+};
+
 function buildHookSuggestions(account: AccountOption | undefined) {
   const label = account?.personaLabel || account?.defaultTone || "default";
 
@@ -162,7 +172,8 @@ export function PostComposerForm({
   initialSeed,
   reviewContext,
   preferredAccountId,
-  personaMemories
+  personaMemories,
+  publishLogs
 }: {
   accounts: AccountOption[];
   recentPosts: RecentPost[];
@@ -172,6 +183,7 @@ export function PostComposerForm({
   reviewContext?: ReviewContext | null;
   preferredAccountId?: string;
   personaMemories: Record<string, PersonaMemory>;
+  publishLogs: PublishOutcomeLog[];
 }) {
   const router = useRouter();
   const baseDraft = initialDraft ?? initialSeed ?? null;
@@ -779,6 +791,30 @@ export function PostComposerForm({
               {isWordPress ? "可快速套用觀點文、案例拆解、工具推薦、週報模板。" : "關鍵字命中可直接生成自動回覆佇列"}
             </div>
           </div>
+
+            <div className="mt-6">
+              <p className="text-sm text-white/70">最近發布結果</p>
+              <div className="mt-3 space-y-3">
+                {publishLogs.map((log) => (
+                  <a key={log.id} href={log.postHref} className="block rounded-2xl border border-white/10 bg-white/5 p-3">
+                    <p className="text-xs uppercase tracking-[0.2em] text-white/55">
+                      {log.accountLabel} · {log.executedAt}
+                    </p>
+                    <p className="mt-2 text-sm text-white/88">{log.detail}</p>
+                    <p
+                      className={`mt-2 text-xs uppercase tracking-[0.18em] ${
+                        log.status === "failed" ? "text-rose-300" : log.status === "scheduled" ? "text-amber-200" : "text-emerald-300"
+                      }`}
+                    >
+                      {log.actionType}
+                    </p>
+                  </a>
+                ))}
+                {publishLogs.length === 0 ? (
+                  <p className="rounded-2xl border border-white/10 p-3 text-sm text-white/55">最近還沒有發布紀錄</p>
+                ) : null}
+              </div>
+            </div>
 
             <div className="mt-6">
               <p className="text-sm text-white/70">最近建立</p>

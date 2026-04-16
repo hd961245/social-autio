@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { logPublishEvent } from "@/lib/publish-log";
 import { publishToWordPress, updateWordPressDraft } from "@/lib/platforms/wordpress/publisher";
 import { prisma } from "@/lib/prisma";
 
@@ -101,6 +102,14 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
           }
         });
 
+        await logPublishEvent({
+          accountId: updatedPost.accountId,
+          postId: updatedPost.id,
+          actionType: "wordpress_draft_sync",
+          status: "executed",
+          detail: updatedPost.platformPostId ? "WordPress 後台草稿已更新" : "已建立 WordPress 後台草稿"
+        });
+
         return NextResponse.json({
           ok: true,
           postId: updatedPost.id,
@@ -114,6 +123,14 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
           }
         });
 
+        await logPublishEvent({
+          accountId: updatedPost.accountId,
+          postId: updatedPost.id,
+          actionType: "wordpress_draft_sync_failed",
+          status: "failed",
+          detail: error instanceof Error ? error.message : "WordPress draft update failed"
+        });
+
         return NextResponse.json(
           {
             ok: false,
@@ -123,6 +140,16 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
           { status: 400 }
         );
       }
+    }
+
+    if (nextStatus === "scheduled") {
+      await logPublishEvent({
+        accountId: updatedPost.accountId,
+        postId: updatedPost.id,
+        actionType: "threads_schedule",
+        status: "scheduled",
+        detail: `Threads 草稿已更新，預計 ${updatedPost.scheduledAt?.toLocaleString("zh-TW", { hour12: false }) ?? "稍後"} 發布`
+      });
     }
 
     return NextResponse.json({

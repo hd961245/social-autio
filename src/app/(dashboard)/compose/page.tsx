@@ -1,7 +1,7 @@
 import { DatabaseBanner } from "@/components/dashboard/database-banner";
 import { PageIntro } from "@/components/dashboard/page-intro";
 import { PostComposerForm } from "@/components/dashboard/post-composer-form";
-import { getComposeHealth, getDatabaseStatus, getThreadPostDeepDive } from "@/lib/dashboard-data";
+import { getComposeHealth, getDatabaseStatus, getPublishOutcomeLogs, getThreadPostDeepDive } from "@/lib/dashboard-data";
 import { buildPersonaMemories } from "@/lib/persona-memory";
 import { prisma } from "@/lib/prisma";
 
@@ -14,6 +14,7 @@ export default async function ComposePage({
 }) {
   const databaseStatus = await getDatabaseStatus();
   const composeHealth = await getComposeHealth();
+  const publishLogs = await getPublishOutcomeLogs();
   const params = await searchParams;
   let accounts: Awaited<ReturnType<typeof prisma.platformAccount.findMany>> = [];
   let settings: Awaited<ReturnType<typeof prisma.appSettings.findFirst>> = null;
@@ -255,6 +256,7 @@ export default async function ComposePage({
         reviewContext={reviewContext}
         preferredAccountId={preferredAccountId}
         personaMemories={personaMemories}
+        publishLogs={publishLogs}
       />
     </div>
   );
