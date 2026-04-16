@@ -5,6 +5,7 @@ Threads-first 自媒體創業者管理中台。
 ## Current Status
 
 - PRD: [docs/PRD.md](./docs/PRD.md)
+- Next-Stage Roadmap: [docs/ROADMAP.md](./docs/ROADMAP.md)
 - Deploy / Recovery: [docs/ZEABUR.md](./docs/ZEABUR.md)
 - Workflow SOP: [docs/WORKFLOW.md](./docs/WORKFLOW.md)
 - Current focus: Threads publishing + WordPress draft studio + Content Desk + Content Inventory

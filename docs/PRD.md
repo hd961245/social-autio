@@ -1,7 +1,7 @@
 # Social Audio PRD
 
-> Version: v3.0  
-> Updated: 2026-04-15  
+> Version: v3.1  
+> Updated: 2026-04-16  
 > Status: Active Build  
 > Repo: https://github.com/hd961245/social-autio
 
@@ -389,32 +389,80 @@ within one or two screens.
 - publish health
 - post review and rewrite mode
 
-### Phase 2. Next High-Value Moves
+### Phase 2. Reliability And Closed Loop
 
-- WordPress draft status memory
-  learn which drafts actually get finished and used
-- richer Threads to WordPress expansion templates
-  different long-form shapes from different Threads post types
-- better editorial routing
-  know when a post should become:
-  - a Threads follow-up
-  - a WordPress article
-  - both
-- outcome-aware monetization suggestions
-  know when to use soft CTA vs hard CTA
+This is the highest-value next step.
 
-### Phase 3. Management Console Direction
+The product already has enough surface area.
+What it needs now is tighter operational reliability.
 
-- topic / pillar tracking
+Focus:
+
+- publish outcome log
+- clearer publish failure reasons
+- token expiry warnings before failure
+- scheduler retry visibility
+- WordPress backend status sync
+- WordPress draft edited / scheduled / published awareness
+
+Success looks like:
+
+- the user trusts the publishing lane
+- the user can immediately tell why something failed
+- the user can see whether a WordPress draft is still alive in backend workflow
+
+### Phase 3. Content Asset System
+
+After reliability is stable, the next layer is asset intelligence.
+
+Focus:
+
+- richer content inventory metadata
+- topic / pillar tagging
+- commercial intent tagging
+- expandable vs monetizable classification
+- better reuse mapping across Threads, WordPress, and future formats
+
+Success looks like:
+
+- content is managed as assets, not just posts
+- the user can see what is still reusable
+- the user can find the next best expansion candidate quickly
+
+### Phase 4. Persona Learning And Revenue Layer
+
+After content inventory is stronger, the system should become more adaptive.
+
+Focus:
+
+- persona-level hook effectiveness learning
+- persona-level CTA adoption learning
+- smarter source-to-persona routing from actual outcomes
+- revenue-aware recommendations
+- affiliate / offer performance feedback
+
+Success looks like:
+
+- each Threads persona develops its own playbook from real use
+- the system gets better at deciding which account should publish what
+- monetization modules become more intentional instead of static placeholders
+
+### Phase 5. Management Console Direction
+
+Once the operating loop is reliable, the product can become a fuller creator business console.
+
+Focus:
+
 - campaign or launch-mode content grouping
-- offer-aware content mapping
-- content inventory by stage:
-  - source
-  - draft
-  - published
-  - expandable
-  - monetizable
-- simple revenue-aware editorial planning
+- offer-aware content planning
+- editorial planning by goal
+- revenue-aware operating review
+- light business dashboarding for solo operators
+
+Success looks like:
+
+- the user can run content, distribution, and monetization from one surface
+- the product feels like a creator operating console, not a pile of AI features
 
 ## 10. Success Criteria
 
