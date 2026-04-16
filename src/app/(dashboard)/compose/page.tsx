@@ -186,7 +186,10 @@ export default async function ComposePage({
         accounts={orderedAccounts.map((account) => ({
           id: account.id,
           username: `@${account.platformUsername}`,
-          platform: account.platform
+          platform: account.platform,
+          personaLabel: account.personaLabel ?? "",
+          personaPrompt: account.personaPrompt ?? "",
+          defaultTone: account.defaultTone ?? ""
         }))}
         recentPosts={posts.map((post) => ({
           id: post.id,

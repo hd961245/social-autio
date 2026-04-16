@@ -77,6 +77,9 @@ type AccountOption = {
   id: string;
   username: string;
   platform: string;
+  personaLabel?: string;
+  personaPrompt?: string;
+  defaultTone?: string;
 };
 
 type RecentPost = {
@@ -110,6 +113,34 @@ type ReviewContext = {
   momentumLabel: string;
   insights: string[];
 };
+
+function buildHookSuggestions(account: AccountOption | undefined) {
+  const label = account?.personaLabel || account?.defaultTone || "default";
+
+  if (label.includes("mystic") || label.includes("guide")) {
+    return ["先說一個反常識結論：", "最近我一直在想一件事：", "如果你卡在這裡，先看這一句："];
+  }
+
+  if (label.includes("founder") || label.includes("創業")) {
+    return ["如果我是創業者，我會先看這個：", "這件事我最近在實際經營裡反覆驗證：", "先講結論，這個決策比想像中更重要："];
+  }
+
+  return ["我看到一個很值得拆的點：", "先說結論，這件事不要再直覺做了：", "如果你只記一件事，先記這個："];
+}
+
+function buildCtaSuggestions(account: AccountOption | undefined) {
+  const label = account?.personaLabel || account?.defaultTone || "default";
+
+  if (label.includes("mystic") || label.includes("guide")) {
+    return ["如果你也在想同一題，留言告訴我。", "想看我繼續拆這個方向，我再往下寫。", "如果這段有戳到你，留一句你的觀察。"];
+  }
+
+  if (label.includes("founder") || label.includes("創業")) {
+    return ["如果你也在做這題，我想知道你會怎麼判斷。", "想看我把這件事拆成實際操作，再跟我說。", "如果你也踩過這個坑，留言補你的版本。"];
+  }
+
+  return ["如果你也有同感，留言讓我知道。", "想看我把這題延伸成長文，我再寫下一篇。", "如果這篇對你有用，轉給也在做這題的人。"];
+}
 
 export function PostComposerForm({
   accounts,
@@ -152,6 +183,8 @@ export function PostComposerForm({
   const selectedAccount = accounts.find((account) => account.id === accountId);
   const isWordPress = selectedAccount?.platform === "wordpress";
   const hasThreadsAccount = accounts.some((account) => account.platform === "threads");
+  const hookSuggestions = buildHookSuggestions(selectedAccount);
+  const ctaSuggestions = buildCtaSuggestions(selectedAccount);
   const submitDisabled =
     isPending ||
     !accountId ||
@@ -368,6 +401,7 @@ export function PostComposerForm({
                 {accounts.map((account) => (
                   <option key={account.id} value={account.id}>
                     {account.platform === "threads" ? "Threads" : "WordPress"} {account.username}
+                    {account.personaLabel ? ` · ${account.personaLabel}` : ""}
                   </option>
                 ))}
               </select>
@@ -383,6 +417,49 @@ export function PostComposerForm({
           {!hasThreadsAccount ? (
             <div className="rounded-3xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
               目前沒有 Threads 帳號，現在只能建立 WordPress 草稿。若要直接發布 Threads，先到 Accounts 完成授權。
+            </div>
+          ) : null}
+          {!isWordPress && selectedAccount ? (
+            <div className="rounded-3xl border border-[var(--border-strong)] bg-[rgba(200,79,44,0.08)] p-4">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                <div className="min-w-0">
+                  <p className="text-[11px] uppercase tracking-[0.24em] text-[var(--muted)]">Persona Assist</p>
+                  <h3 className="mt-2 text-xl font-semibold">
+                    {selectedAccount.username}
+                    {selectedAccount.personaLabel ? ` · ${selectedAccount.personaLabel}` : ""}
+                  </h3>
+                  <p className="mt-2 text-sm text-[var(--muted)]">
+                    預設語氣：{selectedAccount.defaultTone || "沿用全域設定"}
+                  </p>
+                  <p className="mt-3 text-sm leading-7 text-[var(--muted)]">
+                    {selectedAccount.personaPrompt || "這個帳號還沒有獨立 persona prompt，建議去 Accounts 補上，之後多帳號會更穩。"}
+                  </p>
+                </div>
+                <div className="flex shrink-0 flex-wrap gap-2">
+                  {hookSuggestions.map((hook) => (
+                    <button
+                      key={hook}
+                      type="button"
+                      className="rounded-full border border-[var(--border)] bg-white px-4 py-2 text-sm"
+                      onClick={() => setText((current) => `${hook}${current ? `\n\n${current}` : ""}`)}
+                    >
+                      {hook}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="mt-4 grid gap-3 md:grid-cols-3">
+                {ctaSuggestions.map((cta) => (
+                  <button
+                    key={cta}
+                    type="button"
+                    className="rounded-[1.2rem] border border-[var(--border)] bg-white/78 px-4 py-3 text-left text-sm"
+                    onClick={() => setText((current) => `${current.trim()}${current.trim() ? "\n\n" : ""}${cta}`)}
+                  >
+                    {cta}
+                  </button>
+                ))}
+              </div>
             </div>
           ) : null}
           {isWordPress ? (
