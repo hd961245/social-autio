@@ -79,8 +79,14 @@ export type AnalyticsOverview = {
   filters: {
     window: "7d" | "30d" | "all";
     accountId: string;
-    accountOptions: Array<{ id: string; label: string }>;
+    accountOptions: Array<{ id: string; label: string; personaLabel?: string }>;
   };
+  personaSnapshot: {
+    label: string;
+    tone: string;
+    patternNote: string;
+    recommendedMove: string;
+  } | null;
   followerTrend: Array<{ label: string; followers: number; engagement: number }>;
   totals: {
     views: number;
@@ -105,11 +111,13 @@ export type AnalyticsOverview = {
     quotes: number;
     shares: number;
     account: string;
+    personaLabel?: string;
   }>;
   viralCandidates: Array<{
     id: string;
     text: string;
     account: string;
+    personaLabel?: string;
     score: number;
     label: "high" | "medium" | "low";
     reasons: string[];
@@ -342,6 +350,52 @@ function summarizePostHealth(input: {
   };
 }
 
+function summarizePersonaPattern(posts: Array<{
+  text: string;
+  views: number;
+  likes: number;
+  replies: number;
+  reposts: number;
+  quotes: number;
+  shares: number;
+}>) {
+  if (!posts.length) {
+    return {
+      patternNote: "這個帳號目前還沒有足夠的已發布貼文可判讀。",
+      recommendedMove: "先累積幾篇已發布內容，之後這裡會開始收出更像這個 persona 的節奏。"
+    };
+  }
+
+  const averageLength = Math.round(posts.reduce((sum, post) => sum + post.text.trim().length, 0) / posts.length);
+  const discussionHeavy = posts.filter((post) => {
+    const views = post.views || 1;
+    return (post.replies + post.quotes) / views >= 0.025;
+  }).length;
+  const shareHeavy = posts.filter((post) => {
+    const views = post.views || 1;
+    return (post.reposts + post.quotes + post.shares) / views >= 0.02;
+  }).length;
+
+  if (discussionHeavy > shareHeavy) {
+    return {
+      patternNote: "這個 persona 最近更容易吃到有立場、能引發回覆的觀點型內容。",
+      recommendedMove: "優先寫可討論的切角，結尾留一個會讓人想回的問句。"
+    };
+  }
+
+  if (shareHeavy > 0) {
+    return {
+      patternNote: "這個 persona 最近更容易吃到能被轉述與轉發的結論型內容。",
+      recommendedMove: "把第一屏壓得更俐落，讓結論句更像一句可以被直接帶走的話。"
+    };
+  }
+
+  return {
+    patternNote: `這個 persona 目前較常落在 ${averageLength >= 180 ? "中長型分析" : "短句直給"} 的節奏。`,
+    recommendedMove: "先維持這個節奏，再逐步測試更強的 hook 或 CTA，不要一次改太多。"
+  };
+}
+
 function formatDate(value?: Date | null) {
   if (!value) {
     return "尚未同步";
@@ -522,7 +576,8 @@ export async function getAnalyticsOverview(input?: {
         reposts: post.metrics[0]?.reposts ?? 0,
         quotes: post.metrics[0]?.quotes ?? 0,
         shares: post.metrics[0]?.shares ?? 0,
-        account: `@${post.account.platformUsername}`
+        account: `@${post.account.platformUsername}`,
+        personaLabel: post.account.personaLabel ?? undefined
       }))
       .sort((a, b) => {
         const scoreA = a.views + a.likes * 8 + a.replies * 10 + a.reposts * 12 + a.quotes * 12 + a.shares * 14;
@@ -556,10 +611,35 @@ export async function getAnalyticsOverview(input?: {
           { id: "all", label: "全部帳號" },
           ...accounts.map((account) => ({
             id: account.id,
-            label: `@${account.platformUsername}${activeAccount?.id === account.id ? " · active" : ""}`
+            label: `@${account.platformUsername}${account.personaLabel ? ` · ${account.personaLabel}` : ""}${activeAccount?.id === account.id ? " · active" : ""}`,
+            personaLabel: account.personaLabel ?? undefined
           }))
         ]
       },
+      personaSnapshot:
+        scopedAccountId !== "all"
+          ? (() => {
+              const scoped = accounts.find((entry) => entry.id === scopedAccountId);
+              const pattern = summarizePersonaPattern(
+                posts.map((post) => ({
+                  text: post.textContent ?? post.title ?? "",
+                  views: post.metrics[0]?.views ?? 0,
+                  likes: post.metrics[0]?.likes ?? 0,
+                  replies: post.metrics[0]?.replies ?? 0,
+                  reposts: post.metrics[0]?.reposts ?? 0,
+                  quotes: post.metrics[0]?.quotes ?? 0,
+                  shares: post.metrics[0]?.shares ?? 0
+                }))
+              );
+
+              return {
+                label: scoped?.personaLabel || `@${scoped?.platformUsername ?? "threads"}`,
+                tone: scoped?.defaultTone || "未設定",
+                patternNote: pattern.patternNote,
+                recommendedMove: pattern.recommendedMove
+              };
+            })()
+          : null,
       followerTrend: snapshots.map((snapshot) => ({
         label: snapshot.capturedAt.toLocaleDateString("zh-TW", { month: "numeric", day: "numeric" }),
         followers: snapshot.followerCount,
@@ -614,6 +694,7 @@ export async function getAnalyticsOverview(input?: {
           id: post.id,
           text: post.textContent ?? post.title ?? "(無文字內容)",
           account: `@${post.account.platformUsername}`,
+          personaLabel: post.account.personaLabel ?? undefined,
           score: analysis.score,
           label: analysis.label,
           reasons: analysis.reasons,
@@ -633,6 +714,7 @@ export async function getAnalyticsOverview(input?: {
         accountId: "all",
         accountOptions: [{ id: "all", label: "全部帳號" }]
       },
+      personaSnapshot: null,
       followerTrend: [],
       totals: { views: 0, likes: 0, replies: 0, reposts: 0, quotes: 0, shares: 0 },
       benchmarks: [],

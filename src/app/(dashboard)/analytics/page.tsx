@@ -38,7 +38,7 @@ export default async function AnalyticsPage({
       <PageIntro
         eyebrow="Analytics"
         title="Threads 復盤板"
-        description="這裡只看 Threads：配額、token 健康、成長趨勢、爆款候選和目前最值得改寫再打一次的內容。"
+        description="這裡只看 Threads，而且現在會把帳號 / persona 一起拉進來。你不只是在看數字，也是在看哪一種聲音、哪一種切法更有效。"
       />
       <DatabaseBanner status={databaseStatus} />
 
@@ -103,6 +103,32 @@ export default async function AnalyticsPage({
         </article>
       </section>
 
+      {analytics.personaSnapshot ? (
+        <section className="grid gap-4 xl:grid-cols-[0.88fr_1.12fr]">
+          <article className="rounded-[1.8rem] bg-[var(--card-dark)] p-6 text-white shadow-[0_24px_60px_rgba(15,10,7,0.22)]">
+            <p className="text-xs uppercase tracking-[0.24em] text-white/55">Persona Snapshot</p>
+            <h2 className="mt-3 text-3xl font-semibold">{analytics.personaSnapshot.label}</h2>
+            <p className="mt-3 text-sm text-white/70">Tone · {analytics.personaSnapshot.tone}</p>
+            <p className="mt-4 text-sm leading-7 text-white/78">{analytics.personaSnapshot.patternNote}</p>
+            <p className="mt-4 rounded-[1.2rem] border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/82">
+              {analytics.personaSnapshot.recommendedMove}
+            </p>
+          </article>
+          <article className="glass-panel rounded-[1.8rem] border border-[var(--border)] p-6">
+            <p className="text-xs uppercase tracking-[0.24em] text-[var(--muted)]">What This Means</p>
+            <h2 className="mt-3 text-3xl font-semibold">這個帳號現在更像怎麼贏</h2>
+            <div className="mt-5 space-y-3 text-sm leading-7 text-[var(--muted)]">
+              <p className="rounded-[1.2rem] border border-[var(--border)] bg-white/72 px-4 py-3">
+                先用 account filter 切到單一 Threads 帳號，再看這塊，你會更清楚「這個人設最近是靠討論、靠轉發，還是靠短句結論」。
+              </p>
+              <p className="rounded-[1.2rem] border border-[var(--border)] bg-white/72 px-4 py-3">
+                接著回 `Compose`，把 Persona Assist 和 Persona Memory 一起用，會比只看總體帳號數字更貼近實際寫稿決策。
+              </p>
+            </div>
+          </article>
+        </section>
+      ) : null}
+
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {totalCards.map((card) => (
           <article key={card.label} className="metric-card">
@@ -127,6 +153,7 @@ export default async function AnalyticsPage({
         <article className="glass-panel rounded-[1.8rem] border border-[var(--border)] p-6">
           <p className="text-xs uppercase tracking-[0.24em] text-[var(--muted)]">Best Current Post</p>
           <h2 className="mt-3 text-3xl font-semibold">{bestPost ? bestPost.account : "尚無資料"}</h2>
+          {bestPost?.personaLabel ? <p className="mt-2 text-sm text-[var(--muted)]">{bestPost.personaLabel}</p> : null}
           <p className="mt-4 text-base leading-7">{bestPost?.text ?? "等第一批 Threads metrics 回來後，這裡會顯示當前表現最好的內容。"}</p>
           {bestPost ? (
             <div className="mt-5 flex flex-wrap gap-3 text-sm text-[var(--muted)]">
@@ -220,7 +247,9 @@ export default async function AnalyticsPage({
           {analytics.viralCandidates.map((post) => (
             <article key={post.id} className="rounded-[1.5rem] border border-[var(--border)] bg-white/70 p-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">{post.account}</p>
+                <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">
+                  {post.account}{post.personaLabel ? ` · ${post.personaLabel}` : ""}
+                </p>
                 <span
                   className={`rounded-full px-3 py-1 text-xs uppercase ${
                     post.label === "high"
@@ -259,7 +288,9 @@ export default async function AnalyticsPage({
         <div className="mt-6 space-y-4">
           {analytics.topPosts.map((post) => (
             <article key={post.id} className="rounded-[1.5rem] border border-[var(--border)] bg-white/70 p-4">
-              <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">{post.account}</p>
+              <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">
+                {post.account}{post.personaLabel ? ` · ${post.personaLabel}` : ""}
+              </p>
               <p className="mt-2 text-base">{post.text}</p>
               <div className="mt-4 flex flex-wrap gap-2 text-sm text-[var(--muted)]">
                 <span className="pill-tag">Views {post.views}</span>
