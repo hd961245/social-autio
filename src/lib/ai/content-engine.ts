@@ -29,6 +29,28 @@ function summarizeSource(title: string, rawText: string) {
   return base.slice(0, 1200);
 }
 
+function buildPersonaPlaybook(account: {
+  personaLabel?: string | null;
+  personaPrompt?: string | null;
+  defaultTone?: string | null;
+  topicFocus?: string | null;
+  hookStyle?: string | null;
+  ctaStyle?: string | null;
+  voiceGuardrails?: string | null;
+}) {
+  return [
+    account.personaLabel?.trim() ? `帳號人設：${account.personaLabel.trim()}` : "",
+    account.personaPrompt?.trim() ? account.personaPrompt.trim() : "",
+    account.defaultTone?.trim() ? `預設語氣：${account.defaultTone.trim()}` : "",
+    account.topicFocus?.trim() ? `題材範圍：${account.topicFocus.trim()}` : "",
+    account.hookStyle?.trim() ? `Hook 風格：${account.hookStyle.trim()}` : "",
+    account.ctaStyle?.trim() ? `CTA 風格：${account.ctaStyle.trim()}` : "",
+    account.voiceGuardrails?.trim() ? `語氣禁區：${account.voiceGuardrails.trim()}` : ""
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
+
 function buildThreadsDraft(summary: string, personaPrompt: string, tone: string) {
   const intro = tone === "mystic-guide" ? "先說結論：" : "我看到一個很值得拆解的點：";
   const perspective = personaPrompt ? `\n視角：${personaPrompt.slice(0, 80)}` : "";
@@ -117,8 +139,7 @@ export async function ingestAndGenerateDrafts(input: IngestionInput) {
   }
 
   const personaPrompt = [
-    threadsAccount?.personaLabel?.trim() ? `帳號人設：${threadsAccount.personaLabel.trim()}` : "",
-    threadsAccount?.personaPrompt?.trim() ? threadsAccount.personaPrompt.trim() : "",
+    threadsAccount ? buildPersonaPlaybook(threadsAccount) : "",
     settings?.globalPersonaPrompt?.trim() || "用冷靜、有觀點、像內容策略師一樣的語氣，幫我拆解重點。",
     settings?.writingStyleProfile?.trim() ? `寫作風格基底：${settings.writingStyleProfile.trim()}` : "",
     settings?.affiliateLinkPolicy?.trim() ? `聯盟與推廣連結策略：${settings.affiliateLinkPolicy.trim()}` : ""

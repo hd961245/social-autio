@@ -13,6 +13,10 @@ export type PersonaRoutingCandidate = {
   personaLabel?: string;
   personaPrompt?: string;
   defaultTone?: string;
+  topicFocus?: string;
+  hookStyle?: string;
+  ctaStyle?: string;
+  voiceGuardrails?: string;
 };
 
 export type PersonaRoutingResult = {
@@ -176,6 +180,11 @@ function tokenizeProfile(text: string) {
   );
 }
 
+function countKeywordMatches(text: string, pattern: RegExp) {
+  const matches = text.match(pattern);
+  return matches ? matches.length : 0;
+}
+
 export function routeSourceToPersona(input: {
   title: string;
   excerpt: string;
@@ -188,9 +197,14 @@ export function routeSourceToPersona(input: {
   const sourceText = `${input.title} ${input.excerpt}`.toLowerCase();
   const ranked = input.accounts
     .map((account, index) => {
-      const profileText = `${account.personaLabel ?? ""} ${account.personaPrompt ?? ""} ${account.defaultTone ?? ""}`;
+      const profileText = `${account.personaLabel ?? ""} ${account.personaPrompt ?? ""} ${account.defaultTone ?? ""} ${account.topicFocus ?? ""} ${account.hookStyle ?? ""} ${account.ctaStyle ?? ""}`;
       const tokens = tokenizeProfile(profileText);
       const overlap = tokens.filter((token) => sourceText.includes(token));
+      const topicBias = countKeywordMatches(sourceText, /(工具|workflow|教學|指南|checklist|步驟|review|comparison|觀點|趨勢|創業|營運|商業|產品|growth|founder)/gi);
+      const focusOverlap = tokenizeProfile(account.topicFocus ?? "").filter((token) => sourceText.includes(token));
+      const hookOverlap = tokenizeProfile(account.hookStyle ?? "").filter((token) => sourceText.includes(token));
+      const ctaOverlap = tokenizeProfile(account.ctaStyle ?? "").filter((token) => sourceText.includes(token));
+      const guardrailPenaltyTokens = tokenizeProfile(account.voiceGuardrails ?? "").filter((token) => sourceText.includes(token));
       const starterBias =
         account.defaultTone?.includes("founder") || account.personaLabel?.includes("創業")
           ? /(創業|商業|產品|營運|策略|growth|founder)/i.test(sourceText)
@@ -206,8 +220,16 @@ export function routeSourceToPersona(input: {
 
       return {
         account,
-        score: overlap.length * 2 + starterBias - index * 0.05,
-        overlap
+        score:
+          overlap.length * 2 +
+          focusOverlap.length * 2.4 +
+          hookOverlap.length * 1.3 +
+          ctaOverlap.length * 1.1 +
+          Math.min(topicBias, 3) * 0.4 +
+          starterBias -
+          guardrailPenaltyTokens.length * 1.2 -
+          index * 0.05,
+        overlap: [...overlap, ...focusOverlap, ...hookOverlap, ...ctaOverlap]
       };
     })
     .sort((a, b) => b.score - a.score);

@@ -31,6 +31,10 @@ type ThreadsAccountOption = {
   personaLabel: string;
   personaPrompt: string;
   defaultTone: string;
+  topicFocus: string;
+  hookStyle: string;
+  ctaStyle: string;
+  voiceGuardrails: string;
 };
 
 export function ContentEngineForm({
@@ -196,6 +200,38 @@ export function ContentEngineForm({
             </label>
           </div>
 
+          {selectedThreadsAccount ? (
+            <div className="rounded-3xl border border-[var(--border)] bg-[var(--accent-soft)]/80 p-4">
+              <p className="text-xs uppercase tracking-[0.24em] text-[var(--muted)]">Persona Playbook</p>
+              <div className="mt-3 grid gap-3 md:grid-cols-2">
+                {selectedThreadsAccount.topicFocus ? (
+                  <p className="text-sm text-[var(--foreground)]">
+                    <span className="font-medium">題材範圍：</span>
+                    {selectedThreadsAccount.topicFocus}
+                  </p>
+                ) : null}
+                {selectedThreadsAccount.hookStyle ? (
+                  <p className="text-sm text-[var(--foreground)]">
+                    <span className="font-medium">Hook 風格：</span>
+                    {selectedThreadsAccount.hookStyle}
+                  </p>
+                ) : null}
+                {selectedThreadsAccount.ctaStyle ? (
+                  <p className="text-sm text-[var(--foreground)]">
+                    <span className="font-medium">CTA 風格：</span>
+                    {selectedThreadsAccount.ctaStyle}
+                  </p>
+                ) : null}
+                {selectedThreadsAccount.voiceGuardrails ? (
+                  <p className="text-sm text-[var(--foreground)]">
+                    <span className="font-medium">語氣禁區：</span>
+                    {selectedThreadsAccount.voiceGuardrails}
+                  </p>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
+
           {sourceType === "url" ? (
             <div className="rounded-3xl bg-white/85 p-4">
               <label className="mb-2 block text-sm text-[var(--muted)]">來源網址</label>
@@ -282,7 +318,7 @@ export function ContentEngineForm({
                 onChange={(event) => setPersonaPrompt(event.target.value)}
               />
               <p className="mt-3 text-sm text-[var(--muted)]">
-                這裡會先帶入帳號人設，你也可以針對這次題目再微調。
+                這裡會先帶入帳號人設；生成時也會一起吃進題材範圍、hook / CTA 風格和語氣禁區。
               </p>
             </div>
             <label className="rounded-3xl bg-white/85 p-4">

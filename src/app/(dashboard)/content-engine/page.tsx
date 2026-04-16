@@ -49,7 +49,11 @@ export default async function ContentEnginePage() {
           username: `@${account.platformUsername}`,
           personaLabel: account.personaLabel ?? "",
           personaPrompt: account.personaPrompt ?? "",
-          defaultTone: account.defaultTone ?? ""
+          defaultTone: account.defaultTone ?? "",
+          topicFocus: account.topicFocus ?? "",
+          hookStyle: account.hookStyle ?? "",
+          ctaStyle: account.ctaStyle ?? "",
+          voiceGuardrails: account.voiceGuardrails ?? ""
         }))}
         recentIngestions={ingestions.map((item) => ({
           id: item.id,
