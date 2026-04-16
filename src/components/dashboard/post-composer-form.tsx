@@ -80,6 +80,10 @@ type AccountOption = {
   personaLabel?: string;
   personaPrompt?: string;
   defaultTone?: string;
+  topicFocus?: string;
+  hookStyle?: string;
+  ctaStyle?: string;
+  voiceGuardrails?: string;
 };
 
 type RecentPost = {
@@ -445,6 +449,26 @@ export function PostComposerForm({
                   <p className="mt-3 text-sm leading-7 text-[var(--muted)]">
                     {selectedAccount.personaPrompt || "這個帳號還沒有獨立 persona prompt，建議去 Accounts 補上，之後多帳號會更穩。"}
                   </p>
+                  {selectedAccount.topicFocus ? (
+                    <p className="mt-3 text-sm leading-7 text-[var(--muted)]">
+                      題材範圍：{selectedAccount.topicFocus}
+                    </p>
+                  ) : null}
+                  {selectedAccount.hookStyle ? (
+                    <p className="mt-2 text-sm leading-7 text-[var(--muted)]">
+                      Hook 風格：{selectedAccount.hookStyle}
+                    </p>
+                  ) : null}
+                  {selectedAccount.ctaStyle ? (
+                    <p className="mt-2 text-sm leading-7 text-[var(--muted)]">
+                      CTA 風格：{selectedAccount.ctaStyle}
+                    </p>
+                  ) : null}
+                  {selectedAccount.voiceGuardrails ? (
+                    <p className="mt-2 text-sm leading-7 text-[var(--muted)]">
+                      語氣禁區：{selectedAccount.voiceGuardrails}
+                    </p>
+                  ) : null}
                   {selectedMemory ? (
                     <>
                       <p className="mt-3 text-sm font-medium text-[var(--foreground)]">近期內容記憶</p>

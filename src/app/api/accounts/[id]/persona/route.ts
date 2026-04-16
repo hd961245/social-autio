@@ -5,7 +5,11 @@ import { prisma } from "@/lib/prisma";
 const personaSchema = z.object({
   personaLabel: z.string().trim().max(80).optional().or(z.literal("")),
   personaPrompt: z.string().trim().max(3000).optional().or(z.literal("")),
-  defaultTone: z.string().trim().max(80).optional().or(z.literal(""))
+  defaultTone: z.string().trim().max(80).optional().or(z.literal("")),
+  topicFocus: z.string().trim().max(800).optional().or(z.literal("")),
+  hookStyle: z.string().trim().max(800).optional().or(z.literal("")),
+  ctaStyle: z.string().trim().max(800).optional().or(z.literal("")),
+  voiceGuardrails: z.string().trim().max(1200).optional().or(z.literal(""))
 });
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -18,7 +22,11 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       data: {
         personaLabel: payload.personaLabel || null,
         personaPrompt: payload.personaPrompt || null,
-        defaultTone: payload.defaultTone || null
+        defaultTone: payload.defaultTone || null,
+        topicFocus: payload.topicFocus || null,
+        hookStyle: payload.hookStyle || null,
+        ctaStyle: payload.ctaStyle || null,
+        voiceGuardrails: payload.voiceGuardrails || null
       }
     });
 
@@ -28,7 +36,11 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         id: account.id,
         personaLabel: account.personaLabel,
         personaPrompt: account.personaPrompt,
-        defaultTone: account.defaultTone
+        defaultTone: account.defaultTone,
+        topicFocus: account.topicFocus,
+        hookStyle: account.hookStyle,
+        ctaStyle: account.ctaStyle,
+        voiceGuardrails: account.voiceGuardrails
       }
     });
   } catch (error) {

@@ -9,6 +9,10 @@ type AccountPersona = {
   personaLabel: string;
   personaPrompt: string;
   defaultTone: string;
+  topicFocus: string;
+  hookStyle: string;
+  ctaStyle: string;
+  voiceGuardrails: string;
 };
 
 export function AccountPersonaManager({ accounts }: { accounts: AccountPersona[] }) {
@@ -89,6 +93,68 @@ export function AccountPersonaManager({ accounts }: { accounts: AccountPersona[]
                 </label>
               </div>
 
+              <div className="mt-4 grid gap-4 lg:grid-cols-2">
+                <label className="rounded-[1.25rem] border border-[var(--border)] bg-white p-4">
+                  <span className="mb-2 block text-sm text-[var(--muted)]">題材範圍</span>
+                  <textarea
+                    className="min-h-28 w-full resize-none rounded-2xl border border-[var(--border)] bg-transparent p-4 outline-none"
+                    placeholder="這個 persona 平常適合談什麼，不適合談什麼。"
+                    value={account.topicFocus}
+                    onChange={(event) => {
+                      const value = event.target.value;
+                      setLocalAccounts((current) =>
+                        current.map((item, itemIndex) => (itemIndex === index ? { ...item, topicFocus: value } : item))
+                      );
+                    }}
+                  />
+                </label>
+
+                <label className="rounded-[1.25rem] border border-[var(--border)] bg-white p-4">
+                  <span className="mb-2 block text-sm text-[var(--muted)]">Hook 風格</span>
+                  <textarea
+                    className="min-h-28 w-full resize-none rounded-2xl border border-[var(--border)] bg-transparent p-4 outline-none"
+                    placeholder="例如：先講結論、反直覺句、創業者視角切入。"
+                    value={account.hookStyle}
+                    onChange={(event) => {
+                      const value = event.target.value;
+                      setLocalAccounts((current) =>
+                        current.map((item, itemIndex) => (itemIndex === index ? { ...item, hookStyle: value } : item))
+                      );
+                    }}
+                  />
+                </label>
+
+                <label className="rounded-[1.25rem] border border-[var(--border)] bg-white p-4">
+                  <span className="mb-2 block text-sm text-[var(--muted)]">CTA 風格</span>
+                  <textarea
+                    className="min-h-28 w-full resize-none rounded-2xl border border-[var(--border)] bg-transparent p-4 outline-none"
+                    placeholder="例如：偏討論、偏導流、偏追蹤、偏收藏。"
+                    value={account.ctaStyle}
+                    onChange={(event) => {
+                      const value = event.target.value;
+                      setLocalAccounts((current) =>
+                        current.map((item, itemIndex) => (itemIndex === index ? { ...item, ctaStyle: value } : item))
+                      );
+                    }}
+                  />
+                </label>
+
+                <label className="rounded-[1.25rem] border border-[var(--border)] bg-white p-4">
+                  <span className="mb-2 block text-sm text-[var(--muted)]">語氣禁區</span>
+                  <textarea
+                    className="min-h-28 w-full resize-none rounded-2xl border border-[var(--border)] bg-transparent p-4 outline-none"
+                    placeholder="例如：不要雞湯、不要太油、不要硬賣、不要像公告文。"
+                    value={account.voiceGuardrails}
+                    onChange={(event) => {
+                      const value = event.target.value;
+                      setLocalAccounts((current) =>
+                        current.map((item, itemIndex) => (itemIndex === index ? { ...item, voiceGuardrails: value } : item))
+                      );
+                    }}
+                  />
+                </label>
+              </div>
+
               <div className="mt-4 flex flex-wrap items-center gap-3">
                 <button
                   type="button"
@@ -103,7 +169,11 @@ export function AccountPersonaManager({ accounts }: { accounts: AccountPersona[]
                         body: JSON.stringify({
                           personaLabel: localAccounts[index]?.personaLabel ?? "",
                           personaPrompt: localAccounts[index]?.personaPrompt ?? "",
-                          defaultTone: localAccounts[index]?.defaultTone ?? ""
+                          defaultTone: localAccounts[index]?.defaultTone ?? "",
+                          topicFocus: localAccounts[index]?.topicFocus ?? "",
+                          hookStyle: localAccounts[index]?.hookStyle ?? "",
+                          ctaStyle: localAccounts[index]?.ctaStyle ?? "",
+                          voiceGuardrails: localAccounts[index]?.voiceGuardrails ?? ""
                         })
                       });
                       const result = await response.json();

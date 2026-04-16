@@ -29,6 +29,10 @@ model PlatformAccount {
   personaLabel      String?
   personaPrompt     String?
   defaultTone       String?
+  topicFocus        String?
+  hookStyle         String?
+  ctaStyle          String?
+  voiceGuardrails   String?
   profilePictureUrl String?
   accessToken       String
   tokenType         String

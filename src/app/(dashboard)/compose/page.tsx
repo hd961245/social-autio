@@ -231,7 +231,11 @@ export default async function ComposePage({
           platform: account.platform,
           personaLabel: account.personaLabel ?? "",
           personaPrompt: account.personaPrompt ?? "",
-          defaultTone: account.defaultTone ?? ""
+          defaultTone: account.defaultTone ?? "",
+          topicFocus: account.topicFocus ?? "",
+          hookStyle: account.hookStyle ?? "",
+          ctaStyle: account.ctaStyle ?? "",
+          voiceGuardrails: account.voiceGuardrails ?? ""
         }))}
         recentPosts={posts.map((post) => ({
           id: post.id,
