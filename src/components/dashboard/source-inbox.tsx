@@ -17,6 +17,11 @@ type InboxItem = {
   recommendation: "threads-first" | "wordpress-first" | "dual";
   reasons: string[];
   memoryNote?: string;
+  routedPersona?: {
+    accountId: string;
+    label: string;
+    reason: string;
+  } | null;
 };
 
 export function SourceInbox({ initialItems }: { initialItems: InboxItem[] }) {
@@ -109,6 +114,11 @@ export function SourceInbox({ initialItems }: { initialItems: InboxItem[] }) {
                   <span className="rounded-full bg-[var(--accent-soft)] px-4 py-2 text-[var(--foreground)]">
                     {recommendationLabel(item.recommendation)}
                   </span>
+                  {item.routedPersona ? (
+                    <span className="rounded-full bg-[var(--card-dark)] px-4 py-2 text-white">
+                      推薦 persona · {item.routedPersona.label}
+                    </span>
+                  ) : null}
                 </div>
                 {item.reasons.length ? (
                   <div className="mt-4 space-y-2 text-sm text-[var(--muted)]">
@@ -120,6 +130,11 @@ export function SourceInbox({ initialItems }: { initialItems: InboxItem[] }) {
                 {item.memoryNote ? (
                   <p className="mt-4 rounded-2xl border border-[var(--border)] bg-white/70 px-4 py-3 text-sm text-[var(--foreground)]">
                     {item.memoryNote}
+                  </p>
+                ) : null}
+                {item.routedPersona ? (
+                  <p className="mt-4 rounded-2xl border border-[var(--border)] bg-white/70 px-4 py-3 text-sm text-[var(--foreground)]">
+                    {item.routedPersona.reason}
                   </p>
                 ) : null}
               </div>
@@ -141,7 +156,10 @@ export function SourceInbox({ initialItems }: { initialItems: InboxItem[] }) {
                       const response = await fetch(`/api/sources/${item.id}/refresh`, {
                         method: "PUT",
                         headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ preferredOutcome: "threads" })
+                        body: JSON.stringify({
+                          preferredOutcome: "threads",
+                          targetThreadsAccountId: item.routedPersona?.accountId
+                        })
                       });
                       const result = await response.json();
 
@@ -158,7 +176,7 @@ export function SourceInbox({ initialItems }: { initialItems: InboxItem[] }) {
                       setMessage(
                         result.duplicated
                           ? "這篇內容之前已改寫過。"
-                          : "已按 Threads 優先建立新草稿，去 Queue 或 Compose 接著修。"
+                          : `已按 Threads 優先建立新草稿${item.routedPersona ? `，並分派給 ${item.routedPersona.label}` : ""}。`
                       );
                     })
                   }

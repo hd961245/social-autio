@@ -7,6 +7,20 @@ export type SourceInboxScore = {
   memoryNote?: string;
 };
 
+export type PersonaRoutingCandidate = {
+  id: string;
+  username: string;
+  personaLabel?: string;
+  personaPrompt?: string;
+  defaultTone?: string;
+};
+
+export type PersonaRoutingResult = {
+  accountId: string;
+  label: string;
+  reason: string;
+};
+
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
 }
@@ -149,5 +163,66 @@ export function scoreSourceItem(input: {
     recommendation,
     reasons: reasons.slice(0, 3),
     memoryNote: memory.note
+  };
+}
+
+function tokenizeProfile(text: string) {
+  return Array.from(
+    new Set(
+      (text.match(/[A-Za-z]{4,}|[\u4e00-\u9fff]{2,}/g) ?? [])
+        .map((token) => token.toLowerCase())
+        .filter((token) => token.length >= 2)
+    )
+  );
+}
+
+export function routeSourceToPersona(input: {
+  title: string;
+  excerpt: string;
+  accounts: PersonaRoutingCandidate[];
+}): PersonaRoutingResult | null {
+  if (!input.accounts.length) {
+    return null;
+  }
+
+  const sourceText = `${input.title} ${input.excerpt}`.toLowerCase();
+  const ranked = input.accounts
+    .map((account, index) => {
+      const profileText = `${account.personaLabel ?? ""} ${account.personaPrompt ?? ""} ${account.defaultTone ?? ""}`;
+      const tokens = tokenizeProfile(profileText);
+      const overlap = tokens.filter((token) => sourceText.includes(token));
+      const starterBias =
+        account.defaultTone?.includes("founder") || account.personaLabel?.includes("創業")
+          ? /(創業|商業|產品|營運|策略|growth|founder)/i.test(sourceText)
+            ? 3
+            : 0
+          : account.defaultTone?.includes("mystic") || account.personaLabel?.includes("觀察")
+            ? /(趨勢|觀點|洞察|why|signal|觀察)/i.test(sourceText)
+              ? 3
+              : 0
+            : /(工具|教學|workflow|checklist|步驟)/i.test(sourceText)
+              ? 2
+              : 0;
+
+      return {
+        account,
+        score: overlap.length * 2 + starterBias - index * 0.05,
+        overlap
+      };
+    })
+    .sort((a, b) => b.score - a.score);
+
+  const best = ranked[0];
+  if (!best) {
+    return null;
+  }
+
+  return {
+    accountId: best.account.id,
+    label: `${best.account.username}${best.account.personaLabel ? ` · ${best.account.personaLabel}` : ""}`,
+    reason:
+      best.overlap.length > 0
+        ? `這篇來源和這個 persona 的關鍵詞更接近：${best.overlap.slice(0, 3).join(" / ")}`
+        : "這篇來源目前先配給預設最接近的 Threads persona。"
   };
 }

@@ -4,7 +4,7 @@ import { PostsList } from "@/components/dashboard/posts-list";
 import { SourceInbox } from "@/components/dashboard/source-inbox";
 import { SourceWatchlist } from "@/components/dashboard/source-watchlist";
 import { getAnalyticsOverview, getPostSummaries } from "@/lib/dashboard-data";
-import { scoreSourceItem } from "@/lib/content/source-inbox";
+import { routeSourceToPersona, scoreSourceItem } from "@/lib/content/source-inbox";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -72,6 +72,17 @@ export default async function DeskPage({
         threadsPickCount: item.threadsPickCount,
         wordpressPickCount: item.wordpressPickCount
       });
+      const routedPersona = routeSourceToPersona({
+        title: item.lastItemTitle ?? "",
+        excerpt: item.lastExcerpt ?? "",
+        accounts: threadsAccounts.map((account) => ({
+          id: account.id,
+          username: `@${account.platformUsername}`,
+          personaLabel: account.personaLabel ?? "",
+          personaPrompt: account.personaPrompt ?? "",
+          defaultTone: account.defaultTone ?? ""
+        }))
+      });
 
       return {
         id: item.id,
@@ -87,7 +98,8 @@ export default async function DeskPage({
         commercialScore: score.commercialScore,
         recommendation: score.recommendation,
         reasons: score.reasons,
-        memoryNote: score.memoryNote
+        memoryNote: score.memoryNote,
+        routedPersona
       };
     });
 

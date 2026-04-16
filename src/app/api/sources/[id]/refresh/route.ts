@@ -75,11 +75,16 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     const body = await request.json().catch(() => ({}));
     const preferredOutcome =
       body?.preferredOutcome === "threads" || body?.preferredOutcome === "wordpress" ? body.preferredOutcome : "threads";
+    const targetThreadsAccountId =
+      typeof body?.targetThreadsAccountId === "string" && body.targetThreadsAccountId.trim()
+        ? body.targetThreadsAccountId.trim()
+        : undefined;
     const result = await ingestAndGenerateDrafts({
       sourceType: "url",
       sourceUrl: preview.url,
       title: preview.title,
       rawText: preview.excerpt,
+      threadsAccountId: preferredOutcome === "threads" ? targetThreadsAccountId : undefined,
       wordpressTemplate: preferredOutcome === "wordpress" ? "case-study" : "opinion"
     });
 
