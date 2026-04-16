@@ -6,6 +6,7 @@ Threads-first 自媒體創業者管理中台。
 
 - PRD: [docs/PRD.md](./docs/PRD.md)
 - Deploy / Recovery: [docs/ZEABUR.md](./docs/ZEABUR.md)
+- Workflow SOP: [docs/WORKFLOW.md](./docs/WORKFLOW.md)
 - Current focus: Threads publishing + WordPress draft studio + Content Desk + Content Inventory
 - Stack: Next.js App Router, TypeScript, Tailwind CSS, Prisma, PostgreSQL, Inngest
 
