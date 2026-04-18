@@ -167,3 +167,44 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     );
   }
 }
+
+export async function DELETE(_: Request, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const { id } = await params;
+
+    const existingPost = await prisma.post.findUnique({
+      where: { id },
+      include: {
+        account: true
+      }
+    });
+
+    if (!existingPost) {
+      return NextResponse.json({ ok: false, message: "找不到指定草稿" }, { status: 404 });
+    }
+
+    if (existingPost.status === "published") {
+      return NextResponse.json({ ok: false, message: "已發布內容不可從這裡直接刪除。" }, { status: 400 });
+    }
+
+    await prisma.post.delete({
+      where: { id }
+    });
+
+    return NextResponse.json({
+      ok: true,
+      message:
+        existingPost.account.platform === "wordpress" && existingPost.platformPostId
+          ? "已刪除本地草稿紀錄；WordPress 後台草稿若也要移除，請到站台後台手動刪除。"
+          : "草稿已刪除。"
+    });
+  } catch (error) {
+    return NextResponse.json(
+      {
+        ok: false,
+        message: error instanceof Error ? error.message : "Delete failed"
+      },
+      { status: 400 }
+    );
+  }
+}

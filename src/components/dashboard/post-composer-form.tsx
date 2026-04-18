@@ -189,6 +189,7 @@ export function PostComposerForm({
 }) {
   const router = useRouter();
   const baseDraft = initialDraft ?? initialSeed ?? null;
+  const [recentItems, setRecentItems] = useState(recentPosts);
   const [accountId, setAccountId] = useState(baseDraft?.accountId ?? preferredAccountId ?? accounts[0]?.id ?? "");
   const [title, setTitle] = useState(baseDraft?.title ?? "");
   const [text, setText] = useState(baseDraft?.text ?? "");
@@ -256,6 +257,32 @@ export function PostComposerForm({
   const wordpressPreviewTitle = title || "未命名草稿";
   const wordpressPreviewBody = html || text;
   const aiCanGenerate = Boolean(accountId && (aiSourceType === "url" ? aiSourceUrl.trim() : aiRawText.trim()));
+
+  async function removeDraft(postId: string, options?: { redirectAfterDelete?: boolean }) {
+    const response = await fetch(`/api/posts/${postId}`, {
+      method: "DELETE"
+    });
+    const result = await response.json();
+
+    if (!response.ok) {
+      setMessage(result.message ?? "刪除草稿失敗");
+      setMessageTone("error");
+      return;
+    }
+
+    setMessage(result.message ?? "草稿已刪除。");
+    setMessageTone("success");
+    setLastAction(null);
+    setRecentItems((current) => current.filter((item) => item.id !== postId));
+
+    if (options?.redirectAfterDelete) {
+      router.push("/compose");
+      router.refresh();
+      return;
+    }
+
+    router.refresh();
+  }
 
   return (
     <section className="glass-panel fade-in-up rounded-[2rem] border border-[var(--border)] p-6">
@@ -387,8 +414,23 @@ export function PostComposerForm({
         >
           {initialDraft ? (
             <div className="rounded-3xl border border-[var(--border-strong)] bg-[var(--accent-soft)] p-4 text-sm text-[var(--foreground)]">
-              正在編輯：
-              <span className="ml-2 font-semibold">{initialDraft.platform === "wordpress" ? "WordPress 草稿" : "Threads 草稿"}</span>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  正在編輯：
+                  <span className="ml-2 font-semibold">{initialDraft.platform === "wordpress" ? "WordPress 草稿" : "Threads 草稿"}</span>
+                </div>
+                <button
+                  type="button"
+                  className="rounded-full border border-rose-200 bg-white px-4 py-2 text-sm text-rose-700"
+                  onClick={() => {
+                    startTransition(async () => {
+                      await removeDraft(initialDraft.id, { redirectAfterDelete: true });
+                    });
+                  }}
+                >
+                  刪除這篇草稿
+                </button>
+              </div>
             </div>
           ) : null}
           {!initialDraft && initialSeed ? (
@@ -951,92 +993,149 @@ export function PostComposerForm({
             </div>
           ) : null}
           <div className="rounded-3xl bg-[var(--card-dark)] p-4 text-white">
-            <p className="text-sm text-white/70">即時預覽</p>
-            {isWordPress ? (
-              <div className="mt-4 rounded-[1.6rem] bg-white px-5 py-5 text-[var(--foreground)]">
-                <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">WordPress Draft</p>
-                <h3 className="mt-3 text-2xl font-semibold">{wordpressPreviewTitle}</h3>
-                {excerpt ? <p className="mt-3 text-sm text-[var(--muted)]">{excerpt}</p> : null}
-                <div className="mt-4 space-y-3 text-sm leading-7">
-                  {wordpressPreviewBody
-                    .split("\n")
-                    .filter(Boolean)
-                    .slice(0, 5)
-                    .map((line, index) => (
-                      <p key={`${line}-${index}`}>{line}</p>
-                    ))}
-                  {!wordpressPreviewBody ? <p className="text-[var(--muted)]">這裡會顯示你的長文草稿預覽。</p> : null}
+            <p className="text-sm text-white/70">工作側欄</p>
+            <div className="mt-4 space-y-5">
+              <section>
+                <p className="text-xs uppercase tracking-[0.2em] text-white/50">Live Preview</p>
+                <div className="mt-3 rounded-[1.35rem] border border-white/10 bg-white/5 p-4">
+                  {isWordPress ? (
+                    <div className="space-y-3">
+                      <p className="text-sm font-medium">{wordpressPreviewTitle}</p>
+                      {excerpt ? <p className="text-sm text-white/65">{excerpt}</p> : null}
+                      <div className="space-y-2 text-sm leading-7 text-white/85">
+                        {wordpressPreviewBody
+                          .split("\n")
+                          .filter(Boolean)
+                          .slice(0, 4)
+                          .map((line, index) => (
+                            <p key={`${line}-${index}`}>{line}</p>
+                          ))}
+                        {!wordpressPreviewBody ? <p className="text-white/55">這裡會顯示你的長文草稿預覽。</p> : null}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <p className="whitespace-pre-wrap text-sm leading-7 text-white/88">
+                        {threadPreview || "這裡會顯示你的 Threads 貼文預覽。"}
+                      </p>
+                      <p className="text-xs text-white/50">字數 {text.length} / 500</p>
+                    </div>
+                  )}
                 </div>
-              </div>
-            ) : (
-              <div className="mt-4 rounded-[1.6rem] border border-white/10 bg-black/20 p-5">
-                <p className="text-xs uppercase tracking-[0.2em] text-white/55">Threads Preview</p>
-                <p className="mt-3 whitespace-pre-wrap text-base leading-7">{threadPreview || "這裡會顯示你的 Threads 貼文預覽。"}</p>
-                <p className="mt-4 text-xs text-white/55">字數 {text.length} / 500</p>
-              </div>
-            )}
-          </div>
+              </section>
 
-          <div className="rounded-3xl bg-[var(--card-dark)] p-4 text-white">
-            <p className="text-sm text-white/70">發文選項</p>
-            <div className="mt-4 space-y-3 text-sm">
-              <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
-                <p className="text-white/60">帳號</p>
-                <p className="mt-2 font-medium">{selectedAccount ? `${selectedAccount.platform} ${selectedAccount.username}` : "尚未選擇"}</p>
-              </div>
-            <div className="rounded-2xl border border-white/10 p-3">
-              類型：{isWordPress ? "文章 / 摘要 / 分類 / 標籤 / 特色圖" : "文字 / 單一媒體 / 排程回覆"}
-            </div>
-            <div className="rounded-2xl border border-white/10 p-3">
-              {isWordPress ? "WordPress 只同步成草稿，會自動處理分類、標籤、特色圖與聯盟連結插槽。" : "Hashtag：Threads 上限 1 個"}
-            </div>
-            <div className="rounded-2xl border border-white/10 p-3">
-              {isWordPress ? "可快速套用觀點文、案例拆解、工具推薦、週報模板。" : "關鍵字命中可直接生成自動回覆佇列"}
-            </div>
-          </div>
-
-            <div className="mt-6">
-              <p className="text-sm text-white/70">最近發布結果</p>
-              <div className="mt-3 space-y-3">
-                {publishLogs.map((log) => (
-                  <a key={log.id} href={log.postHref} className="block rounded-2xl border border-white/10 bg-white/5 p-3">
-                    <p className="text-xs uppercase tracking-[0.2em] text-white/55">
-                      {log.accountLabel} · {log.executedAt}
-                    </p>
-                    <p className="mt-2 text-sm text-white/88">{log.detail}</p>
-                    <p
-                      className={`mt-2 text-xs uppercase tracking-[0.18em] ${
-                        log.status === "failed" ? "text-rose-300" : log.status === "scheduled" ? "text-amber-200" : "text-emerald-300"
+              <section>
+                <p className="text-xs uppercase tracking-[0.2em] text-white/50">Current Setup</p>
+                <div className="mt-3 overflow-hidden rounded-[1.35rem] border border-white/10">
+                  {[
+                    {
+                      label: "帳號",
+                      value: selectedAccount ? `${selectedAccount.platform} ${selectedAccount.username}` : "尚未選擇"
+                    },
+                    {
+                      label: "類型",
+                      value: isWordPress ? "文章 / 摘要 / 分類 / 標籤 / 特色圖" : "文字 / 單一媒體 / 排程"
+                    },
+                    {
+                      label: "工作流",
+                      value: isWordPress
+                        ? "只同步成草稿，後續回 WordPress 後台細修"
+                        : "可立即發文，或先加入排程佇列"
+                    }
+                  ].map((item, index) => (
+                    <div
+                      key={item.label}
+                      className={`grid grid-cols-[84px_1fr] gap-3 bg-white/5 px-4 py-3 text-sm ${
+                        index > 0 ? "border-t border-white/10" : ""
                       }`}
                     >
-                      {log.actionType}
-                    </p>
-                  </a>
-                ))}
-                {publishLogs.length === 0 ? (
-                  <p className="rounded-2xl border border-white/10 p-3 text-sm text-white/55">最近還沒有發布紀錄</p>
-                ) : null}
-              </div>
-            </div>
-
-            <div className="mt-6">
-              <p className="text-sm text-white/70">最近建立</p>
-              <div className="mt-3 space-y-3">
-              {recentPosts.map((post) => (
-                <div key={post.id} className="rounded-2xl border border-white/10 bg-white/5 p-3">
-                  <p className="text-xs uppercase tracking-[0.2em] text-white/55">
-                    {post.account}
-                    {post.platform ? ` · ${post.platform}` : ""} · {post.status}
-                  </p>
-                  <p className="mt-2 line-clamp-3 text-sm">{post.text}</p>
+                      <p className="text-white/45">{item.label}</p>
+                      <p className="text-white/88">{item.value}</p>
+                    </div>
+                  ))}
                 </div>
-              ))}
-              {recentPosts.length === 0 ? (
-                <p className="rounded-2xl border border-white/10 p-3 text-sm text-white/55">
-                  目前還沒有貼文紀錄
-                </p>
-              ) : null}
-              </div>
+              </section>
+
+              <section>
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-xs uppercase tracking-[0.2em] text-white/50">最近發布結果</p>
+                  <span className="text-xs text-white/35">{publishLogs.length} 筆</span>
+                </div>
+                <div className="mt-3 overflow-hidden rounded-[1.35rem] border border-white/10">
+                  {publishLogs.length === 0 ? (
+                    <p className="px-4 py-3 text-sm text-white/55">最近還沒有發布紀錄</p>
+                  ) : (
+                    publishLogs.map((log, index) => (
+                      <a
+                        key={log.id}
+                        href={log.postHref}
+                        className={`grid grid-cols-[112px_1fr_auto] gap-3 bg-white/5 px-4 py-3 text-sm ${
+                          index > 0 ? "border-t border-white/10" : ""
+                        }`}
+                      >
+                        <p className="text-white/45">{log.executedAt}</p>
+                        <div className="min-w-0">
+                          <p className="truncate text-white/85">{log.detail}</p>
+                          <p className="mt-1 text-xs text-white/45">{log.accountLabel}</p>
+                        </div>
+                        <p
+                          className={`text-xs uppercase tracking-[0.16em] ${
+                            log.status === "failed" ? "text-rose-300" : log.status === "scheduled" ? "text-amber-200" : "text-emerald-300"
+                          }`}
+                        >
+                          {log.status}
+                        </p>
+                      </a>
+                    ))
+                  )}
+                </div>
+              </section>
+
+              <section>
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-xs uppercase tracking-[0.2em] text-white/50">最近草稿</p>
+                  <span className="text-xs text-white/35">{recentItems.length} 筆</span>
+                </div>
+                <div className="mt-3 overflow-hidden rounded-[1.35rem] border border-white/10">
+                  {recentItems.length === 0 ? (
+                    <p className="px-4 py-3 text-sm text-white/55">目前還沒有草稿紀錄</p>
+                  ) : (
+                    recentItems.map((post, index) => (
+                      <div
+                        key={post.id}
+                        className={`grid grid-cols-[1fr_auto] gap-3 bg-white/5 px-4 py-3 text-sm ${
+                          index > 0 ? "border-t border-white/10" : ""
+                        }`}
+                      >
+                        <div className="min-w-0">
+                          <p className="text-xs uppercase tracking-[0.16em] text-white/45">
+                            {post.account}{post.platform ? ` · ${post.platform}` : ""} · {post.status}
+                          </p>
+                          <p className="mt-2 truncate text-white/88">{post.text}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <a href={`/compose?postId=${post.id}`} className="rounded-full border border-white/15 px-3 py-2 text-xs text-white/88">
+                            編輯
+                          </a>
+                          {post.status !== "published" ? (
+                            <button
+                              type="button"
+                              className="rounded-full border border-rose-300/30 px-3 py-2 text-xs text-rose-200"
+                              onClick={() => {
+                                startTransition(async () => {
+                                  await removeDraft(post.id);
+                                });
+                              }}
+                            >
+                              刪除
+                            </button>
+                          ) : null}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </section>
             </div>
           </div>
         </div>
