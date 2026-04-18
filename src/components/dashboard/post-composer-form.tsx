@@ -418,7 +418,7 @@ export function PostComposerForm({
 
       <div className="mt-6 grid gap-4 lg:grid-cols-[1.25fr_0.75fr]">
         <form
-          className="space-y-4"
+          className="relative z-20 space-y-4"
           noValidate
           onSubmit={(event) => {
             event.preventDefault();
@@ -950,6 +950,38 @@ export function PostComposerForm({
             </div>
           )}
 
+          <div className="sticky bottom-4 z-30 rounded-[1.6rem] border border-[var(--border-strong)] bg-[var(--card-strong)]/95 p-3 shadow-[0_18px_50px_rgba(40,23,10,0.18)] backdrop-blur">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div className="text-sm text-[var(--muted)]">
+                {isWordPress
+                  ? "先存成可編輯的 WordPress 草稿"
+                  : publishMode === "scheduled"
+                    ? "確認排程後直接加入佇列"
+                    : "確認內容後直接送出 Threads"}
+              </div>
+              <button
+                type="button"
+                disabled={submitDisabled}
+                aria-disabled={disableReason !== null}
+                title={disableReason ?? undefined}
+                className="pointer-events-auto min-w-[180px] cursor-pointer rounded-2xl bg-[var(--accent)] px-4 py-3 text-sm text-white shadow-[0_16px_40px_rgba(187,90,54,0.24)] disabled:opacity-60"
+                onClick={handleComposeSubmit}
+              >
+                {isPending
+                  ? "送出中..."
+                  : isWordPress
+                    ? initialDraft
+                      ? "更新 WordPress 草稿"
+                      : "建立 WordPress 草稿"
+                    : publishMode === "scheduled"
+                      ? "加入排程"
+                      : initialDraft
+                        ? "更新 Threads 草稿"
+                        : "立即發文"}
+              </button>
+            </div>
+          </div>
+
           {disableReason ? (
             <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
               {disableReason}
@@ -1001,7 +1033,7 @@ export function PostComposerForm({
           ) : null}
         </form>
 
-        <div className="space-y-4">
+        <div className="relative z-0 space-y-4">
           {reviewContext ? (
             <div className="rounded-3xl bg-[var(--card-dark)] p-4 text-white">
               <p className="text-sm text-white/70">Review Brief</p>
