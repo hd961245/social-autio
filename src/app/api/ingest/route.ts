@@ -19,7 +19,9 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       ok: true,
-      message: "已完成第一版內容拆解，草稿已建立。",
+      message: result.aiWarning
+        ? `AI 這次沒有成功啟用，先用 fallback 草稿建立。原因：${result.aiWarning}`
+        : "已完成第一版內容拆解，草稿已建立。",
       ...result
     });
   } catch (error) {

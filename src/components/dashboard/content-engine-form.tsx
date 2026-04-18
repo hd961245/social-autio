@@ -376,6 +376,11 @@ export function ContentEngineForm({
             {isPending ? "生成中..." : "生成多平台草稿"}
           </button>
           {message ? <p className="text-sm text-[var(--muted)]">{message}</p> : null}
+          {message?.includes("fallback") || message?.includes("AI") ? (
+            <p className="text-sm text-[var(--danger)]">
+              目前這次生成不一定真的有用到 AI。若你有串 API，先看訊息裡的 provider / 錯誤原因。
+            </p>
+          ) : null}
         </form>
       </section>
 

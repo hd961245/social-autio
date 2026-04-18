@@ -170,6 +170,7 @@ export async function ingestAndGenerateDrafts(input: IngestionInput) {
   const safeText = input.rawText?.trim() || extractedText || sourceUrl || "沒有附上文字內容";
   const summary = summarizeSource(safeTitle, safeText);
   let aiProvider = "fallback";
+  let aiWarning: string | null = null;
   let generated = {
     summary,
     threadsDraft: buildThreadsDraft(summary, personaPrompt, tone),
@@ -203,7 +204,9 @@ export async function ingestAndGenerateDrafts(input: IngestionInput) {
       wordpressExcerpt: aiResult.wordpressExcerpt || extractedExcerpt || summary.slice(0, 140),
       wordpressHtml: aiResult.wordpressHtml
     };
-  } catch {}
+  } catch (error) {
+    aiWarning = error instanceof Error ? error.message : "AI rewrite failed";
+  }
 
   const generatedPostIds: string[] = [];
   const generatedDrafts: GeneratedDraftSummary[] = [];
@@ -217,7 +220,7 @@ export async function ingestAndGenerateDrafts(input: IngestionInput) {
       rawText: safeText,
       imageUrls: input.imageUrls?.length ? JSON.stringify(input.imageUrls) : null,
       status: "processed",
-      notes: `Persona: ${personaPrompt.slice(0, 120)} | Provider: ${aiProvider}${sourceNote ? ` | ${sourceNote}` : ""}`
+      notes: `Persona: ${personaPrompt.slice(0, 120)} | Provider: ${aiProvider}${aiWarning ? ` | AI warning: ${aiWarning}` : ""}${sourceNote ? ` | ${sourceNote}` : ""}`
     }
   });
 
@@ -275,6 +278,7 @@ export async function ingestAndGenerateDrafts(input: IngestionInput) {
     ingestionId: ingestion.id,
     generatedPostIds,
     generatedDrafts,
-    provider: aiProvider
+    provider: aiProvider,
+    aiWarning
   };
 }
