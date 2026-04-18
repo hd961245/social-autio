@@ -210,14 +210,18 @@ export function PostComposerForm({
   const selectedMemory = selectedAccount ? personaMemories[selectedAccount.id] : undefined;
   const isWordPress = selectedAccount?.platform === "wordpress";
   const hasThreadsAccount = accounts.some((account) => account.platform === "threads");
+  const normalizedScheduledAt = scheduledAt.trim();
   const hookSuggestions = buildHookSuggestions(selectedAccount);
   const ctaSuggestions = buildCtaSuggestions(selectedAccount);
+  const disableReason =
+    isPending ? "正在送出中，請稍等。" :
+    !accountId ? "請先選一個發布帳號。" :
+    !text.trim() ? "請先填寫貼文內容。" :
+    (!isWordPress && !hasThreadsAccount) ? "目前沒有可用的 Threads 帳號。" :
+    (!isWordPress && publishMode === "scheduled" && !normalizedScheduledAt) ? "排程模式需要先填好排程時間。" :
+    null;
   const submitDisabled =
-    isPending ||
-    !accountId ||
-    !text.trim() ||
-    (!isWordPress && !hasThreadsAccount) ||
-    (!isWordPress && publishMode === "scheduled" && !scheduledAt);
+    disableReason !== null;
   const reviewBrief = reviewContext
     ? [`重寫方向：${reviewContext.nextAction}`, ...reviewContext.insights.map((insight, index) => `${index + 1}. ${insight}`)].join("\n")
     : "";
@@ -308,7 +312,7 @@ export function PostComposerForm({
                     : undefined,
                   contentType: mediaUrl ? "image" : "text",
                   publishMode,
-                  scheduledAt: publishMode === "scheduled" ? new Date(scheduledAt).toISOString() : undefined
+                  scheduledAt: publishMode === "scheduled" ? new Date(normalizedScheduledAt).toISOString() : undefined
                 })
               });
 
@@ -697,6 +701,12 @@ export function PostComposerForm({
               </label>
             </div>
           )}
+
+          {disableReason ? (
+            <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              {disableReason}
+            </div>
+          ) : null}
 
           <button
             type="submit"
