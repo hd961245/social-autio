@@ -20,6 +20,12 @@ type OpsDiagnostics = {
   };
   warnings: string[];
   hints: string[];
+  threadsCallbackLogs: Array<{
+    id: string;
+    status: string;
+    detail: string;
+    executedAt: string;
+  }>;
 };
 
 function maskConnectionString(value: string) {
@@ -73,6 +79,15 @@ export async function getOpsDiagnostics(): Promise<OpsDiagnostics> {
       prisma.post.count(),
       prisma.sourceWatch.count()
     ]);
+    const callbackLogs = await prisma.automationLog.findMany({
+      where: {
+        actionType: "threads_callback"
+      },
+      orderBy: {
+        executedAt: "desc"
+      },
+      take: 5
+    });
 
     if (!process.env.DATABASE_URL) {
       warnings.push("目前沒有 DATABASE_URL，這份環境不會讀到原本雲端資料。");
@@ -97,6 +112,11 @@ export async function getOpsDiagnostics(): Promise<OpsDiagnostics> {
       hints.push("這份環境很像是 schema 已建好但資料為空的全新資料庫。不要急著重連帳號，先確認是不是接錯 DB。");
     }
 
+    if (callbackLogs.some((log) => log.status === "executed") && threadsAccounts === 0) {
+      warnings.push("最近 Threads callback 有成功，但資料庫裡仍然看不到 Threads 帳號，優先懷疑你現在看的不是同一個 DB / environment。");
+      hints.push("如果 callback log 顯示 executed、但 Threads Accounts 還是 0，先比對 Zeabur app service 與 callback 實際命中的環境是不是同一份。");
+    }
+
     return {
       database: {
         ready: true,
@@ -110,7 +130,13 @@ export async function getOpsDiagnostics(): Promise<OpsDiagnostics> {
         sourceWatches
       },
       warnings,
-      hints
+      hints,
+      threadsCallbackLogs: callbackLogs.map((log) => ({
+        id: log.id,
+        status: log.status,
+        detail: log.detail ?? "threads callback log",
+        executedAt: log.executedAt.toLocaleString("zh-TW", { hour12: false })
+      }))
     };
   } catch (error) {
     warnings.push("目前資料庫連線失敗，請先檢查 DATABASE_URL。");
@@ -129,7 +155,8 @@ export async function getOpsDiagnostics(): Promise<OpsDiagnostics> {
         sourceWatches: 0
       },
       warnings,
-      hints
+      hints,
+      threadsCallbackLogs: []
     };
   }
 }

@@ -86,6 +86,33 @@ export default async function OpsPage() {
           ) : null}
         </div>
       </section>
+
+      <section className="glass-panel rounded-[2rem] border border-[var(--border)] p-6">
+        <p className="text-[11px] uppercase tracking-[0.3em] text-[var(--muted)]">Threads Callback</p>
+        <h2 className="mt-2 text-3xl font-semibold">最近授權寫庫紀錄</h2>
+        <div className="mt-6 space-y-3">
+          {diagnostics.threadsCallbackLogs.map((log) => (
+            <article key={log.id} className="rounded-[1.4rem] border border-[var(--border)] bg-white/75 p-4 text-sm">
+              <div className="flex items-center justify-between gap-3">
+                <p className="font-medium">{log.executedAt}</p>
+                <span
+                  className={`rounded-full px-3 py-1 text-xs ${
+                    log.status === "executed" ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"
+                  }`}
+                >
+                  {log.status}
+                </span>
+              </div>
+              <p className="mt-3 text-[var(--muted)]">{log.detail}</p>
+            </article>
+          ))}
+          {diagnostics.threadsCallbackLogs.length === 0 ? (
+            <article className="rounded-[1.4rem] border border-[var(--border)] bg-white/75 p-4 text-sm text-[var(--muted)]">
+              目前還沒有 Threads callback 記錄。你下一次重新授權後，這裡會直接顯示 profile id、username 與是否寫入成功。
+            </article>
+          ) : null}
+        </div>
+      </section>
     </div>
   );
 }

@@ -9,6 +9,7 @@ import { getThreadsProfile, parseThreadsCallback } from "@/lib/platforms/threads
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const searchParams = Object.fromEntries(url.searchParams.entries());
+  const logDetailPrefix = `redirect=${url.origin}/api/threads/callback`;
 
   try {
     const payload = parseThreadsCallback(searchParams);
@@ -16,6 +17,14 @@ export async function GET(request: Request) {
     const state = cookieStore.get(THREADS_STATE_COOKIE)?.value;
 
     if (!state || state !== payload.state) {
+      await prisma.automationLog.create({
+        data: {
+          actionType: "threads_callback",
+          status: "failed",
+          detail: `${logDetailPrefix} | invalid_oauth_state`
+        }
+      }).catch(() => null);
+
       return NextResponse.redirect(new URL("/accounts?error=invalid_oauth_state", request.url));
     }
 
@@ -32,7 +41,7 @@ export async function GET(request: Request) {
       }
     });
 
-    await prisma.platformAccount.upsert({
+    const account = await prisma.platformAccount.upsert({
       where: {
         platform_platformUserId: {
           platform: "threads",
@@ -62,10 +71,27 @@ export async function GET(request: Request) {
       }
     });
 
+    await prisma.automationLog.create({
+      data: {
+        accountId: account.id,
+        actionType: "threads_callback",
+        status: "executed",
+        detail: `${logDetailPrefix} | profileId=${profile.id} | username=@${profile.username} | accountId=${account.id}`
+      }
+    }).catch(() => null);
+
     cookieStore.delete(THREADS_STATE_COOKIE);
 
     return NextResponse.redirect(new URL("/accounts?connected=threads", request.url));
   } catch (error) {
+    await prisma.automationLog.create({
+      data: {
+        actionType: "threads_callback",
+        status: "failed",
+        detail: `${logDetailPrefix} | ${error instanceof Error ? error.message : "Invalid callback payload"}`
+      }
+    }).catch(() => null);
+
     return NextResponse.json({
       ok: false,
       message: error instanceof Error ? error.message : "Invalid callback payload"
