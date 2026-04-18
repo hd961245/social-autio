@@ -257,6 +257,7 @@ export default async function ComposePage({
         preferredAccountId={preferredAccountId}
         personaMemories={personaMemories}
         publishLogs={publishLogs}
+        initialAiProvider={(settings?.aiProvider as "auto" | "gemini" | "claude" | "openai" | undefined) ?? "auto"}
       />
     </div>
   );

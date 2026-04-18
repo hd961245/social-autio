@@ -36,8 +36,8 @@ export default async function ContentEnginePage() {
     <div className="space-y-6">
       <PageIntro
         eyebrow="Content Engine"
-        title="AI 草稿引擎"
-        description="把外部素材先拆成兩個明確產物: 一篇 Threads 草稿，一篇 WordPress 長文草稿。都先給你改，不直接代你發布。"
+        title="AI 草稿引擎（進階）"
+        description="主要的 AI 起稿已經整合到 Compose。這頁保留給要批次吃素材、同時產生 Threads + WordPress 草稿時使用。"
       />
 
       <ContentEngineForm

@@ -173,7 +173,8 @@ export function PostComposerForm({
   reviewContext,
   preferredAccountId,
   personaMemories,
-  publishLogs
+  publishLogs,
+  initialAiProvider
 }: {
   accounts: AccountOption[];
   recentPosts: RecentPost[];
@@ -184,6 +185,7 @@ export function PostComposerForm({
   preferredAccountId?: string;
   personaMemories: Record<string, PersonaMemory>;
   publishLogs: PublishOutcomeLog[];
+  initialAiProvider: "auto" | "gemini" | "claude" | "openai";
 }) {
   const router = useRouter();
   const baseDraft = initialDraft ?? initialSeed ?? null;
@@ -205,6 +207,15 @@ export function PostComposerForm({
   const [messageTone, setMessageTone] = useState<"neutral" | "success" | "error">("neutral");
   const [lastAction, setLastAction] = useState<null | { href: string; label: string }>(null);
   const [isPending, startTransition] = useTransition();
+  const [isAiPending, startAiTransition] = useTransition();
+  const [aiSourceType, setAiSourceType] = useState<"text" | "url">("text");
+  const [aiTitle, setAiTitle] = useState("");
+  const [aiRawText, setAiRawText] = useState("");
+  const [aiSourceUrl, setAiSourceUrl] = useState("");
+  const [aiProvider, setAiProvider] = useState<"auto" | "gemini" | "claude" | "openai">(initialAiProvider);
+  const [aiWordpressTemplate, setAiWordpressTemplate] = useState<(typeof wordpressTemplates)[number]["id"]>("opinion");
+  const [aiMessage, setAiMessage] = useState<string | null>(null);
+  const [aiMessageTone, setAiMessageTone] = useState<"neutral" | "success" | "error">("neutral");
 
   const selectedAccount = accounts.find((account) => account.id === accountId);
   const selectedMemory = selectedAccount ? personaMemories[selectedAccount.id] : undefined;
@@ -244,6 +255,7 @@ export function PostComposerForm({
   const threadPreview = `${text}${mediaUrl ? `\n\n${mediaUrl}` : ""}`.trim();
   const wordpressPreviewTitle = title || "未命名草稿";
   const wordpressPreviewBody = html || text;
+  const aiCanGenerate = Boolean(accountId && (aiSourceType === "url" ? aiSourceUrl.trim() : aiRawText.trim()));
 
   return (
     <section className="glass-panel fade-in-up rounded-[2rem] border border-[var(--border)] p-6">
@@ -458,6 +470,172 @@ export function PostComposerForm({
               <p className="mt-2 leading-6 text-[var(--muted)]">
                 {isWordPress ? "只會更新後台草稿，不直接發布。" : "可立即發布或加入排程。"}
               </p>
+            </div>
+          </div>
+          <div className="rounded-3xl border border-[var(--border-strong)] bg-[rgba(200,79,44,0.06)] p-4">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+              <div>
+                <p className="text-[11px] uppercase tracking-[0.24em] text-[var(--muted)]">AI Draft Assist</p>
+                <h3 className="mt-2 text-xl font-semibold">先在這裡起稿，再直接往下修和發布</h3>
+                <p className="mt-2 text-sm leading-7 text-[var(--muted)]">
+                  不用再切去另一頁。AI 會直接依照目前帳號的人設、語氣和 playbook，把素材灌進現在這份發文表單。
+                </p>
+              </div>
+              <div className="rounded-2xl border border-[var(--border)] bg-white/78 px-4 py-3 text-sm text-[var(--muted)]">
+                目前會套用：
+                <span className="ml-2 font-medium text-[var(--foreground)]">
+                  {selectedAccount ? `${selectedAccount.username}${selectedAccount.personaLabel ? ` · ${selectedAccount.personaLabel}` : ""}` : "尚未選帳號"}
+                </span>
+              </div>
+            </div>
+            <div className="mt-4 grid gap-4 xl:grid-cols-[0.85fr_1.15fr]">
+              <div className="space-y-4">
+                <div className="grid gap-4 md:grid-cols-3">
+                  <label className="rounded-3xl bg-white/88 p-4 md:col-span-1">
+                    <span className="mb-2 block text-sm text-[var(--muted)]">素材形式</span>
+                    <select
+                      className="w-full rounded-2xl border border-[var(--border)] bg-transparent px-4 py-3 outline-none"
+                      value={aiSourceType}
+                      onChange={(event) => setAiSourceType(event.target.value as "text" | "url")}
+                    >
+                      <option value="text">貼文字素材</option>
+                      <option value="url">貼網址</option>
+                    </select>
+                  </label>
+                  <label className="rounded-3xl bg-white/88 p-4 md:col-span-1">
+                    <span className="mb-2 block text-sm text-[var(--muted)]">AI Provider</span>
+                    <select
+                      className="w-full rounded-2xl border border-[var(--border)] bg-transparent px-4 py-3 outline-none"
+                      value={aiProvider}
+                      onChange={(event) => setAiProvider(event.target.value as "auto" | "gemini" | "claude" | "openai")}
+                    >
+                      <option value="auto">Auto</option>
+                      <option value="gemini">Gemini</option>
+                      <option value="claude">Claude</option>
+                      <option value="openai">OpenAI</option>
+                    </select>
+                  </label>
+                  {isWordPress ? (
+                    <label className="rounded-3xl bg-white/88 p-4 md:col-span-1">
+                      <span className="mb-2 block text-sm text-[var(--muted)]">長文版型</span>
+                      <select
+                        className="w-full rounded-2xl border border-[var(--border)] bg-transparent px-4 py-3 outline-none"
+                        value={aiWordpressTemplate}
+                        onChange={(event) => setAiWordpressTemplate(event.target.value as (typeof wordpressTemplates)[number]["id"])}
+                      >
+                        {wordpressTemplates.map((template) => (
+                          <option key={template.id} value={template.id}>
+                            {template.label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  ) : null}
+                </div>
+                <label className="rounded-3xl bg-white/88 p-4">
+                  <span className="mb-2 block text-sm text-[var(--muted)]">這次素材主題</span>
+                  <input
+                    className="w-full rounded-2xl border border-[var(--border)] bg-transparent px-4 py-3 outline-none"
+                    placeholder={isWordPress ? "例如：把這則 Threads 延伸成教學文" : "例如：把這段觀察改寫成 Threads 首發"}
+                    value={aiTitle}
+                    onChange={(event) => setAiTitle(event.target.value)}
+                  />
+                </label>
+                {aiSourceType === "url" ? (
+                  <label className="rounded-3xl bg-white/88 p-4">
+                    <span className="mb-2 block text-sm text-[var(--muted)]">公開連結</span>
+                    <input
+                      className="w-full rounded-2xl border border-[var(--border)] bg-transparent px-4 py-3 outline-none"
+                      placeholder="https://www.threads.net/... 或文章網址"
+                      value={aiSourceUrl}
+                      onChange={(event) => setAiSourceUrl(event.target.value)}
+                    />
+                  </label>
+                ) : (
+                  <label className="rounded-3xl bg-white/88 p-4">
+                    <span className="mb-2 block text-sm text-[var(--muted)]">原始素材</span>
+                    <textarea
+                      className="min-h-32 w-full resize-none rounded-2xl border border-[var(--border)] bg-transparent p-4 outline-none"
+                      placeholder="貼你要改寫的段落、筆記、想法或外部素材摘要"
+                      value={aiRawText}
+                      onChange={(event) => setAiRawText(event.target.value)}
+                    />
+                  </label>
+                )}
+              </div>
+              <div className="rounded-[1.6rem] border border-[var(--border)] bg-[var(--card-dark)] p-5 text-white">
+                <p className="text-xs uppercase tracking-[0.2em] text-white/55">AI 起稿後會直接覆蓋當前編輯欄位</p>
+                <div className="mt-4 space-y-3 text-sm leading-7 text-white/80">
+                  <p>{isWordPress ? "會直接填入標題、摘要、HTML 長文草稿。" : "會直接把 Threads 草稿灌進貼文內容。"} 不會先另外落一份草稿。</p>
+                  <p>如果你只是想先測一個角度，直接按一次 AI 起稿，再在下方微調後立即發或排程就好。</p>
+                  {selectedAccount?.topicFocus ? <p>題材範圍：{selectedAccount.topicFocus}</p> : null}
+                  {selectedAccount?.voiceGuardrails ? <p>語氣禁區：{selectedAccount.voiceGuardrails}</p> : null}
+                </div>
+                <button
+                  type="button"
+                  disabled={!aiCanGenerate || isAiPending}
+                  className="mt-5 w-full rounded-2xl bg-white px-4 py-3 text-sm font-medium text-[var(--card-dark)] disabled:opacity-60"
+                  onClick={() => {
+                    startAiTransition(async () => {
+                      setAiMessage(null);
+                      setAiMessageTone("neutral");
+
+                      const response = await fetch("/api/compose/ai-draft", {
+                        method: "POST",
+                        headers: {
+                          "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({
+                          accountId,
+                          sourceType: aiSourceType,
+                          sourceUrl: aiSourceType === "url" ? aiSourceUrl : undefined,
+                          title: aiTitle,
+                          rawText: aiSourceType === "text" ? aiRawText : undefined,
+                          provider: aiProvider,
+                          wordpressTemplate: isWordPress ? aiWordpressTemplate : undefined
+                        })
+                      });
+
+                      const result = await response.json();
+
+                      if (!response.ok) {
+                        setAiMessage(result.message ?? "AI 起稿失敗");
+                        setAiMessageTone("error");
+                        return;
+                      }
+
+                      if (isWordPress) {
+                        setTitle(result.draft.wordpressTitle ?? "");
+                        setText(result.draft.summary ?? "");
+                        setExcerpt(result.draft.wordpressExcerpt ?? "");
+                        setHtml(result.draft.wordpressHtml ?? "");
+                      } else {
+                        setText(result.draft.threadsDraft ?? "");
+                      }
+
+                      setAiMessage(
+                        `${result.provider.toUpperCase()} 已套用 ${result.sourceLabel ? `(${result.sourceLabel})` : ""} 的 AI 草稿。`
+                      );
+                      setAiMessageTone("success");
+                    });
+                  }}
+                >
+                  {isAiPending ? "AI 起稿中..." : isWordPress ? "AI 幫我起 WordPress 草稿" : "AI 幫我起 Threads 草稿"}
+                </button>
+                {aiMessage ? (
+                  <div
+                    className={`mt-4 rounded-2xl px-4 py-3 text-sm ${
+                      aiMessageTone === "error"
+                        ? "border border-rose-300/40 bg-rose-400/10 text-rose-100"
+                        : aiMessageTone === "success"
+                          ? "border border-emerald-300/40 bg-emerald-400/10 text-emerald-100"
+                          : "border border-white/15 bg-white/5 text-white/75"
+                    }`}
+                  >
+                    {aiMessage}
+                  </div>
+                ) : null}
+              </div>
             </div>
           </div>
           {!hasThreadsAccount ? (
