@@ -211,6 +211,13 @@ export function PostComposerForm({
   const isWordPress = selectedAccount?.platform === "wordpress";
   const hasThreadsAccount = accounts.some((account) => account.platform === "threads");
   const normalizedScheduledAt = scheduledAt.trim();
+  const parsedScheduledAt = normalizedScheduledAt ? new Date(normalizedScheduledAt) : null;
+  const hasInvalidScheduledAt = Boolean(
+    !isWordPress &&
+      publishMode === "scheduled" &&
+      normalizedScheduledAt &&
+      (!parsedScheduledAt || Number.isNaN(parsedScheduledAt.getTime()))
+  );
   const hookSuggestions = buildHookSuggestions(selectedAccount);
   const ctaSuggestions = buildCtaSuggestions(selectedAccount);
   const disableReason =
@@ -219,6 +226,7 @@ export function PostComposerForm({
     !text.trim() ? "請先填寫貼文內容。" :
     (!isWordPress && !hasThreadsAccount) ? "目前沒有可用的 Threads 帳號。" :
     (!isWordPress && publishMode === "scheduled" && !normalizedScheduledAt) ? "排程模式需要先填好排程時間。" :
+    hasInvalidScheduledAt ? "目前排程時間格式無效，請重新選一次時間。" :
     null;
   const submitDisabled =
     disableReason !== null;
@@ -252,6 +260,7 @@ export function PostComposerForm({
       <div className="mt-6 grid gap-4 lg:grid-cols-[1.25fr_0.75fr]">
         <form
           className="space-y-4"
+          noValidate
           onSubmit={(event) => {
             event.preventDefault();
 
@@ -284,6 +293,12 @@ export function PostComposerForm({
                 return;
               }
 
+              if (hasInvalidScheduledAt || (publishMode === "scheduled" && parsedScheduledAt && Number.isNaN(parsedScheduledAt.getTime()))) {
+                setMessage("目前排程時間格式無效，請重新選一次時間。");
+                setMessageTone("error");
+                return;
+              }
+
               const endpoint = initialDraft ? `/api/posts/${initialDraft.id}` : "/api/threads/publish";
               const response = await fetch(endpoint, {
                 method: initialDraft ? "PATCH" : "POST",
@@ -312,7 +327,7 @@ export function PostComposerForm({
                     : undefined,
                   contentType: mediaUrl ? "image" : "text",
                   publishMode,
-                  scheduledAt: publishMode === "scheduled" ? new Date(normalizedScheduledAt).toISOString() : undefined
+                  scheduledAt: publishMode === "scheduled" && parsedScheduledAt ? parsedScheduledAt.toISOString() : undefined
                 })
               });
 
