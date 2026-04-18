@@ -207,6 +207,7 @@ export function PostComposerForm({
   const [message, setMessage] = useState<string | null>(null);
   const [messageTone, setMessageTone] = useState<"neutral" | "success" | "error">("neutral");
   const [lastAction, setLastAction] = useState<null | { href: string; label: string }>(null);
+  const [submitTrace, setSubmitTrace] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const [isAiPending, startAiTransition] = useTransition();
   const [aiSourceType, setAiSourceType] = useState<"text" | "url">("text");
@@ -284,42 +285,50 @@ export function PostComposerForm({
   }
 
   function handleComposeSubmit() {
+    setSubmitTrace(`clicked · ${new Date().toLocaleTimeString("zh-TW", { hour12: false })}`);
     startTransition(async () => {
       setMessage(null);
       setMessageTone("neutral");
       setLastAction(null);
+      setSubmitTrace("validating");
 
       if (!accountId) {
         setMessage("請先選一個可用帳號。");
         setMessageTone("error");
+        setSubmitTrace("blocked: missing account");
         return;
       }
 
       if (!text.trim()) {
         setMessage("請先填寫貼文內容。");
         setMessageTone("error");
+        setSubmitTrace("blocked: empty text");
         return;
       }
 
       if (!isWordPress && !hasThreadsAccount) {
         setMessage("目前沒有可用的 Threads 帳號，先到 Accounts 完成授權。");
         setMessageTone("error");
+        setSubmitTrace("blocked: no threads account");
         return;
       }
 
       if (!isWordPress && publishMode === "scheduled" && !scheduledAt) {
         setMessage("排程模式需要先填好發佈時間。");
         setMessageTone("error");
+        setSubmitTrace("blocked: missing schedule time");
         return;
       }
 
       if (hasInvalidScheduledAt || (publishMode === "scheduled" && parsedScheduledAt && Number.isNaN(parsedScheduledAt.getTime()))) {
         setMessage("目前排程時間格式無效，請重新選一次時間。");
         setMessageTone("error");
+        setSubmitTrace("blocked: invalid schedule time");
         return;
       }
 
       const endpoint = initialDraft ? `/api/posts/${initialDraft.id}` : "/api/threads/publish";
+      setSubmitTrace(`sending -> ${endpoint}`);
       const response = await fetch(endpoint, {
         method: initialDraft ? "PATCH" : "POST",
         headers: {
@@ -356,6 +365,7 @@ export function PostComposerForm({
       if (!response.ok) {
         setMessage(result.message ?? "發文失敗，請稍後再試");
         setMessageTone("error");
+        setSubmitTrace(`failed (${response.status})`);
         return;
       }
 
@@ -368,6 +378,7 @@ export function PostComposerForm({
               : "已更新 Threads 草稿。")
       );
       setMessageTone("success");
+      setSubmitTrace(`done (${response.status})`);
 
       if (result.postId) {
         setLastAction({
@@ -945,26 +956,31 @@ export function PostComposerForm({
             </div>
           ) : null}
 
-          <button
-            type="button"
-            disabled={submitDisabled}
-            aria-disabled={disableReason !== null}
-            title={disableReason ?? undefined}
-            className="w-full rounded-2xl bg-[var(--accent)] px-4 py-3 text-white shadow-[0_16px_40px_rgba(187,90,54,0.24)] disabled:opacity-60"
-            onClick={handleComposeSubmit}
-          >
-            {isPending
-              ? "送出中..."
-              : isWordPress
-                ? initialDraft
-                  ? "更新 WordPress 草稿"
-                  : "建立 WordPress 草稿"
-                : publishMode === "scheduled"
-                  ? "加入排程"
-                  : initialDraft
-                    ? "更新 Threads 草稿"
-                    : "立即發文"}
-          </button>
+          <div className="relative z-20">
+            <button
+              type="button"
+              disabled={submitDisabled}
+              aria-disabled={disableReason !== null}
+              title={disableReason ?? undefined}
+              className="pointer-events-auto w-full cursor-pointer rounded-2xl bg-[var(--accent)] px-4 py-3 text-white shadow-[0_16px_40px_rgba(187,90,54,0.24)] disabled:opacity-60"
+              onClick={handleComposeSubmit}
+            >
+              {isPending
+                ? "送出中..."
+                : isWordPress
+                  ? initialDraft
+                    ? "更新 WordPress 草稿"
+                    : "建立 WordPress 草稿"
+                  : publishMode === "scheduled"
+                    ? "加入排程"
+                    : initialDraft
+                      ? "更新 Threads 草稿"
+                      : "立即發文"}
+            </button>
+          </div>
+          {submitTrace ? (
+            <p className="text-xs text-[var(--muted)]">submit trace: {submitTrace}</p>
+          ) : null}
           {message ? (
             <div
               className={`rounded-2xl px-4 py-3 text-sm ${
