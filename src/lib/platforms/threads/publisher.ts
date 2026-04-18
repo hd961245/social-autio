@@ -1,5 +1,6 @@
-import { decryptString } from "@/lib/crypto";
+import { decryptString, encryptString } from "@/lib/crypto";
 import { threadsFetch, threadsFormPost } from "@/lib/platforms/threads/client";
+import { refreshThreadsToken } from "@/lib/platforms/threads/tokens";
 import type { PostContent, PublishResult } from "@/lib/platforms/types";
 import { prisma } from "@/lib/prisma";
 
@@ -63,6 +64,31 @@ async function waitForContainer(accessToken: string, containerId: string) {
 
     await new Promise((resolve) => setTimeout(resolve, 4000));
   }
+
+  throw new Error("Threads container processing timed out, please try again.");
+}
+
+async function getValidAccessToken(account: { id: string; accessToken: string; tokenExpiresAt: Date }) {
+  const currentToken = decryptString(account.accessToken);
+  const needsRefresh = account.tokenExpiresAt.getTime() <= Date.now() + 5 * 60 * 1000;
+
+  if (!needsRefresh) {
+    return currentToken;
+  }
+
+  const refreshed = await refreshThreadsToken(currentToken);
+
+  await prisma.platformAccount.update({
+    where: { id: account.id },
+    data: {
+      accessToken: encryptString(refreshed.accessToken),
+      tokenType: refreshed.tokenType,
+      tokenExpiresAt: refreshed.expiresAt,
+      isActive: true
+    }
+  });
+
+  return refreshed.accessToken;
 }
 
 export async function publishToThreads(accountId: string, content: PostContent): Promise<PublishResult> {
@@ -76,7 +102,7 @@ export async function publishToThreads(accountId: string, content: PostContent):
     throw new Error("找不到指定的 Threads 帳號。");
   }
 
-  const accessToken = decryptString(account.accessToken);
+  const accessToken = await getValidAccessToken(account);
   const mediaPayload = getMediaPayload(content);
 
   const container = await threadsFormPost<ThreadsCreationResponse>(
@@ -89,9 +115,7 @@ export async function publishToThreads(accountId: string, content: PostContent):
     accessToken
   );
 
-  if (content.contentType !== "text") {
-    await waitForContainer(accessToken, container.id);
-  }
+  await waitForContainer(accessToken, container.id);
 
   const published = await threadsFormPost<ThreadsPublishResponse>(
     `/${account.platformUserId}/threads_publish`,
