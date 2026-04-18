@@ -240,8 +240,7 @@ export function PostComposerForm({
     (!isWordPress && publishMode === "scheduled" && !normalizedScheduledAt) ? "排程模式需要先填好排程時間。" :
     hasInvalidScheduledAt ? "目前排程時間格式無效，請重新選一次時間。" :
     null;
-  const submitDisabled =
-    disableReason !== null;
+  const submitDisabled = isPending;
   const reviewBrief = reviewContext
     ? [`重寫方向：${reviewContext.nextAction}`, ...reviewContext.insights.map((insight, index) => `${index + 1}. ${insight}`)].join("\n")
     : "";
@@ -946,6 +945,8 @@ export function PostComposerForm({
           <button
             type="submit"
             disabled={submitDisabled}
+            aria-disabled={disableReason !== null}
+            title={disableReason ?? undefined}
             className="w-full rounded-2xl bg-[var(--accent)] px-4 py-3 text-white shadow-[0_16px_40px_rgba(187,90,54,0.24)] disabled:opacity-60"
           >
             {isPending
