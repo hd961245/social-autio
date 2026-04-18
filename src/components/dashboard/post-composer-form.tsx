@@ -283,6 +283,116 @@ export function PostComposerForm({
     router.refresh();
   }
 
+  function handleComposeSubmit() {
+    startTransition(async () => {
+      setMessage(null);
+      setMessageTone("neutral");
+      setLastAction(null);
+
+      if (!accountId) {
+        setMessage("請先選一個可用帳號。");
+        setMessageTone("error");
+        return;
+      }
+
+      if (!text.trim()) {
+        setMessage("請先填寫貼文內容。");
+        setMessageTone("error");
+        return;
+      }
+
+      if (!isWordPress && !hasThreadsAccount) {
+        setMessage("目前沒有可用的 Threads 帳號，先到 Accounts 完成授權。");
+        setMessageTone("error");
+        return;
+      }
+
+      if (!isWordPress && publishMode === "scheduled" && !scheduledAt) {
+        setMessage("排程模式需要先填好發佈時間。");
+        setMessageTone("error");
+        return;
+      }
+
+      if (hasInvalidScheduledAt || (publishMode === "scheduled" && parsedScheduledAt && Number.isNaN(parsedScheduledAt.getTime()))) {
+        setMessage("目前排程時間格式無效，請重新選一次時間。");
+        setMessageTone("error");
+        return;
+      }
+
+      const endpoint = initialDraft ? `/api/posts/${initialDraft.id}` : "/api/threads/publish";
+      const response = await fetch(endpoint, {
+        method: initialDraft ? "PATCH" : "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          accountId,
+          title: isWordPress ? title : undefined,
+          text,
+          html: isWordPress ? html : undefined,
+          excerpt: isWordPress ? excerpt : undefined,
+          mediaUrls: mediaUrl ? [mediaUrl] : [],
+          featuredImageUrl: isWordPress && featuredImageUrl ? featuredImageUrl : undefined,
+          categories: isWordPress
+            ? categories
+                .split(",")
+                .map((item) => item.trim())
+                .filter(Boolean)
+            : undefined,
+          tags: isWordPress
+            ? tags
+                .split(",")
+                .map((item) => item.trim())
+                .filter(Boolean)
+            : undefined,
+          contentType: mediaUrl ? "image" : "text",
+          publishMode,
+          scheduledAt: publishMode === "scheduled" && parsedScheduledAt ? parsedScheduledAt.toISOString() : undefined
+        })
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        setMessage(result.message ?? "發文失敗，請稍後再試");
+        setMessageTone("error");
+        return;
+      }
+
+      setMessage(
+        result.message ??
+          (isWordPress
+            ? "已同步到 WordPress 草稿。"
+            : publishMode === "scheduled"
+              ? "已加入 Threads 排程佇列。"
+              : "已更新 Threads 草稿。")
+      );
+      setMessageTone("success");
+
+      if (result.postId) {
+        setLastAction({
+          href: isWordPress ? `/compose?postId=${result.postId}` : publishMode === "scheduled" ? "/desk?tab=queue" : `/posts/${result.postId}`,
+          label: isWordPress ? "打開這篇草稿" : publishMode === "scheduled" ? "去 Queue 看排程" : "看這篇 Threads 指標"
+        });
+      }
+
+      if (!initialDraft) {
+        setTitle("");
+        setText("");
+        setHtml("");
+        setExcerpt("");
+        setMediaUrl("");
+        setFeaturedImageUrl("");
+        setCategories("");
+        setTags("");
+        setScheduledAt("");
+        if (isWordPress && result.postId) {
+          router.refresh();
+        }
+      }
+    });
+  }
+
   return (
     <section className="glass-panel fade-in-up rounded-[2rem] border border-[var(--border)] p-6">
       <div className="flex items-center justify-between gap-4">
@@ -301,114 +411,7 @@ export function PostComposerForm({
           noValidate
           onSubmit={(event) => {
             event.preventDefault();
-
-            startTransition(async () => {
-              setMessage(null);
-              setMessageTone("neutral");
-              setLastAction(null);
-
-              if (!accountId) {
-                setMessage("請先選一個可用帳號。");
-                setMessageTone("error");
-                return;
-              }
-
-              if (!text.trim()) {
-                setMessage("請先填寫貼文內容。");
-                setMessageTone("error");
-                return;
-              }
-
-              if (!isWordPress && !hasThreadsAccount) {
-                setMessage("目前沒有可用的 Threads 帳號，先到 Accounts 完成授權。");
-                setMessageTone("error");
-                return;
-              }
-
-              if (!isWordPress && publishMode === "scheduled" && !scheduledAt) {
-                setMessage("排程模式需要先填好發佈時間。");
-                setMessageTone("error");
-                return;
-              }
-
-              if (hasInvalidScheduledAt || (publishMode === "scheduled" && parsedScheduledAt && Number.isNaN(parsedScheduledAt.getTime()))) {
-                setMessage("目前排程時間格式無效，請重新選一次時間。");
-                setMessageTone("error");
-                return;
-              }
-
-              const endpoint = initialDraft ? `/api/posts/${initialDraft.id}` : "/api/threads/publish";
-              const response = await fetch(endpoint, {
-                method: initialDraft ? "PATCH" : "POST",
-                headers: {
-                  "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                  accountId,
-                  title: isWordPress ? title : undefined,
-                  text,
-                  html: isWordPress ? html : undefined,
-                  excerpt: isWordPress ? excerpt : undefined,
-                  mediaUrls: mediaUrl ? [mediaUrl] : [],
-                  featuredImageUrl: isWordPress && featuredImageUrl ? featuredImageUrl : undefined,
-                  categories: isWordPress
-                    ? categories
-                        .split(",")
-                        .map((item) => item.trim())
-                        .filter(Boolean)
-                    : undefined,
-                  tags: isWordPress
-                    ? tags
-                        .split(",")
-                        .map((item) => item.trim())
-                        .filter(Boolean)
-                    : undefined,
-                  contentType: mediaUrl ? "image" : "text",
-                  publishMode,
-                  scheduledAt: publishMode === "scheduled" && parsedScheduledAt ? parsedScheduledAt.toISOString() : undefined
-                })
-              });
-
-              const result = await response.json();
-
-              if (!response.ok) {
-                setMessage(result.message ?? "發文失敗，請稍後再試");
-                setMessageTone("error");
-                return;
-              }
-
-              setMessage(
-                result.message ??
-                  (isWordPress
-                    ? "已同步到 WordPress 草稿。"
-                    : publishMode === "scheduled"
-                      ? "已加入 Threads 排程佇列。"
-                      : "已更新 Threads 草稿。")
-              );
-              setMessageTone("success");
-
-              if (result.postId) {
-                setLastAction({
-                  href: isWordPress ? `/compose?postId=${result.postId}` : publishMode === "scheduled" ? "/desk?tab=queue" : `/posts/${result.postId}`,
-                  label: isWordPress ? "打開這篇草稿" : publishMode === "scheduled" ? "去 Queue 看排程" : "看這篇 Threads 指標"
-                });
-              }
-
-              if (!initialDraft) {
-                setTitle("");
-                setText("");
-                setHtml("");
-                setExcerpt("");
-                setMediaUrl("");
-                setFeaturedImageUrl("");
-                setCategories("");
-                setTags("");
-                setScheduledAt("");
-                if (isWordPress && result.postId) {
-                  router.refresh();
-                }
-              }
-            });
+            handleComposeSubmit();
           }}
         >
           {initialDraft ? (
@@ -943,11 +946,12 @@ export function PostComposerForm({
           ) : null}
 
           <button
-            type="submit"
+            type="button"
             disabled={submitDisabled}
             aria-disabled={disableReason !== null}
             title={disableReason ?? undefined}
             className="w-full rounded-2xl bg-[var(--accent)] px-4 py-3 text-white shadow-[0_16px_40px_rgba(187,90,54,0.24)] disabled:opacity-60"
+            onClick={handleComposeSubmit}
           >
             {isPending
               ? "送出中..."
