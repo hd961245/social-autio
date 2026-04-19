@@ -35,6 +35,7 @@ type WritingProfileOutput = {
 };
 
 type ProviderId = "openai" | "gemini" | "claude";
+const AI_PROVIDER_TIMEOUT_MS = 12000;
 
 function getProviderOrder(preferredProvider: RewriteInput["preferredProvider"] | WritingProfileInput["preferredProvider"]) {
   const ordered: ProviderId[] = [];
@@ -56,6 +57,26 @@ function hasProviderKey(provider: ProviderId) {
   if (provider === "openai") return Boolean(env.openaiApiKey());
   if (provider === "gemini") return Boolean(env.geminiApiKey());
   return Boolean(env.anthropicApiKey());
+}
+
+async function fetchWithTimeout(input: RequestInfo | URL, init?: RequestInit, timeoutMs = AI_PROVIDER_TIMEOUT_MS) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(`timeout:${timeoutMs}`), timeoutMs);
+
+  try {
+    return await fetch(input, {
+      ...init,
+      signal: controller.signal
+    });
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new Error(`provider timeout after ${timeoutMs}ms`);
+    }
+
+    throw error;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 function extractTextFromJsonBlock(raw: string) {
@@ -92,7 +113,7 @@ async function runOpenAiRewrite(input: RewriteInput): Promise<RewriteOutput> {
     throw new Error("Missing OPENAI_API_KEY");
   }
 
-  const response = await fetch("https://api.openai.com/v1/responses", {
+  const response = await fetchWithTimeout("https://api.openai.com/v1/responses", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -135,7 +156,7 @@ async function runGeminiRewrite(input: RewriteInput): Promise<RewriteOutput> {
     throw new Error("Missing GEMINI_API_KEY");
   }
 
-  const response = await fetch(
+  const response = await fetchWithTimeout(
     `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
     {
       method: "POST",
@@ -182,7 +203,7 @@ async function runClaudeRewrite(input: RewriteInput): Promise<RewriteOutput> {
     throw new Error("Missing ANTHROPIC_API_KEY");
   }
 
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
+  const response = await fetchWithTimeout("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -259,7 +280,7 @@ async function runOpenAiWritingProfile(input: WritingProfileInput): Promise<Writ
     throw new Error("Missing OPENAI_API_KEY");
   }
 
-  const response = await fetch("https://api.openai.com/v1/responses", {
+  const response = await fetchWithTimeout("https://api.openai.com/v1/responses", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -302,7 +323,7 @@ async function runGeminiWritingProfile(input: WritingProfileInput): Promise<Writ
     throw new Error("Missing GEMINI_API_KEY");
   }
 
-  const response = await fetch(
+  const response = await fetchWithTimeout(
     `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
     {
       method: "POST",
@@ -349,7 +370,7 @@ async function runClaudeWritingProfile(input: WritingProfileInput): Promise<Writ
     throw new Error("Missing ANTHROPIC_API_KEY");
   }
 
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
+  const response = await fetchWithTimeout("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
