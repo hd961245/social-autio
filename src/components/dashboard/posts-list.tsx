@@ -6,7 +6,7 @@ import type { PostSummary } from "@/lib/dashboard-data";
 export function PostsList({ posts }: { posts: PostSummary[] }) {
   const [items, setItems] = useState(posts);
   const [platformFilter, setPlatformFilter] = useState<"all" | "threads" | "wordpress">("all");
-  const [statusFilter, setStatusFilter] = useState<"all" | "draft" | "scheduled" | "published" | "failed">("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "draft" | "scheduled" | "awaiting_approval" | "published" | "failed" | "approval_rejected">("all");
   const [personaFilter, setPersonaFilter] = useState("all");
   const [query, setQuery] = useState("");
   const [message, setMessage] = useState<string | null>(null);
@@ -39,7 +39,9 @@ export function PostsList({ posts }: { posts: PostSummary[] }) {
   function getStatusClasses(status: string) {
     if (status === "published") return "border-emerald-200 bg-emerald-50 text-emerald-700";
     if (status === "scheduled") return "border-amber-200 bg-amber-50 text-amber-700";
+    if (status === "awaiting_approval") return "border-sky-200 bg-sky-50 text-sky-700";
     if (status === "draft") return "border-stone-200 bg-stone-100 text-stone-700";
+    if (status === "approval_rejected") return "border-fuchsia-200 bg-fuchsia-50 text-fuchsia-700";
     if (status === "failed") return "border-rose-200 bg-rose-50 text-rose-700";
     return "border-[var(--border)] bg-white text-[var(--foreground)]";
   }
@@ -68,7 +70,9 @@ export function PostsList({ posts }: { posts: PostSummary[] }) {
             { value: "all", label: "所有狀態" },
             { value: "draft", label: "草稿" },
             { value: "scheduled", label: "排程" },
+            { value: "awaiting_approval", label: "待確認" },
             { value: "published", label: "已發布" },
+            { value: "approval_rejected", label: "已拒絕" },
             { value: "failed", label: "失敗" }
           ].map((option) => (
             <button
@@ -78,7 +82,7 @@ export function PostsList({ posts }: { posts: PostSummary[] }) {
                 statusFilter === option.value ? "bg-[var(--accent)] text-white" : "bg-white text-[var(--foreground)]"
               }`}
               onClick={() =>
-                setStatusFilter(option.value as "all" | "draft" | "scheduled" | "published" | "failed")
+                setStatusFilter(option.value as "all" | "draft" | "scheduled" | "awaiting_approval" | "published" | "failed" | "approval_rejected")
               }
             >
               {option.label}
@@ -118,7 +122,10 @@ export function PostsList({ posts }: { posts: PostSummary[] }) {
             </div>
             <span className={`rounded-full border px-3 py-1 text-xs uppercase ${getStatusClasses(post.status)}`}>{post.status}</span>
           </div>
-          <p className="mt-4 text-sm text-[var(--muted)]">{post.status === "draft" ? "Last saved" : "Scheduled at"} {post.scheduledAt}</p>
+          <p className="mt-4 text-sm text-[var(--muted)]">
+            {post.status === "draft" ? "Last saved" : "Scheduled at"} {post.scheduledAt}
+            {post.requiresApproval ? " · Telegram approval" : ""}
+          </p>
           <div className="mt-3 flex flex-wrap gap-3">
             {post.platformUrl ? (
               <a href={post.platformUrl} target="_blank" className="text-sm text-[var(--accent)]">

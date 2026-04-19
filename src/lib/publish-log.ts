@@ -6,6 +6,9 @@ type PublishLogInput = {
   actionType:
     | "threads_publish"
     | "threads_schedule"
+    | "threads_approval_requested"
+    | "threads_approval_approved"
+    | "threads_approval_rejected"
     | "threads_publish_failed"
     | "threads_scheduled_publish"
     | "threads_scheduled_failed"

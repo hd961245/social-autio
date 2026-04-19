@@ -42,6 +42,7 @@ export default async function ComposePage({
         tags: string;
         status: string;
         scheduledAt: string;
+        requiresApproval?: boolean;
       }
     | null = null;
   let reviewContext:
@@ -88,7 +89,8 @@ export default async function ComposePage({
           categories: post.categories ? (JSON.parse(post.categories) as string[]).join(", ") : "",
           tags: post.tags ? (JSON.parse(post.tags) as string[]).join(", ") : "",
           status: post.status,
-          scheduledAt: post.scheduledAt ? new Date(post.scheduledAt).toISOString().slice(0, 16) : ""
+          scheduledAt: post.scheduledAt ? new Date(post.scheduledAt).toISOString().slice(0, 16) : "",
+          requiresApproval: post.requiresApproval
         };
       }
     }
@@ -113,7 +115,8 @@ export default async function ComposePage({
           categories: seedPost.categories ? (JSON.parse(seedPost.categories) as string[]).join(", ") : "",
           tags: seedPost.tags ? (JSON.parse(seedPost.tags) as string[]).join(", ") : "",
           status: "draft",
-          scheduledAt: ""
+          scheduledAt: "",
+          requiresApproval: false
         };
       }
     }

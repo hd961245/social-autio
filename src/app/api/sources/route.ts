@@ -5,7 +5,9 @@ import { prisma } from "@/lib/prisma";
 const sourceSchema = z.object({
   label: z.string().trim().min(1).max(120),
   sourceType: z.enum(["rss", "url"]),
-  sourceUrl: z.string().url()
+  sourceUrl: z.string().url(),
+  autoImportEnabled: z.boolean().optional().default(false),
+  preferredOutcome: z.enum(["threads", "wordpress"]).optional().default("threads")
 });
 
 export async function POST(request: Request) {
@@ -26,7 +28,9 @@ export async function POST(request: Request) {
         label: payload.label,
         sourceType: payload.sourceType,
         sourceUrl: payload.sourceUrl,
-        isActive: true
+        isActive: true,
+        autoImportEnabled: payload.autoImportEnabled,
+        preferredOutcome: payload.preferredOutcome
       }
     });
 

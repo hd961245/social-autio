@@ -109,6 +109,7 @@ type DraftPost = {
   tags: string;
   status: string;
   scheduledAt: string;
+  requiresApproval?: boolean;
 };
 
 type ReviewContext = {
@@ -164,9 +165,10 @@ export function PostComposerForm({
   const [tags, setTags] = useState(baseDraft?.tags ?? "");
   const [selectedTemplate, setSelectedTemplate] = useState<(typeof wordpressTemplates)[number]["id"]>("opinion");
   const [publishMode, setPublishMode] = useState<"immediate" | "scheduled">(
-    initialDraft?.status === "scheduled" ? "scheduled" : "immediate"
+    initialDraft?.status === "scheduled" || initialDraft?.status === "awaiting_approval" ? "scheduled" : "immediate"
   );
   const [scheduledAt, setScheduledAt] = useState(initialDraft?.scheduledAt ?? "");
+  const [requiresApproval, setRequiresApproval] = useState(Boolean(initialDraft?.requiresApproval));
   const [message, setMessage] = useState<string | null>(null);
   const [messageTone, setMessageTone] = useState<"neutral" | "success" | "error">("neutral");
   const [lastAction, setLastAction] = useState<null | { href: string; label: string }>(null);
@@ -318,7 +320,8 @@ export function PostComposerForm({
             : undefined,
           contentType: mediaUrl ? "image" : "text",
           publishMode,
-          scheduledAt: publishMode === "scheduled" && parsedScheduledAt ? parsedScheduledAt.toISOString() : undefined
+          scheduledAt: publishMode === "scheduled" && parsedScheduledAt ? parsedScheduledAt.toISOString() : undefined,
+          requiresApproval: !isWordPress && requiresApproval
         })
       });
 
@@ -336,7 +339,9 @@ export function PostComposerForm({
           (isWordPress
             ? "已同步到 WordPress 草稿。"
             : publishMode === "scheduled"
-              ? "已加入 Threads 排程佇列。"
+              ? requiresApproval
+                ? "已加入 Threads 排程，到點後會先送 Telegram 給你確認。"
+                : "已加入 Threads 排程佇列。"
               : "已更新 Threads 草稿。")
       );
       setMessageTone("success");
@@ -359,6 +364,7 @@ export function PostComposerForm({
         setCategories("");
         setTags("");
         setScheduledAt("");
+        setRequiresApproval(false);
         if (isWordPress && result.postId) {
           router.refresh();
         }
@@ -841,13 +847,26 @@ export function PostComposerForm({
             </div>
           )}
 
+          {!isWordPress ? (
+            <label className="flex items-center gap-3 rounded-3xl border border-[var(--border)] bg-white/78 px-4 py-3 text-sm">
+              <input
+                type="checkbox"
+                checked={requiresApproval}
+                onChange={(event) => setRequiresApproval(event.target.checked)}
+              />
+              <span>到點後先送 Telegram 給我確認，再真正發布到 Threads</span>
+            </label>
+          ) : null}
+
           <div className="sticky bottom-4 z-30 rounded-[1.6rem] border border-[var(--border-strong)] bg-[var(--card-strong)]/95 p-3 shadow-[0_18px_50px_rgba(40,23,10,0.18)] backdrop-blur">
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div className="text-sm text-[var(--muted)]">
                 {isWordPress
                   ? "先存成可編輯的 WordPress 草稿"
                   : publishMode === "scheduled"
-                    ? "確認排程後直接加入佇列"
+                    ? requiresApproval
+                      ? "到點後會先送 Telegram 給你確認"
+                      : "確認排程後直接加入佇列"
                     : "確認內容後直接送出 Threads"}
               </div>
               <button
@@ -905,7 +924,13 @@ export function PostComposerForm({
           <article className="rounded-3xl border border-[var(--border)] bg-white/82 p-4">
             <p className="text-[11px] uppercase tracking-[0.22em] text-[var(--muted)]">發文狀態</p>
             <p className="mt-3 text-sm leading-7 text-[var(--foreground)]">
-              {isWordPress ? "WordPress 只建立草稿，不會直接公開。" : publishMode === "scheduled" ? "這篇會加入排程佇列。" : "這篇會直接送往 Threads 發佈。"}
+              {isWordPress
+                ? "WordPress 只建立草稿，不會直接公開。"
+                : publishMode === "scheduled"
+                  ? requiresApproval
+                    ? "這篇會加入排程佇列，時間到會先送 Telegram 給你確認。"
+                    : "這篇會加入排程佇列。"
+                  : "這篇會直接送往 Threads 發佈。"}
             </p>
           </article>
           <article className="rounded-3xl border border-[var(--border)] bg-white/82 p-4">

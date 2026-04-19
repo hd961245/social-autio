@@ -15,7 +15,8 @@ const updatePostSchema = z.object({
   categories: z.array(z.string().trim().min(1)).optional(),
   tags: z.array(z.string().trim().min(1)).optional(),
   publishMode: z.enum(["immediate", "scheduled"]).default("immediate"),
-  scheduledAt: z.string().datetime().optional()
+  scheduledAt: z.string().datetime().optional(),
+  requiresApproval: z.boolean().optional().default(false)
 });
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -43,7 +44,9 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         ? "draft"
         : payload.publishMode === "scheduled"
           ? "scheduled"
-          : "draft";
+          : payload.requiresApproval
+            ? "scheduled"
+            : "draft";
 
     const updatedPost = await prisma.post.update({
       where: { id },
@@ -58,7 +61,17 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         categories: payload.categories?.length ? JSON.stringify(payload.categories) : null,
         tags: payload.tags?.length ? JSON.stringify(payload.tags) : null,
         status: nextStatus,
-        scheduledAt: nextStatus === "scheduled" && payload.scheduledAt ? new Date(payload.scheduledAt) : null,
+        scheduledAt:
+          nextStatus === "scheduled" && payload.scheduledAt
+            ? new Date(payload.scheduledAt)
+            : payload.requiresApproval
+              ? new Date()
+              : null,
+        requiresApproval: payload.requiresApproval,
+        approvalState: payload.requiresApproval ? "pending" : null,
+        approvalToken: null,
+        approvalRequestedAt: null,
+        approvalDecisionAt: null,
         errorMessage: null
       },
       include: {
@@ -148,14 +161,21 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         postId: updatedPost.id,
         actionType: "threads_schedule",
         status: "scheduled",
-        detail: `Threads 草稿已更新，預計 ${updatedPost.scheduledAt?.toLocaleString("zh-TW", { hour12: false }) ?? "稍後"} 發布`
+        detail: payload.requiresApproval
+          ? "Threads 草稿已更新，到點後會先送 Telegram 給你確認"
+          : `Threads 草稿已更新，預計 ${updatedPost.scheduledAt?.toLocaleString("zh-TW", { hour12: false }) ?? "稍後"} 發布`
       });
     }
 
     return NextResponse.json({
       ok: true,
       postId: updatedPost.id,
-      message: nextStatus === "scheduled" ? "Threads 草稿已更新，會照排程送出。" : "Threads 草稿已更新。"
+      message:
+        nextStatus === "scheduled"
+          ? payload.requiresApproval
+            ? "Threads 草稿已更新，到點後會先送 Telegram 給你確認。"
+            : "Threads 草稿已更新，會照排程送出。"
+          : "Threads 草稿已更新。"
     });
   } catch (error) {
     return NextResponse.json(

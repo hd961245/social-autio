@@ -2,10 +2,13 @@ export async function runScheduledPosts() {
   const { getPlatformAdapter } = await import("@/lib/platforms");
   const { logPublishEvent } = await import("@/lib/publish-log");
   const { prisma } = await import("@/lib/prisma");
+  const { requestThreadsApproval } = await import("@/lib/threads-approval");
 
   const duePosts = await prisma.post.findMany({
     where: {
-      status: "scheduled",
+      status: {
+        in: ["scheduled", "awaiting_approval"]
+      },
       scheduledAt: {
         lte: new Date()
       },
@@ -27,6 +30,14 @@ export async function runScheduledPosts() {
 
   for (const post of duePosts) {
     try {
+      if (post.requiresApproval && post.approvalState !== "approved") {
+        if (post.approvalState !== "requested") {
+          await requestThreadsApproval(post.id);
+        }
+
+        continue;
+      }
+
       await prisma.post.update({
         where: { id: post.id },
         data: { status: "publishing" }

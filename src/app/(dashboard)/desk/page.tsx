@@ -2,7 +2,7 @@ import { ContentEngineForm } from "@/components/dashboard/content-engine-form";
 import { PageIntro } from "@/components/dashboard/page-intro";
 import { PostsList } from "@/components/dashboard/posts-list";
 import { SourceInbox } from "@/components/dashboard/source-inbox";
-import { SourceWatchlist } from "@/components/dashboard/source-watchlist";
+import { SourceWatchlist, type SourceItem as SourceWatchItem } from "@/components/dashboard/source-watchlist";
 import { getAnalyticsOverview, getPostSummaries } from "@/lib/dashboard-data";
 import { routeSourceToPersona, scoreSourceItem } from "@/lib/content/source-inbox";
 import { prisma } from "@/lib/prisma";
@@ -140,12 +140,14 @@ export default async function DeskPage({
       };
     });
 
-  const trackedSources = sourceItems.map((item) => ({
+  const trackedSources: SourceWatchItem[] = sourceItems.map((item) => ({
     id: item.id,
     label: item.label,
     sourceType: item.sourceType as "rss" | "url",
     sourceUrl: item.sourceUrl,
     isActive: item.isActive,
+    autoImportEnabled: item.autoImportEnabled,
+    preferredOutcome: item.preferredOutcome === "wordpress" ? "wordpress" : "threads",
     lastFetchedAt: item.lastFetchedAt?.toLocaleString("zh-TW", { hour12: false }) ?? "尚未刷新",
     lastItemTitle: item.lastItemTitle ?? "",
     lastItemUrl: item.lastItemUrl ?? "",

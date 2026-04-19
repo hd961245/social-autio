@@ -19,6 +19,8 @@ export type PostSummary = {
   platform: string;
   personaLabel?: string;
   status: string;
+  requiresApproval?: boolean;
+  approvalState?: string | null;
   scheduledAt: string;
   text: string;
   title?: string | null;
@@ -800,7 +802,9 @@ export async function getComposeHealth(): Promise<ComposeHealth> {
       }),
       prisma.post.count({
         where: {
-          status: "scheduled",
+          status: {
+            in: ["scheduled", "awaiting_approval"]
+          },
           account: {
             platform: "threads"
           }
@@ -815,7 +819,7 @@ export async function getComposeHealth(): Promise<ComposeHealth> {
         tokenStatus: "missing",
         tokenMessage: "沒有 Threads token 可用",
         queueCount: scheduledCount,
-        queueMessage: scheduledCount > 0 ? `目前有 ${scheduledCount} 筆 Threads 排程待送出` : "目前沒有待送出的 Threads 排程"
+        queueMessage: scheduledCount > 0 ? `目前有 ${scheduledCount} 筆 Threads 排程 / 待確認貼文` : "目前沒有待送出的 Threads 排程"
       };
     }
 
@@ -827,7 +831,7 @@ export async function getComposeHealth(): Promise<ComposeHealth> {
       tokenStatus: expiringSoon ? "expiring" : "healthy",
       tokenMessage: expiringSoon ? "Threads token 7 天內將到期，建議儘快重新授權" : "Threads token 狀態正常",
       queueCount: scheduledCount,
-      queueMessage: scheduledCount > 0 ? `目前有 ${scheduledCount} 筆 Threads 排程待送出` : "目前沒有待送出的 Threads 排程"
+      queueMessage: scheduledCount > 0 ? `目前有 ${scheduledCount} 筆 Threads 排程 / 待確認貼文` : "目前沒有待送出的 Threads 排程"
     };
   } catch {
     return {
@@ -899,6 +903,8 @@ export async function getPostSummaries(): Promise<PostSummary[]> {
       platform: post.account.platform,
       personaLabel: post.account.personaLabel ?? undefined,
       status: post.status,
+      requiresApproval: post.requiresApproval,
+      approvalState: post.approvalState,
       scheduledAt: formatDate(post.scheduledAt ?? post.createdAt),
       text: post.title ?? post.textContent ?? "(無文字內容)",
       title: post.title,

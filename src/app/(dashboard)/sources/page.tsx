@@ -27,6 +27,8 @@ export default async function SourcesPage() {
           sourceType: item.sourceType as "rss" | "url",
           sourceUrl: item.sourceUrl,
           isActive: item.isActive,
+          autoImportEnabled: item.autoImportEnabled,
+          preferredOutcome: item.preferredOutcome === "wordpress" ? "wordpress" : "threads",
           lastFetchedAt: item.lastFetchedAt?.toLocaleString("zh-TW", { hour12: false }) ?? "尚未刷新",
           lastItemTitle: item.lastItemTitle ?? "",
           lastItemUrl: item.lastItemUrl ?? "",

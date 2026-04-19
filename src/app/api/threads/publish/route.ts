@@ -18,7 +18,8 @@ const publishSchema = z.object({
   tags: z.array(z.string().trim().min(1)).optional(),
   replyToPostId: z.string().trim().optional(),
   publishMode: z.enum(["immediate", "scheduled"]).default("immediate"),
-  scheduledAt: z.string().datetime().optional()
+  scheduledAt: z.string().datetime().optional(),
+  requiresApproval: z.boolean().optional().default(false)
 });
 
 export async function POST(request: Request) {
@@ -137,24 +138,34 @@ export async function POST(request: Request) {
         featuredImageUrl: payload.featuredImageUrl ?? null,
         categories: payload.categories?.length ? JSON.stringify(payload.categories) : null,
         tags: payload.tags?.length ? JSON.stringify(payload.tags) : null,
-        status: payload.publishMode === "scheduled" ? "scheduled" : "publishing",
-        scheduledAt: payload.publishMode === "scheduled" && payload.scheduledAt ? new Date(payload.scheduledAt) : null,
-        replyToPostId: payload.replyToPostId ?? null
+        status: payload.publishMode === "scheduled" || payload.requiresApproval ? "scheduled" : "publishing",
+        scheduledAt:
+          payload.publishMode === "scheduled" && payload.scheduledAt
+            ? new Date(payload.scheduledAt)
+            : payload.requiresApproval
+              ? new Date()
+              : null,
+        replyToPostId: payload.replyToPostId ?? null,
+        requiresApproval: payload.requiresApproval,
+        approvalState: payload.requiresApproval ? "pending" : null
       }
     });
 
-    if (payload.publishMode === "scheduled") {
+    if (payload.publishMode === "scheduled" || payload.requiresApproval) {
       await logPublishEvent({
         accountId: createdPost.accountId,
         postId: createdPost.id,
         actionType: "threads_schedule",
         status: "scheduled",
-        detail: `已加入 Threads 排程，預計 ${createdPost.scheduledAt?.toLocaleString("zh-TW", { hour12: false }) ?? "稍後"} 送出`
+        detail: payload.requiresApproval
+          ? "已加入 Threads 排程，到點後會先送 Telegram 給你確認"
+          : `已加入 Threads 排程，預計 ${createdPost.scheduledAt?.toLocaleString("zh-TW", { hour12: false }) ?? "稍後"} 送出`
       });
 
       return NextResponse.json({
         ok: true,
         scheduled: true,
+        approvalRequired: payload.requiresApproval,
         postId: createdPost.id
       });
     }

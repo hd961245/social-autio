@@ -2,12 +2,14 @@
 
 import { useState, useTransition } from "react";
 
-type SourceItem = {
+export type SourceItem = {
   id: string;
   label: string;
   sourceType: "rss" | "url";
   sourceUrl: string;
   isActive: boolean;
+  autoImportEnabled: boolean;
+  preferredOutcome: "threads" | "wordpress";
   lastFetchedAt: string;
   lastItemTitle: string;
   lastItemUrl: string;
@@ -21,6 +23,8 @@ export function SourceWatchlist({ initialItems }: { initialItems: SourceItem[] }
   const [label, setLabel] = useState("");
   const [sourceType, setSourceType] = useState<"rss" | "url">("rss");
   const [sourceUrl, setSourceUrl] = useState("");
+  const [autoImportEnabled, setAutoImportEnabled] = useState(true);
+  const [preferredOutcome, setPreferredOutcome] = useState<"threads" | "wordpress">("threads");
   const [message, setMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -48,7 +52,7 @@ export function SourceWatchlist({ initialItems }: { initialItems: SourceItem[] }
         </div>
 
         <form
-          className="mt-6 grid gap-4 lg:grid-cols-[1fr_180px_1.2fr_auto]"
+          className="mt-6 grid gap-4 lg:grid-cols-[1fr_160px_1.1fr_180px_auto]"
           onSubmit={(event) => {
             event.preventDefault();
             startTransition(async () => {
@@ -56,7 +60,7 @@ export function SourceWatchlist({ initialItems }: { initialItems: SourceItem[] }
               const response = await fetch("/api/sources", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ label, sourceType, sourceUrl })
+                body: JSON.stringify({ label, sourceType, sourceUrl, autoImportEnabled, preferredOutcome })
               });
               const result = await response.json();
 
@@ -72,6 +76,8 @@ export function SourceWatchlist({ initialItems }: { initialItems: SourceItem[] }
                   sourceType: result.item.sourceType,
                   sourceUrl: result.item.sourceUrl,
                   isActive: result.item.isActive,
+                  autoImportEnabled: result.item.autoImportEnabled,
+                  preferredOutcome: result.item.preferredOutcome,
                   lastFetchedAt: "尚未刷新",
                   lastItemTitle: "",
                   lastItemUrl: "",
@@ -83,6 +89,8 @@ export function SourceWatchlist({ initialItems }: { initialItems: SourceItem[] }
               ]);
               setLabel("");
               setSourceUrl("");
+              setAutoImportEnabled(true);
+              setPreferredOutcome("threads");
               setMessage("已加入來源名單。");
             });
           }}
@@ -109,10 +117,22 @@ export function SourceWatchlist({ initialItems }: { initialItems: SourceItem[] }
             onChange={(event) => setSourceUrl(event.target.value)}
             required
           />
+          <select
+            className="rounded-2xl border border-[var(--border)] bg-white/85 px-4 py-3"
+            value={preferredOutcome}
+            onChange={(event) => setPreferredOutcome(event.target.value as "threads" | "wordpress")}
+          >
+            <option value="threads">日更進 Threads 草稿</option>
+            <option value="wordpress">日更進 WordPress 草稿</option>
+          </select>
           <button disabled={isPending} className="rounded-full bg-[var(--accent)] px-5 py-3 text-sm text-white">
             {isPending ? "新增中..." : "加入名單"}
           </button>
         </form>
+        <label className="mt-4 flex items-center gap-3 text-sm text-[var(--muted)]">
+          <input type="checkbox" checked={autoImportEnabled} onChange={(event) => setAutoImportEnabled(event.target.checked)} />
+          每天自動匯入最新內容到站內草稿池
+        </label>
         {message ? <p className="mt-4 text-sm text-[var(--muted)]">{message}</p> : null}
       </section>
 
@@ -139,6 +159,9 @@ export function SourceWatchlist({ initialItems }: { initialItems: SourceItem[] }
                     </span>
                   </div>
                   <p className="mt-2 text-sm text-[var(--muted)]">{item.sourceUrl}</p>
+                  <p className="mt-2 text-xs uppercase tracking-[0.16em] text-[var(--muted)]">
+                    {item.autoImportEnabled ? `daily auto-import → ${item.preferredOutcome}` : "manual import only"}
+                  </p>
                   {item.lastItemTitle ? <p className="mt-4 text-sm font-medium">{item.lastItemTitle}</p> : null}
                   {item.lastExcerpt ? <p className="mt-2 text-sm leading-7 text-[var(--muted)]">{item.lastExcerpt}</p> : null}
                   {item.lastError ? <p className="mt-2 text-sm text-rose-600">{item.lastError}</p> : null}
@@ -154,6 +177,35 @@ export function SourceWatchlist({ initialItems }: { initialItems: SourceItem[] }
                       看最新原文
                     </a>
                   ) : null}
+                  <button
+                    disabled={isPending}
+                    className="rounded-full border border-[var(--border)] bg-white px-4 py-2 text-sm"
+                    onClick={() =>
+                      startTransition(async () => {
+                        setMessage(null);
+                        const response = await fetch(`/api/sources/${item.id}`, {
+                          method: "PATCH",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ autoImportEnabled: !item.autoImportEnabled })
+                        });
+                        const result = await response.json();
+
+                        if (!response.ok) {
+                          setMessage(result.message ?? "更新失敗");
+                          return;
+                        }
+
+                        setItems((current) =>
+                          current.map((source) =>
+                            source.id === item.id ? { ...source, autoImportEnabled: !source.autoImportEnabled } : source
+                          )
+                        );
+                        setMessage(item.autoImportEnabled ? "已改成手動匯入。" : "已開啟每日自動匯入。");
+                      })
+                    }
+                  >
+                    {item.autoImportEnabled ? "改成手動" : "開啟日更"}
+                  </button>
                   <button
                     disabled={isPending}
                     className="rounded-full border border-[var(--border)] bg-white px-4 py-2 text-sm"

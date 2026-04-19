@@ -74,7 +74,11 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     }
     const body = await request.json().catch(() => ({}));
     const preferredOutcome =
-      body?.preferredOutcome === "threads" || body?.preferredOutcome === "wordpress" ? body.preferredOutcome : "threads";
+      body?.preferredOutcome === "threads" || body?.preferredOutcome === "wordpress"
+        ? body.preferredOutcome
+        : watch.preferredOutcome === "threads" || watch.preferredOutcome === "wordpress"
+          ? watch.preferredOutcome
+          : "threads";
     const targetThreadsAccountId =
       typeof body?.targetThreadsAccountId === "string" && body.targetThreadsAccountId.trim()
         ? body.targetThreadsAccountId.trim()
