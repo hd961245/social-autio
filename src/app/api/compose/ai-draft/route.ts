@@ -9,6 +9,9 @@ type ComposeAiDraftInput = {
   sourceUrl?: string;
   title?: string;
   rawText?: string;
+  brief?: string;
+  goal?: string;
+  optimizeFor?: string;
   provider?: "auto" | "gemini" | "claude" | "openai";
   wordpressTemplate?: "opinion" | "case-study" | "tool-review" | "weekly-recap";
 };
@@ -48,13 +51,16 @@ export async function POST(request: Request) {
     const sourceUrl = body.sourceUrl?.trim() || "";
     const rawText = body.rawText?.trim() || "";
     const rawTitle = body.title?.trim() || "";
+    const brief = body.brief?.trim() || "";
+    const goal = body.goal?.trim() || "";
+    const optimizeFor = body.optimizeFor?.trim() || "";
 
     if (sourceType === "url" && !sourceUrl) {
       return NextResponse.json({ ok: false, message: "網址模式需要先貼一個公開連結。" }, { status: 400 });
     }
 
-    if (sourceType === "text" && !rawText) {
-      return NextResponse.json({ ok: false, message: "純文字模式需要先貼一段素材。" }, { status: 400 });
+    if (sourceType === "text" && !rawText && !brief) {
+      return NextResponse.json({ ok: false, message: "至少給一段素材，或直接告訴 AI 你想寫的方向。" }, { status: 400 });
     }
 
     const user = await prisma.user.upsert({
@@ -96,6 +102,14 @@ export async function POST(request: Request) {
 
     if (!safeTitle) {
       safeTitle = "未命名素材";
+    }
+
+    const directionContext = [brief ? `這次想寫的方向：${brief}` : "", goal ? `希望達成的效果：${goal}` : "", optimizeFor ? `優化重點：${optimizeFor}` : ""]
+      .filter(Boolean)
+      .join("\n");
+
+    if (directionContext) {
+      safeText = [directionContext, safeText].filter(Boolean).join("\n\n");
     }
 
     if (!safeText) {

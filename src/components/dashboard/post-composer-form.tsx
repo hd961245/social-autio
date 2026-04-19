@@ -175,6 +175,9 @@ export function PostComposerForm({
   const [isAiPending, startAiTransition] = useTransition();
   const [aiSourceType, setAiSourceType] = useState<"text" | "url">("text");
   const [aiTitle, setAiTitle] = useState("");
+  const [aiBrief, setAiBrief] = useState("");
+  const [aiGoal, setAiGoal] = useState("");
+  const [aiOptimizeFor, setAiOptimizeFor] = useState("");
   const [aiRawText, setAiRawText] = useState("");
   const [aiSourceUrl, setAiSourceUrl] = useState("");
   const [aiProvider, setAiProvider] = useState<"auto" | "gemini" | "claude" | "openai">(initialAiProvider);
@@ -213,7 +216,7 @@ export function PostComposerForm({
 </ul>
 <p>${affiliateLibrary.cta || "這裡補上一段導購 CTA 或下一步。"}</p>`;
   const charactersLeft = 500 - text.length;
-  const aiCanGenerate = Boolean(accountId && (aiSourceType === "url" ? aiSourceUrl.trim() : aiRawText.trim()));
+  const aiCanGenerate = Boolean(accountId && (aiSourceType === "url" ? aiSourceUrl.trim() || aiBrief.trim() : aiRawText.trim() || aiBrief.trim()));
   const latestDraft = recentItems[0] ?? null;
   const latestPublishLog = publishLogs[0] ?? null;
 
@@ -546,14 +549,43 @@ export function PostComposerForm({
                   ) : null}
                 </div>
                 <label className="rounded-3xl bg-white/88 p-4">
-                  <span className="mb-2 block text-sm text-[var(--muted)]">這次素材主題</span>
+                  <span className="mb-2 block text-sm text-[var(--muted)]">你想讓 AI 寫什麼</span>
                   <input
                     className="w-full rounded-2xl border border-[var(--border)] bg-transparent px-4 py-3 outline-none"
-                    placeholder={isWordPress ? "例如：把這則 Threads 延伸成教學文" : "例如：把這段觀察改寫成 Threads 首發"}
+                    placeholder={isWordPress ? "例如：把這則 Threads 延伸成一篇教學長文" : "例如：幫我寫一篇有觀點的 Threads 首發"}
                     value={aiTitle}
                     onChange={(event) => setAiTitle(event.target.value)}
                   />
                 </label>
+                <label className="rounded-3xl bg-white/88 p-4">
+                  <span className="mb-2 block text-sm text-[var(--muted)]">方向 / 重點</span>
+                  <textarea
+                    className="min-h-28 w-full resize-none rounded-2xl border border-[var(--border)] bg-transparent p-4 outline-none"
+                    placeholder="例如：主題是 AI 工作流，不要太工具導向，要像創作者在分享自己的做法。"
+                    value={aiBrief}
+                    onChange={(event) => setAiBrief(event.target.value)}
+                  />
+                </label>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <label className="rounded-3xl bg-white/88 p-4">
+                    <span className="mb-2 block text-sm text-[var(--muted)]">希望達成的效果</span>
+                    <input
+                      className="w-full rounded-2xl border border-[var(--border)] bg-transparent px-4 py-3 outline-none"
+                      placeholder="例如：讓人想留言、讓第一句更有停留感"
+                      value={aiGoal}
+                      onChange={(event) => setAiGoal(event.target.value)}
+                    />
+                  </label>
+                  <label className="rounded-3xl bg-white/88 p-4">
+                    <span className="mb-2 block text-sm text-[var(--muted)]">優化重點</span>
+                    <input
+                      className="w-full rounded-2xl border border-[var(--border)] bg-transparent px-4 py-3 outline-none"
+                      placeholder="例如：hook、節奏、CTA、可讀性"
+                      value={aiOptimizeFor}
+                      onChange={(event) => setAiOptimizeFor(event.target.value)}
+                    />
+                  </label>
+                </div>
                 {aiSourceType === "url" ? (
                   <label className="rounded-3xl bg-white/88 p-4">
                     <span className="mb-2 block text-sm text-[var(--muted)]">公開連結</span>
@@ -595,14 +627,17 @@ export function PostComposerForm({
                         headers: {
                           "Content-Type": "application/json"
                         },
-                        body: JSON.stringify({
-                          accountId,
-                          sourceType: aiSourceType,
-                          sourceUrl: aiSourceType === "url" ? aiSourceUrl : undefined,
-                          title: aiTitle,
-                          rawText: aiSourceType === "text" ? aiRawText : undefined,
-                          provider: aiProvider,
-                          wordpressTemplate: isWordPress ? aiWordpressTemplate : undefined
+                      body: JSON.stringify({
+                        accountId,
+                        sourceType: aiSourceType,
+                        sourceUrl: aiSourceType === "url" ? aiSourceUrl : undefined,
+                        title: aiTitle,
+                        brief: aiBrief,
+                        goal: aiGoal,
+                        optimizeFor: aiOptimizeFor,
+                        rawText: aiSourceType === "text" ? aiRawText : undefined,
+                        provider: aiProvider,
+                        wordpressTemplate: isWordPress ? aiWordpressTemplate : undefined
                         })
                       });
 
