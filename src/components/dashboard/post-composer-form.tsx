@@ -119,14 +119,6 @@ type ReviewContext = {
   insights: string[];
 };
 
-type PersonaMemory = {
-  accountId: string;
-  topOpeners: string[];
-  topClosers: string[];
-  patternNote: string;
-  recommendedMove: string;
-};
-
 type PublishOutcomeLog = {
   id: string;
   actionType: string;
@@ -137,34 +129,6 @@ type PublishOutcomeLog = {
   postHref: string;
 };
 
-function buildHookSuggestions(account: AccountOption | undefined) {
-  const label = account?.personaLabel || account?.defaultTone || "default";
-
-  if (label.includes("mystic") || label.includes("guide")) {
-    return ["先說一個反常識結論：", "最近我一直在想一件事：", "如果你卡在這裡，先看這一句："];
-  }
-
-  if (label.includes("founder") || label.includes("創業")) {
-    return ["如果我是創業者，我會先看這個：", "這件事我最近在實際經營裡反覆驗證：", "先講結論，這個決策比想像中更重要："];
-  }
-
-  return ["我看到一個很值得拆的點：", "先說結論，這件事不要再直覺做了：", "如果你只記一件事，先記這個："];
-}
-
-function buildCtaSuggestions(account: AccountOption | undefined) {
-  const label = account?.personaLabel || account?.defaultTone || "default";
-
-  if (label.includes("mystic") || label.includes("guide")) {
-    return ["如果你也在想同一題，留言告訴我。", "想看我繼續拆這個方向，我再往下寫。", "如果這段有戳到你，留一句你的觀察。"];
-  }
-
-  if (label.includes("founder") || label.includes("創業")) {
-    return ["如果你也在做這題，我想知道你會怎麼判斷。", "想看我把這件事拆成實際操作，再跟我說。", "如果你也踩過這個坑，留言補你的版本。"];
-  }
-
-  return ["如果你也有同感，留言讓我知道。", "想看我把這題延伸成長文，我再寫下一篇。", "如果這篇對你有用，轉給也在做這題的人。"];
-}
-
 export function PostComposerForm({
   accounts,
   recentPosts,
@@ -173,7 +137,6 @@ export function PostComposerForm({
   initialSeed,
   reviewContext,
   preferredAccountId,
-  personaMemories,
   publishLogs,
   initialAiProvider
 }: {
@@ -184,7 +147,6 @@ export function PostComposerForm({
   initialSeed?: DraftPost | null;
   reviewContext?: ReviewContext | null;
   preferredAccountId?: string;
-  personaMemories: Record<string, PersonaMemory>;
   publishLogs: PublishOutcomeLog[];
   initialAiProvider: "auto" | "gemini" | "claude" | "openai";
 }) {
@@ -221,7 +183,6 @@ export function PostComposerForm({
   const [aiMessageTone, setAiMessageTone] = useState<"neutral" | "success" | "error">("neutral");
 
   const selectedAccount = accounts.find((account) => account.id === accountId);
-  const selectedMemory = selectedAccount ? personaMemories[selectedAccount.id] : undefined;
   const isWordPress = selectedAccount?.platform === "wordpress";
   const hasThreadsAccount = accounts.some((account) => account.platform === "threads");
   const normalizedScheduledAt = scheduledAt.trim();
@@ -232,8 +193,6 @@ export function PostComposerForm({
       normalizedScheduledAt &&
       (!parsedScheduledAt || Number.isNaN(parsedScheduledAt.getTime()))
   );
-  const hookSuggestions = buildHookSuggestions(selectedAccount);
-  const ctaSuggestions = buildCtaSuggestions(selectedAccount);
   const disableReason =
     isPending ? "正在送出中，請稍等。" :
     !accountId ? "請先選一個發布帳號。" :
@@ -519,12 +478,9 @@ export function PostComposerForm({
                 ))}
               </select>
             </label>
-            <div className="rounded-3xl border border-[var(--border-strong)] bg-[rgba(200,79,44,0.08)] px-4 py-4 text-sm text-[var(--foreground)] md:min-w-[180px]">
-              <p className="text-[11px] uppercase tracking-[0.24em] text-[var(--muted)]">Current Mode</p>
-              <p className="mt-2 text-base font-semibold">{isWordPress ? "WordPress Draft" : "Threads Publish"}</p>
-              <p className="mt-2 leading-6 text-[var(--muted)]">
-                {isWordPress ? "只會更新後台草稿，不直接發布。" : "可立即發布或加入排程。"}
-              </p>
+            <div className="rounded-3xl border border-[var(--border)] bg-white/82 px-4 py-4 text-sm text-[var(--muted)] md:min-w-[220px]">
+              <p className="text-[11px] uppercase tracking-[0.24em] text-[var(--muted)]">目前模式</p>
+              <p className="mt-2 font-semibold text-[var(--foreground)]">{isWordPress ? "WordPress 草稿" : "Threads 發佈"}</p>
             </div>
           </div>
           <div className="flex flex-wrap gap-3">
@@ -541,10 +497,8 @@ export function PostComposerForm({
                 <h3 className="mt-2 text-xl font-semibold">直接把素材灌進目前這份稿</h3>
               </div>
               <div className="rounded-2xl border border-[var(--border)] bg-white/78 px-4 py-3 text-sm text-[var(--muted)]">
-                目前會套用：
-                <span className="ml-2 font-medium text-[var(--foreground)]">
-                  {selectedAccount ? `${selectedAccount.username}${selectedAccount.personaLabel ? ` · ${selectedAccount.personaLabel}` : ""}` : "尚未選帳號"}
-                </span>
+                套用帳號：
+                <span className="ml-2 font-medium text-[var(--foreground)]">{selectedAccount ? `${selectedAccount.username}${selectedAccount.personaLabel ? ` · ${selectedAccount.personaLabel}` : ""}` : "尚未選帳號"}</span>
               </div>
             </div>
             <div className="mt-4 grid gap-4 xl:grid-cols-[0.85fr_1.15fr]">
@@ -623,12 +577,9 @@ export function PostComposerForm({
                 )}
               </div>
               <div className="rounded-[1.6rem] border border-[var(--border)] bg-[var(--card-dark)] p-5 text-white">
-                <p className="text-xs uppercase tracking-[0.2em] text-white/55">AI 起稿後會直接覆蓋當前編輯欄位</p>
+                <p className="text-xs uppercase tracking-[0.2em] text-white/55">AI 起稿</p>
                 <div className="mt-4 space-y-3 text-sm leading-7 text-white/80">
-                  <p>{isWordPress ? "會直接填入標題、摘要、HTML 長文草稿。" : "會直接把 Threads 草稿灌進貼文內容。"} 不會先另外落一份草稿。</p>
-                  <p>如果你只是想先測一個角度，直接按一次 AI 起稿，再在下方微調後立即發或排程就好。</p>
-                  {selectedAccount?.topicFocus ? <p>題材範圍：{selectedAccount.topicFocus}</p> : null}
-                  {selectedAccount?.voiceGuardrails ? <p>語氣禁區：{selectedAccount.voiceGuardrails}</p> : null}
+                  <p>{isWordPress ? "會直接填入標題、摘要與長文草稿。" : "會直接把 Threads 草稿灌進貼文內容。"} 不會另外再開一份稿。</p>
                 </div>
                 <button
                   type="button"
@@ -701,63 +652,6 @@ export function PostComposerForm({
             <div className="rounded-3xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
               目前沒有 Threads 帳號，現在只能建立 WordPress 草稿。若要直接發布 Threads，先到 Accounts 完成授權。
             </div>
-          ) : null}
-          {!isWordPress && selectedAccount ? (
-            <details className="rounded-3xl border border-[var(--border-strong)] bg-[rgba(200,79,44,0.08)] p-4">
-              <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
-                <div>
-                  <p className="text-[11px] uppercase tracking-[0.24em] text-[var(--muted)]">Persona Assist</p>
-                  <p className="mt-2 text-base font-semibold">
-                    {selectedAccount.username}
-                    {selectedAccount.personaLabel ? ` · ${selectedAccount.personaLabel}` : ""}
-                  </p>
-                </div>
-                <span className="text-xs text-[var(--muted)]">展開建議</span>
-              </summary>
-              <div className="mt-4">
-                <div className="min-w-0">
-                  <p className="text-sm text-[var(--muted)]">預設語氣：{selectedAccount.defaultTone || "沿用全域設定"}</p>
-                  <p className="mt-3 text-sm leading-7 text-[var(--muted)]">
-                    {selectedAccount.personaPrompt || "這個帳號還沒有獨立 persona prompt，建議去 Accounts 補上。"}
-                  </p>
-                  {selectedAccount.topicFocus ? <p className="mt-3 text-sm leading-7 text-[var(--muted)]">題材範圍：{selectedAccount.topicFocus}</p> : null}
-                  {selectedAccount.hookStyle ? <p className="mt-2 text-sm leading-7 text-[var(--muted)]">Hook 風格：{selectedAccount.hookStyle}</p> : null}
-                  {selectedAccount.ctaStyle ? <p className="mt-2 text-sm leading-7 text-[var(--muted)]">CTA 風格：{selectedAccount.ctaStyle}</p> : null}
-                  {selectedAccount.voiceGuardrails ? <p className="mt-2 text-sm leading-7 text-[var(--muted)]">語氣禁區：{selectedAccount.voiceGuardrails}</p> : null}
-                  {selectedMemory ? (
-                    <>
-                      <p className="mt-3 text-sm font-medium text-[var(--foreground)]">近期內容記憶</p>
-                      <p className="mt-2 text-sm leading-7 text-[var(--muted)]">{selectedMemory.patternNote}</p>
-                      <p className="mt-2 text-sm leading-7 text-[var(--muted)]">{selectedMemory.recommendedMove}</p>
-                    </>
-                  ) : null}
-                </div>
-                <div className="mt-4 flex flex-wrap gap-2">
-                  {hookSuggestions.map((hook) => (
-                    <button
-                      key={hook}
-                      type="button"
-                      className="rounded-full border border-[var(--border)] bg-white px-4 py-2 text-sm"
-                      onClick={() => setText((current) => `${hook}${current ? `\n\n${current}` : ""}`)}
-                    >
-                      {hook}
-                    </button>
-                  ))}
-                </div>
-                <div className="mt-4 grid gap-3 md:grid-cols-3">
-                  {ctaSuggestions.map((cta) => (
-                    <button
-                      key={cta}
-                      type="button"
-                      className="rounded-[1.2rem] border border-[var(--border)] bg-white/78 px-4 py-3 text-left text-sm"
-                      onClick={() => setText((current) => `${current.trim()}${current.trim() ? "\n\n" : ""}${cta}`)}
-                    >
-                      {cta}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </details>
           ) : null}
           {isWordPress ? (
             <div className="rounded-3xl bg-white/85 p-4">

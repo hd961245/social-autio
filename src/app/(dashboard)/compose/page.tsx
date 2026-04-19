@@ -3,7 +3,6 @@ import { HelpSheet } from "@/components/dashboard/help-sheet";
 import { PageIntro } from "@/components/dashboard/page-intro";
 import { PostComposerForm } from "@/components/dashboard/post-composer-form";
 import { getComposeHealth, getDatabaseStatus, getPublishOutcomeLogs, getThreadPostDeepDive } from "@/lib/dashboard-data";
-import { buildPersonaMemories } from "@/lib/persona-memory";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -28,16 +27,6 @@ export default async function ComposePage({
       }>
     >
   > = [];
-  let personaMemories: Record<
-    string,
-    {
-      accountId: string;
-      topOpeners: string[];
-      topClosers: string[];
-      patternNote: string;
-      recommendedMove: string;
-    }
-  > = {};
   let draftPost:
     | {
         id: string;
@@ -78,37 +67,6 @@ export default async function ComposePage({
       }),
       prisma.appSettings.findFirst()
     ]);
-
-    const memoryPosts = await prisma.post.findMany({
-      where: {
-        status: "published",
-        account: {
-          platform: "threads"
-        }
-      },
-      include: {
-        metrics: {
-          orderBy: { capturedAt: "desc" },
-          take: 1
-        }
-      },
-      orderBy: { publishedAt: "desc" },
-      take: 40
-    });
-
-    personaMemories = buildPersonaMemories(
-      memoryPosts.map((post) => ({
-        id: post.id,
-        accountId: post.accountId,
-        text: post.textContent ?? post.title ?? "",
-        likes: post.metrics[0]?.likes ?? 0,
-        replies: post.metrics[0]?.replies ?? 0,
-        reposts: post.metrics[0]?.reposts ?? 0,
-        quotes: post.metrics[0]?.quotes ?? 0,
-        shares: post.metrics[0]?.shares ?? 0,
-        views: post.metrics[0]?.views ?? 0
-      }))
-    );
 
     if (params?.postId) {
       const post = await prisma.post.findUnique({
@@ -264,7 +222,6 @@ export default async function ComposePage({
         initialSeed={!draftPost?.id && draftPost ? draftPost : null}
         reviewContext={reviewContext}
         preferredAccountId={preferredAccountId}
-        personaMemories={personaMemories}
         publishLogs={publishLogs}
         initialAiProvider={(settings?.aiProvider as "auto" | "gemini" | "claude" | "openai" | undefined) ?? "auto"}
       />
