@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { HelpSheet } from "@/components/dashboard/help-sheet";
 
 const wordpressTemplates = [
   { value: "opinion", label: "觀點文" },
@@ -77,11 +78,18 @@ export function ContentEngineForm({
   const selectedThreadsAccount = threadsAccounts.find((account) => account.id === threadsAccountId) ?? null;
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
+    <div className="space-y-6">
       <section className="glass-panel rounded-[2rem] border border-[var(--border)] p-6">
         <div>
           <p className="text-[11px] uppercase tracking-[0.3em] text-[var(--muted)]">Content Engine</p>
           <h2 className="mt-2 text-3xl font-semibold">輸入素材，直接拆出 Threads + WordPress 草稿</h2>
+        </div>
+        <div className="mt-5 flex flex-wrap gap-3">
+          <HelpSheet topic="content-engine" buttonLabel="打開這頁說明" />
+          <HelpSheet topic="ai-workflow" buttonLabel="查看 AI 工作流" />
+          <a href="/compose" className="rounded-full border border-[var(--border)] bg-white/80 px-4 py-2 text-sm">
+            去 Compose 修稿
+          </a>
         </div>
 
         <form
@@ -173,7 +181,7 @@ export function ContentEngineForm({
               </select>
               <p className="mt-3 text-sm text-[var(--muted)]">
                 {selectedThreadsAccount
-                  ? `目前會用 ${selectedThreadsAccount.username}${selectedThreadsAccount.personaLabel ? ` 的「${selectedThreadsAccount.personaLabel}」` : ""} 來生成 Threads 草稿。`
+                  ? `目前會用 ${selectedThreadsAccount.username}${selectedThreadsAccount.personaLabel ? ` 的「${selectedThreadsAccount.personaLabel}」` : ""} 生成 Threads 草稿。`
                   : "尚未選擇 Threads 帳號。"}
               </p>
             </label>
@@ -242,9 +250,6 @@ export function ContentEngineForm({
                 onChange={(event) => setSourceUrl(event.target.value)}
                 required
               />
-              <p className="mt-3 text-sm text-[var(--muted)]">
-                支援貼入公開 Threads 貼文、部落格文章或公開 Facebook Page 內容連結。若平台限制抓取，系統會退回連結改寫模式。
-              </p>
               <div className="mt-4 flex flex-wrap gap-3">
                 <button
                   type="button"
@@ -317,9 +322,7 @@ export function ContentEngineForm({
                 value={personaPrompt}
                 onChange={(event) => setPersonaPrompt(event.target.value)}
               />
-              <p className="mt-3 text-sm text-[var(--muted)]">
-                這裡會先帶入帳號人設；生成時也會一起吃進題材範圍、hook / CTA 風格和語氣禁區。
-              </p>
+              <p className="mt-3 text-sm text-[var(--muted)]">會優先帶入目前 Threads 帳號的人設設定。</p>
             </div>
             <label className="rounded-3xl bg-white/85 p-4">
               <span className="mb-2 block text-sm text-[var(--muted)]">預設語氣</span>
@@ -384,7 +387,7 @@ export function ContentEngineForm({
         </form>
       </section>
 
-      <div className="space-y-6">
+      <section className="grid gap-6 xl:grid-cols-[1fr_1fr]">
         <section className="glass-panel rounded-[2rem] border border-[var(--border)] p-6">
           {preview ? (
             <article className="mb-4 rounded-[1.4rem] border border-[var(--border-strong)] bg-[var(--accent-soft)] p-4 text-[var(--foreground)]">
@@ -446,7 +449,7 @@ export function ContentEngineForm({
             {drafts.length === 0 ? <p className="text-sm text-[var(--muted)]">目前還沒有草稿。</p> : null}
           </div>
         </section>
-      </div>
+      </section>
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import { ContentEngineForm } from "@/components/dashboard/content-engine-form";
+import { HelpSheet } from "@/components/dashboard/help-sheet";
 import { PageIntro } from "@/components/dashboard/page-intro";
 import { prisma } from "@/lib/prisma";
 
@@ -36,8 +37,16 @@ export default async function ContentEnginePage() {
     <div className="space-y-6">
       <PageIntro
         eyebrow="Content Engine"
-        title="AI 草稿引擎（進階）"
-        description="主要的 AI 起稿已經整合到 Compose。這頁保留給要批次吃素材、同時產生 Threads + WordPress 草稿時使用。"
+        title="AI 素材拆稿台"
+        description="這頁專門處理『先吃素材，再拆成草稿』。如果你只是想快速起一版文案，直接去 Compose 會更快。"
+        action={
+          <div className="flex flex-wrap gap-3">
+            <HelpSheet topic="content-engine" buttonLabel="查看這頁說明" />
+            <a href="/help?topic=ai-workflow" className="rounded-full border border-[var(--border)] bg-white/80 px-4 py-2 text-sm">
+              打開 AI 工作流
+            </a>
+          </div>
+        }
       />
 
       <ContentEngineForm

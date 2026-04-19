@@ -16,6 +16,10 @@ export async function Topbar() {
           </p>
         </div>
         <div className="grid gap-3 sm:grid-cols-3 lg:min-w-[420px]">
+          <a href="/help" className="rounded-[1.2rem] border border-[var(--border)] bg-white/60 px-4 py-3">
+            <p className="text-[11px] uppercase tracking-[0.25em] text-[var(--muted)]">Help</p>
+            <p className="mt-1 text-sm font-semibold">說明中心</p>
+          </a>
           <div className="rounded-[1.2rem] border border-[var(--border)] bg-white/60 px-4 py-3">
             <p className="text-[11px] uppercase tracking-[0.25em] text-[var(--muted)]">Mode</p>
             <p className="mt-1 text-sm font-semibold">Threads First</p>
@@ -24,7 +28,7 @@ export async function Topbar() {
             <p className="text-[11px] uppercase tracking-[0.25em] text-[var(--muted)]">Current Account</p>
             <p className="mt-1 text-sm font-semibold">{activeAccount ? activeAccount.username : "Not Connected"}</p>
           </div>
-          <div className="rounded-[1.2rem] border border-[var(--border)] bg-[var(--card-dark)] px-4 py-3 text-white">
+          <div className="rounded-[1.2rem] border border-[var(--border)] bg-[var(--card-dark)] px-4 py-3 text-white sm:col-span-3 lg:col-span-1">
             <p className="text-[11px] uppercase tracking-[0.25em] text-white/60">WordPress</p>
             <p className="mt-1 text-sm font-semibold">{databaseStatus.ready ? "Draft Lane" : "Setup First"}</p>
           </div>

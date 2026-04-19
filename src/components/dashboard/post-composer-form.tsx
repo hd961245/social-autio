@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { HelpSheet } from "@/components/dashboard/help-sheet";
 import type { AffiliateLibrary } from "@/lib/content/wordpress-templates";
 
 const wordpressTemplates = [
@@ -253,10 +254,9 @@ export function PostComposerForm({
 </ul>
 <p>${affiliateLibrary.cta || "這裡補上一段導購 CTA 或下一步。"}</p>`;
   const charactersLeft = 500 - text.length;
-  const threadPreview = `${text}${mediaUrl ? `\n\n${mediaUrl}` : ""}`.trim();
-  const wordpressPreviewTitle = title || "未命名草稿";
-  const wordpressPreviewBody = html || text;
   const aiCanGenerate = Boolean(accountId && (aiSourceType === "url" ? aiSourceUrl.trim() : aiRawText.trim()));
+  const latestDraft = recentItems[0] ?? null;
+  const latestPublishLog = publishLogs[0] ?? null;
 
   async function removeDraft(postId: string, options?: { redirectAfterDelete?: boolean }) {
     const response = await fetch(`/api/posts/${postId}`, {
@@ -416,7 +416,7 @@ export function PostComposerForm({
         </span>
       </div>
 
-      <div className="mt-6 grid gap-4 lg:grid-cols-[1.25fr_0.75fr]">
+      <div className="mt-6 space-y-4">
         <form
           className="relative z-20 space-y-4"
           noValidate
@@ -527,14 +527,18 @@ export function PostComposerForm({
               </p>
             </div>
           </div>
+          <div className="flex flex-wrap gap-3">
+            <HelpSheet topic="compose" buttonLabel="打開這頁說明" />
+            <HelpSheet topic="ai-workflow" buttonLabel="查看 AI 工作流" />
+            <a href="/help?topic=compose" className="rounded-full border border-[var(--border)] bg-white/80 px-4 py-2 text-sm">
+              前往說明中心
+            </a>
+          </div>
           <div className="rounded-3xl border border-[var(--border-strong)] bg-[rgba(200,79,44,0.06)] p-4">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
               <div>
                 <p className="text-[11px] uppercase tracking-[0.24em] text-[var(--muted)]">AI Draft Assist</p>
-                <h3 className="mt-2 text-xl font-semibold">先在這裡起稿，再直接往下修和發布</h3>
-                <p className="mt-2 text-sm leading-7 text-[var(--muted)]">
-                  不用再切去另一頁。AI 會直接依照目前帳號的人設、語氣和 playbook，把素材灌進現在這份發文表單。
-                </p>
+                <h3 className="mt-2 text-xl font-semibold">直接把素材灌進目前這份稿</h3>
               </div>
               <div className="rounded-2xl border border-[var(--border)] bg-white/78 px-4 py-3 text-sm text-[var(--muted)]">
                 目前會套用：
@@ -699,40 +703,27 @@ export function PostComposerForm({
             </div>
           ) : null}
           {!isWordPress && selectedAccount ? (
-            <div className="rounded-3xl border border-[var(--border-strong)] bg-[rgba(200,79,44,0.08)] p-4">
-              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                <div className="min-w-0">
+            <details className="rounded-3xl border border-[var(--border-strong)] bg-[rgba(200,79,44,0.08)] p-4">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
+                <div>
                   <p className="text-[11px] uppercase tracking-[0.24em] text-[var(--muted)]">Persona Assist</p>
-                  <h3 className="mt-2 text-xl font-semibold">
+                  <p className="mt-2 text-base font-semibold">
                     {selectedAccount.username}
                     {selectedAccount.personaLabel ? ` · ${selectedAccount.personaLabel}` : ""}
-                  </h3>
-                  <p className="mt-2 text-sm text-[var(--muted)]">
-                    預設語氣：{selectedAccount.defaultTone || "沿用全域設定"}
                   </p>
+                </div>
+                <span className="text-xs text-[var(--muted)]">展開建議</span>
+              </summary>
+              <div className="mt-4">
+                <div className="min-w-0">
+                  <p className="text-sm text-[var(--muted)]">預設語氣：{selectedAccount.defaultTone || "沿用全域設定"}</p>
                   <p className="mt-3 text-sm leading-7 text-[var(--muted)]">
-                    {selectedAccount.personaPrompt || "這個帳號還沒有獨立 persona prompt，建議去 Accounts 補上，之後多帳號會更穩。"}
+                    {selectedAccount.personaPrompt || "這個帳號還沒有獨立 persona prompt，建議去 Accounts 補上。"}
                   </p>
-                  {selectedAccount.topicFocus ? (
-                    <p className="mt-3 text-sm leading-7 text-[var(--muted)]">
-                      題材範圍：{selectedAccount.topicFocus}
-                    </p>
-                  ) : null}
-                  {selectedAccount.hookStyle ? (
-                    <p className="mt-2 text-sm leading-7 text-[var(--muted)]">
-                      Hook 風格：{selectedAccount.hookStyle}
-                    </p>
-                  ) : null}
-                  {selectedAccount.ctaStyle ? (
-                    <p className="mt-2 text-sm leading-7 text-[var(--muted)]">
-                      CTA 風格：{selectedAccount.ctaStyle}
-                    </p>
-                  ) : null}
-                  {selectedAccount.voiceGuardrails ? (
-                    <p className="mt-2 text-sm leading-7 text-[var(--muted)]">
-                      語氣禁區：{selectedAccount.voiceGuardrails}
-                    </p>
-                  ) : null}
+                  {selectedAccount.topicFocus ? <p className="mt-3 text-sm leading-7 text-[var(--muted)]">題材範圍：{selectedAccount.topicFocus}</p> : null}
+                  {selectedAccount.hookStyle ? <p className="mt-2 text-sm leading-7 text-[var(--muted)]">Hook 風格：{selectedAccount.hookStyle}</p> : null}
+                  {selectedAccount.ctaStyle ? <p className="mt-2 text-sm leading-7 text-[var(--muted)]">CTA 風格：{selectedAccount.ctaStyle}</p> : null}
+                  {selectedAccount.voiceGuardrails ? <p className="mt-2 text-sm leading-7 text-[var(--muted)]">語氣禁區：{selectedAccount.voiceGuardrails}</p> : null}
                   {selectedMemory ? (
                     <>
                       <p className="mt-3 text-sm font-medium text-[var(--foreground)]">近期內容記憶</p>
@@ -741,7 +732,7 @@ export function PostComposerForm({
                     </>
                   ) : null}
                 </div>
-                <div className="flex shrink-0 flex-wrap gap-2">
+                <div className="mt-4 flex flex-wrap gap-2">
                   {hookSuggestions.map((hook) => (
                     <button
                       key={hook}
@@ -753,54 +744,20 @@ export function PostComposerForm({
                     </button>
                   ))}
                 </div>
-              </div>
-              <div className="mt-4 grid gap-3 md:grid-cols-3">
-                {ctaSuggestions.map((cta) => (
-                  <button
-                    key={cta}
-                    type="button"
-                    className="rounded-[1.2rem] border border-[var(--border)] bg-white/78 px-4 py-3 text-left text-sm"
-                    onClick={() => setText((current) => `${current.trim()}${current.trim() ? "\n\n" : ""}${cta}`)}
-                  >
-                    {cta}
-                  </button>
-                ))}
-              </div>
-              {selectedMemory?.topOpeners?.length ? (
-                <div className="mt-4 rounded-[1.2rem] border border-[var(--border)] bg-white/78 p-4">
-                  <p className="text-[11px] uppercase tracking-[0.22em] text-[var(--muted)]">這個帳號最近比較吃香的開頭</p>
-                  <div className="mt-3 grid gap-2">
-                    {selectedMemory.topOpeners.map((opener) => (
-                      <button
-                        key={opener}
-                        type="button"
-                        className="rounded-[1rem] border border-[var(--border)] bg-white px-4 py-3 text-left text-sm"
-                        onClick={() => setText((current) => `${opener}${current ? `\n\n${current}` : ""}`)}
-                      >
-                        {opener}
-                      </button>
-                    ))}
-                  </div>
+                <div className="mt-4 grid gap-3 md:grid-cols-3">
+                  {ctaSuggestions.map((cta) => (
+                    <button
+                      key={cta}
+                      type="button"
+                      className="rounded-[1.2rem] border border-[var(--border)] bg-white/78 px-4 py-3 text-left text-sm"
+                      onClick={() => setText((current) => `${current.trim()}${current.trim() ? "\n\n" : ""}${cta}`)}
+                    >
+                      {cta}
+                    </button>
+                  ))}
                 </div>
-              ) : null}
-              {selectedMemory?.topClosers?.length ? (
-                <div className="mt-4 rounded-[1.2rem] border border-[var(--border)] bg-white/78 p-4">
-                  <p className="text-[11px] uppercase tracking-[0.22em] text-[var(--muted)]">這個帳號最近比較吃香的結尾</p>
-                  <div className="mt-3 grid gap-2">
-                    {selectedMemory.topClosers.map((closer) => (
-                      <button
-                        key={closer}
-                        type="button"
-                        className="rounded-[1rem] border border-[var(--border)] bg-white px-4 py-3 text-left text-sm"
-                        onClick={() => setText((current) => `${current.trim()}${current.trim() ? "\n\n" : ""}${closer}`)}
-                      >
-                        {closer}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
-            </div>
+              </div>
+            </details>
           ) : null}
           {isWordPress ? (
             <div className="rounded-3xl bg-white/85 p-4">
@@ -988,28 +945,6 @@ export function PostComposerForm({
             </div>
           ) : null}
 
-          <div className="relative z-20">
-            <button
-              type="button"
-              disabled={submitDisabled}
-              aria-disabled={disableReason !== null}
-              title={disableReason ?? undefined}
-              className="pointer-events-auto w-full cursor-pointer rounded-2xl bg-[var(--accent)] px-4 py-3 text-white shadow-[0_16px_40px_rgba(187,90,54,0.24)] disabled:opacity-60"
-              onClick={handleComposeSubmit}
-            >
-              {isPending
-                ? "送出中..."
-                : isWordPress
-                  ? initialDraft
-                    ? "更新 WordPress 草稿"
-                    : "建立 WordPress 草稿"
-                  : publishMode === "scheduled"
-                    ? "加入排程"
-                    : initialDraft
-                      ? "更新 Threads 草稿"
-                      : "立即發文"}
-            </button>
-          </div>
           {submitTrace ? (
             <p className="text-xs text-[var(--muted)]">submit trace: {submitTrace}</p>
           ) : null}
@@ -1032,166 +967,40 @@ export function PostComposerForm({
             </div>
           ) : null}
         </form>
-
-        <div className="relative z-0 space-y-4">
-          {reviewContext ? (
-            <div className="rounded-3xl bg-[var(--card-dark)] p-4 text-white">
-              <p className="text-sm text-white/70">Review Brief</p>
-              <p className="mt-3 text-base leading-7 text-white/82">{reviewContext.nextAction}</p>
-              <div className="mt-4 space-y-2 text-sm text-white/70">
-                {reviewContext.insights.map((insight) => (
-                  <p key={insight}>- {insight}</p>
-                ))}
-              </div>
-            </div>
-          ) : null}
-          <div className="rounded-3xl bg-[var(--card-dark)] p-4 text-white">
-            <p className="text-sm text-white/70">工作側欄</p>
-            <div className="mt-4 space-y-5">
-              <section>
-                <p className="text-xs uppercase tracking-[0.2em] text-white/50">Live Preview</p>
-                <div className="mt-3 rounded-[1.35rem] border border-white/10 bg-white/5 p-4">
-                  {isWordPress ? (
-                    <div className="space-y-3">
-                      <p className="text-sm font-medium">{wordpressPreviewTitle}</p>
-                      {excerpt ? <p className="text-sm text-white/65">{excerpt}</p> : null}
-                      <div className="space-y-2 text-sm leading-7 text-white/85">
-                        {wordpressPreviewBody
-                          .split("\n")
-                          .filter(Boolean)
-                          .slice(0, 4)
-                          .map((line, index) => (
-                            <p key={`${line}-${index}`}>{line}</p>
-                          ))}
-                        {!wordpressPreviewBody ? <p className="text-white/55">這裡會顯示你的長文草稿預覽。</p> : null}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      <p className="whitespace-pre-wrap text-sm leading-7 text-white/88">
-                        {threadPreview || "這裡會顯示你的 Threads 貼文預覽。"}
-                      </p>
-                      <p className="text-xs text-white/50">字數 {text.length} / 500</p>
-                    </div>
-                  )}
-                </div>
-              </section>
-
-              <section>
-                <p className="text-xs uppercase tracking-[0.2em] text-white/50">Current Setup</p>
-                <div className="mt-3 overflow-hidden rounded-[1.35rem] border border-white/10">
-                  {[
-                    {
-                      label: "帳號",
-                      value: selectedAccount ? `${selectedAccount.platform} ${selectedAccount.username}` : "尚未選擇"
-                    },
-                    {
-                      label: "類型",
-                      value: isWordPress ? "文章 / 摘要 / 分類 / 標籤 / 特色圖" : "文字 / 單一媒體 / 排程"
-                    },
-                    {
-                      label: "工作流",
-                      value: isWordPress
-                        ? "只同步成草稿，後續回 WordPress 後台細修"
-                        : "可立即發文，或先加入排程佇列"
-                    }
-                  ].map((item, index) => (
-                    <div
-                      key={item.label}
-                      className={`grid grid-cols-[84px_1fr] gap-3 bg-white/5 px-4 py-3 text-sm ${
-                        index > 0 ? "border-t border-white/10" : ""
-                      }`}
-                    >
-                      <p className="text-white/45">{item.label}</p>
-                      <p className="text-white/88">{item.value}</p>
-                    </div>
-                  ))}
-                </div>
-              </section>
-
-              <section>
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-xs uppercase tracking-[0.2em] text-white/50">最近發布結果</p>
-                  <span className="text-xs text-white/35">{publishLogs.length} 筆</span>
-                </div>
-                <div className="mt-3 overflow-hidden rounded-[1.35rem] border border-white/10">
-                  {publishLogs.length === 0 ? (
-                    <p className="px-4 py-3 text-sm text-white/55">最近還沒有發布紀錄</p>
-                  ) : (
-                    publishLogs.map((log, index) => (
-                      <a
-                        key={log.id}
-                        href={log.postHref}
-                        className={`grid grid-cols-[112px_1fr_auto] gap-3 bg-white/5 px-4 py-3 text-sm ${
-                          index > 0 ? "border-t border-white/10" : ""
-                        }`}
-                      >
-                        <p className="text-white/45">{log.executedAt}</p>
-                        <div className="min-w-0">
-                          <p className="truncate text-white/85">{log.detail}</p>
-                          <p className="mt-1 text-xs text-white/45">{log.accountLabel}</p>
-                        </div>
-                        <p
-                          className={`text-xs uppercase tracking-[0.16em] ${
-                            log.status === "failed" ? "text-rose-300" : log.status === "scheduled" ? "text-amber-200" : "text-emerald-300"
-                          }`}
-                        >
-                          {log.status}
-                        </p>
-                      </a>
-                    ))
-                  )}
-                </div>
-              </section>
-
-              <section>
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-xs uppercase tracking-[0.2em] text-white/50">最近草稿</p>
-                  <span className="text-xs text-white/35">{recentItems.length} 筆</span>
-                </div>
-                <div className="mt-3 overflow-hidden rounded-[1.35rem] border border-white/10">
-                  {recentItems.length === 0 ? (
-                    <p className="px-4 py-3 text-sm text-white/55">目前還沒有草稿紀錄</p>
-                  ) : (
-                    recentItems.map((post, index) => (
-                      <div
-                        key={post.id}
-                        className={`grid grid-cols-[1fr_auto] gap-3 bg-white/5 px-4 py-3 text-sm ${
-                          index > 0 ? "border-t border-white/10" : ""
-                        }`}
-                      >
-                        <div className="min-w-0">
-                          <p className="text-xs uppercase tracking-[0.16em] text-white/45">
-                            {post.account}{post.platform ? ` · ${post.platform}` : ""} · {post.status}
-                          </p>
-                          <p className="mt-2 truncate text-white/88">{post.text}</p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <a href={`/compose?postId=${post.id}`} className="rounded-full border border-white/15 px-3 py-2 text-xs text-white/88">
-                            編輯
-                          </a>
-                          {post.status !== "published" ? (
-                            <button
-                              type="button"
-                              className="rounded-full border border-rose-300/30 px-3 py-2 text-xs text-rose-200"
-                              onClick={() => {
-                                startTransition(async () => {
-                                  await removeDraft(post.id);
-                                });
-                              }}
-                            >
-                              刪除
-                            </button>
-                          ) : null}
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </section>
-            </div>
-          </div>
-        </div>
+        <section className="grid gap-4 md:grid-cols-3">
+          <article className="rounded-3xl border border-[var(--border)] bg-white/82 p-4">
+            <p className="text-[11px] uppercase tracking-[0.22em] text-[var(--muted)]">發文狀態</p>
+            <p className="mt-3 text-sm leading-7 text-[var(--foreground)]">
+              {isWordPress ? "WordPress 只建立草稿，不會直接公開。" : publishMode === "scheduled" ? "這篇會加入排程佇列。" : "這篇會直接送往 Threads 發佈。"}
+            </p>
+          </article>
+          <article className="rounded-3xl border border-[var(--border)] bg-white/82 p-4">
+            <p className="text-[11px] uppercase tracking-[0.22em] text-[var(--muted)]">最近草稿</p>
+            {latestDraft ? (
+              <>
+                <p className="mt-3 text-sm font-medium">{latestDraft.text}</p>
+                <a href={`/compose?postId=${latestDraft.id}`} className="mt-3 inline-flex text-sm font-medium text-[var(--accent)]">
+                  繼續編輯
+                </a>
+              </>
+            ) : (
+              <p className="mt-3 text-sm text-[var(--muted)]">目前還沒有草稿。</p>
+            )}
+          </article>
+          <article className="rounded-3xl border border-[var(--border)] bg-white/82 p-4">
+            <p className="text-[11px] uppercase tracking-[0.22em] text-[var(--muted)]">最近發布結果</p>
+            {latestPublishLog ? (
+              <>
+                <p className="mt-3 text-sm font-medium">{latestPublishLog.detail}</p>
+                <a href={latestPublishLog.postHref} className="mt-3 inline-flex text-sm font-medium text-[var(--accent)]">
+                  打開紀錄
+                </a>
+              </>
+            ) : (
+              <p className="mt-3 text-sm text-[var(--muted)]">最近還沒有發布紀錄。</p>
+            )}
+          </article>
+        </section>
       </div>
     </section>
   );

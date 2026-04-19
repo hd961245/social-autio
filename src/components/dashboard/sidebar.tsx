@@ -57,12 +57,6 @@ export function Sidebar() {
           );
         })}
       </nav>
-
-      <div className="mt-6 rounded-[1.5rem] bg-[var(--card-dark)] p-5 text-sm text-white">
-        <p className="text-[11px] uppercase tracking-[0.3em] text-white/55">Workflow</p>
-        <p className="mt-2 text-xl font-semibold">Desk {"->"} Compose {"->"} Analytics</p>
-        <p className="mt-2 text-white/72">先在 Desk 看来源、改写成草稿，再回 Compose 和 Analytics 续修与复盘。</p>
-      </div>
     </aside>
   );
 }

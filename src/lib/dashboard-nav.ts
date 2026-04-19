@@ -57,7 +57,8 @@ export const dashboardNavGroups: DashboardNavGroup[] = [
       { href: "/accounts", label: "帳號", hint: "Threads OAuth + status" },
       { href: "/keywords", label: "關鍵字", hint: "monitor + hits" },
       { href: "/automation", label: "自動化", hint: "rules + safety" },
-      { href: "/ops", label: "Ops", hint: "env + db diagnostics" }
+      { href: "/ops", label: "Ops", hint: "env + db diagnostics" },
+      { href: "/help", label: "說明中心", hint: "workflow + AI guide" }
     ]
   }
 ];

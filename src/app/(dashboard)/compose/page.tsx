@@ -1,4 +1,5 @@
 import { DatabaseBanner } from "@/components/dashboard/database-banner";
+import { HelpSheet } from "@/components/dashboard/help-sheet";
 import { PageIntro } from "@/components/dashboard/page-intro";
 import { PostComposerForm } from "@/components/dashboard/post-composer-form";
 import { getComposeHealth, getDatabaseStatus, getPublishOutcomeLogs, getThreadPostDeepDive } from "@/lib/dashboard-data";
@@ -201,8 +202,16 @@ export default async function ComposePage({
         title={draftPost ? "編輯現有草稿" : "建立新的 Threads 內容"}
         description={
           draftPost
-            ? "這裡會直接載入你剛才的草稿。Threads 可繼續排程或送出；WordPress 只會同步成草稿，不直接發布。"
-            : "Threads 繼續負責即時發文、排程與回覆；WordPress 只保留成長文草稿台，方便先改完再進站台細修。"
+            ? "這裡會直接載入你剛才的草稿。AI 起稿、微調、排程與送出都在同一頁完成。"
+            : "把 AI 起稿、手動改稿、排程與發佈收在同一條工作流裡。Threads 負責發布；WordPress 保留成草稿台。"
+        }
+        action={
+          <div className="flex flex-wrap gap-3">
+            <HelpSheet topic="compose" buttonLabel="查看這頁說明" />
+            <a href="/help?topic=ai-workflow" className="rounded-full border border-[var(--border)] bg-white/80 px-4 py-2 text-sm">
+              打開 AI 工作流
+            </a>
+          </div>
         }
       />
       <DatabaseBanner status={databaseStatus} />
