@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { rewriteContentWithAi } from "@/lib/ai/gateway";
+import { buildAccountStyleMemory } from "@/lib/ai/style-memory";
 import { extractContentFromUrl } from "@/lib/content/url-ingest";
 import { env } from "@/lib/env";
 import { prisma } from "@/lib/prisma";
@@ -125,10 +126,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: false, message: "這份素材目前抓不到可改寫內容。" }, { status: 400 });
     }
 
+    const styleMemory = await buildAccountStyleMemory(account.id);
     const personaPrompt = [
       buildPersonaPlaybook(account),
       settings?.globalPersonaPrompt?.trim() || "用冷靜、有觀點、像內容策略師一樣的語氣，幫我拆解重點。",
-      settings?.writingStyleProfile?.trim() ? `寫作風格基底：${settings.writingStyleProfile.trim()}` : "",
+      styleMemory,
       settings?.affiliateLinkPolicy?.trim() ? `聯盟與推廣連結策略：${settings.affiliateLinkPolicy.trim()}` : ""
     ]
       .filter(Boolean)

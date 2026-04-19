@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { rewriteContentWithAi } from "@/lib/ai/gateway";
+import { buildAccountStyleMemory } from "@/lib/ai/style-memory";
 import { extractContentFromUrl } from "@/lib/content/url-ingest";
 import { buildTemplateHtml } from "@/lib/content/wordpress-templates";
 
@@ -138,10 +139,11 @@ export async function ingestAndGenerateDrafts(input: IngestionInput) {
     throw new Error("至少需要先連接一個 Threads 或 WordPress 帳號，才能生成草稿。");
   }
 
+  const styleMemory = threadsAccount ? await buildAccountStyleMemory(threadsAccount.id) : settings?.writingStyleProfile?.trim() ? `你的長文寫作習慣：${settings.writingStyleProfile.trim()}` : "";
   const personaPrompt = [
     threadsAccount ? buildPersonaPlaybook(threadsAccount) : "",
     settings?.globalPersonaPrompt?.trim() || "用冷靜、有觀點、像內容策略師一樣的語氣，幫我拆解重點。",
-    settings?.writingStyleProfile?.trim() ? `寫作風格基底：${settings.writingStyleProfile.trim()}` : "",
+    styleMemory,
     settings?.affiliateLinkPolicy?.trim() ? `聯盟與推廣連結策略：${settings.affiliateLinkPolicy.trim()}` : ""
   ]
     .filter(Boolean)

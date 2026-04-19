@@ -1,5 +1,6 @@
 import { rewriteContentWithAi } from "@/lib/ai/gateway";
 import { prisma } from "@/lib/prisma";
+import { buildAccountStyleMemory } from "@/lib/ai/style-memory";
 
 const AUTOMATION_TIMEZONE = "Asia/Taipei";
 
@@ -141,10 +142,11 @@ export async function runDailyPersonaAutopilot(now = new Date()) {
         continue;
       }
 
+      const styleMemory = await buildAccountStyleMemory(account.id);
       const personaPrompt = [
         buildPersonaPlaybook(account),
         settings?.globalPersonaPrompt?.trim() || "用冷靜、有觀點、像內容策略師一樣的語氣，幫我拆解重點。",
-        settings?.writingStyleProfile?.trim() ? `寫作風格基底：${settings.writingStyleProfile.trim()}` : "",
+        styleMemory,
         settings?.affiliateLinkPolicy?.trim() ? `聯盟與推廣連結策略：${settings.affiliateLinkPolicy.trim()}` : ""
       ]
         .filter(Boolean)
