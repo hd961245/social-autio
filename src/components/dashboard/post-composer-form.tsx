@@ -644,7 +644,10 @@ export function PostComposerForm({
                       const result = await response.json();
 
                       if (!response.ok) {
-                        setAiMessage(result.message ?? "AI 起稿失敗");
+                        const diagnostics = result.availableProviders
+                          ? `可用 provider：OpenAI ${result.availableProviders.openai ? "on" : "off"} / Gemini ${result.availableProviders.gemini ? "on" : "off"} / Claude ${result.availableProviders.claude ? "on" : "off"}`
+                          : "";
+                        setAiMessage([result.message ?? "AI 起稿失敗", diagnostics].filter(Boolean).join("｜"));
                         setAiMessageTone("error");
                         return;
                       }
@@ -659,7 +662,9 @@ export function PostComposerForm({
                       }
 
                       setAiMessage(
-                        `${result.provider.toUpperCase()} 已套用 ${result.sourceLabel ? `(${result.sourceLabel})` : ""} 的 AI 草稿。`
+                        `${result.provider.toUpperCase()} 已套用 ${result.sourceLabel ? `(${result.sourceLabel})` : ""} 的 AI 草稿。${
+                          result.requestedProvider ? ` 請求模式：${result.requestedProvider}` : ""
+                        }`
                       );
                       setAiMessageTone("success");
                     });

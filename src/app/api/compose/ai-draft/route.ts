@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { rewriteContentWithAi } from "@/lib/ai/gateway";
 import { extractContentFromUrl } from "@/lib/content/url-ingest";
+import { env } from "@/lib/env";
 import { prisma } from "@/lib/prisma";
 
 type ComposeAiDraftInput = {
@@ -36,6 +37,14 @@ function buildPersonaPlaybook(account: {
   ]
     .filter(Boolean)
     .join("\n");
+}
+
+function getAiDiagnostics() {
+  return {
+    openai: Boolean(env.openaiApiKey()),
+    gemini: Boolean(env.geminiApiKey()),
+    claude: Boolean(env.anthropicApiKey())
+  };
 }
 
 export async function POST(request: Request) {
@@ -127,6 +136,7 @@ export async function POST(request: Request) {
 
     const tone = account.defaultTone?.trim() || settings?.defaultTone?.trim() || "sharp-observer";
     const provider = body.provider || (settings?.aiProvider?.trim() as ComposeAiDraftInput["provider"]) || "auto";
+    const diagnostics = getAiDiagnostics();
 
     const result = await rewriteContentWithAi({
       title: safeTitle,
@@ -140,6 +150,8 @@ export async function POST(request: Request) {
     return NextResponse.json({
       ok: true,
       provider: result.provider,
+      requestedProvider: provider,
+      availableProviders: diagnostics,
       sourceLabel,
       resolvedUrl,
       draft: {
@@ -152,6 +164,13 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "AI 起稿失敗";
-    return NextResponse.json({ ok: false, message }, { status: 500 });
+    return NextResponse.json(
+      {
+        ok: false,
+        message,
+        availableProviders: getAiDiagnostics()
+      },
+      { status: 500 }
+    );
   }
 }
