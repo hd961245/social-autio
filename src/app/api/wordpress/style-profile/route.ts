@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { generateWritingProfileWithAi } from "@/lib/ai/gateway";
-import { fetchWordPressPosts } from "@/lib/platforms/wordpress/client";
+import { fetchAllWordPressPosts, fetchWordPressPosts } from "@/lib/platforms/wordpress/client";
 import { prisma } from "@/lib/prisma";
 
 const styleProfileSchema = z.object({
   accountId: z.string().min(1),
-  sampleSize: z.number().int().min(3).max(30).default(12)
+  sampleSize: z.number().int().min(3).max(50).default(12),
+  useAllPosts: z.boolean().optional().default(false)
 });
 
 function stripHtml(value: string) {
@@ -25,7 +26,9 @@ export async function POST(request: Request) {
     const payload = styleProfileSchema.parse(await request.json());
     const settings = await prisma.appSettings.findFirst();
     const preferredProvider = (settings?.aiProvider?.trim() as "auto" | "gemini" | "claude" | "openai" | undefined) ?? "auto";
-    const posts = await fetchWordPressPosts(payload.accountId, payload.sampleSize);
+    const posts = payload.useAllPosts
+      ? await fetchAllWordPressPosts(payload.accountId)
+      : await fetchWordPressPosts(payload.accountId, payload.sampleSize);
 
     if (!posts.length) {
       return NextResponse.json({ ok: false, message: "這個 WordPress 站台目前抓不到可分析的文章。" }, { status: 400 });
@@ -67,9 +70,12 @@ export async function POST(request: Request) {
       ok: true,
       provider: profile.provider,
       analyzedCount: samples.length,
+      useAllPosts: payload.useAllPosts,
       writingStyleProfile: saved.writingStyleProfile,
       affiliateLinkPolicy: saved.affiliateLinkPolicy,
-      message: "已根據你的 WordPress 舊文整理出寫作方式與聯盟連結規劃。"
+      message: payload.useAllPosts
+        ? `已根據全部 ${samples.length} 篇可讀文章整理出你的寫作方式與聯盟連結規劃。`
+        : "已根據你的 WordPress 舊文整理出寫作方式與聯盟連結規劃。"
     });
   } catch (error) {
     return NextResponse.json(

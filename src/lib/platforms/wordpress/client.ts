@@ -198,6 +198,38 @@ export async function fetchWordPressPosts(accountId: string, perPage = 20): Prom
   );
 }
 
+export async function fetchAllWordPressPosts(accountId: string, maxPages = 20): Promise<WordPressPostListItem[]> {
+  const account = await getWordPressAccountContext(accountId);
+  const allPosts: WordPressPostListItem[] = [];
+
+  for (let page = 1; page <= Math.max(1, maxPages); page += 1) {
+    const batch = await wordpressFetch<WordPressPostListItem[]>(
+      account.siteUrl,
+      account.username,
+      account.appPassword,
+      `/wp-json/wp/v2/posts?context=edit&per_page=50&page=${page}&_fields=id,date,modified,link,slug,status,title,excerpt,content`
+    ).catch((error) => {
+      if (error instanceof Error && error.message.includes("WordPress API error (400)")) {
+        return [];
+      }
+
+      throw error;
+    });
+
+    if (!batch.length) {
+      break;
+    }
+
+    allPosts.push(...batch);
+
+    if (batch.length < 50) {
+      break;
+    }
+  }
+
+  return allPosts;
+}
+
 export async function fetchWordPressPostById(accountId: string, postId: number | string): Promise<WordPressPostListItem> {
   const account = await getWordPressAccountContext(accountId);
 

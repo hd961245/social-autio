@@ -1,6 +1,7 @@
 import { DatabaseBanner } from "@/components/dashboard/database-banner";
 import { PageIntro } from "@/components/dashboard/page-intro";
 import { getAnalyticsOverview, getDatabaseStatus } from "@/lib/dashboard-data";
+import { getGaOverview } from "@/lib/ga";
 
 export const dynamic = "force-dynamic";
 
@@ -18,9 +19,22 @@ export default async function AnalyticsPage({
   const params = await searchParams;
   const window = params.window === "7d" || params.window === "30d" || params.window === "all" ? params.window : "30d";
   const accountId = params.accountId ?? "all";
-  const [databaseStatus, analytics] = await Promise.all([
+  const [databaseStatus, analytics, gaOverview] = await Promise.all([
     getDatabaseStatus(),
-    getAnalyticsOverview({ window, accountId })
+    getAnalyticsOverview({ window, accountId }),
+    getGaOverview().catch((error) => ({
+      configured: false,
+      propertyId: "",
+      source: "ga4",
+      totals: {
+        activeUsers: 0,
+        newUsers: 0,
+        sessions: 0,
+        screenPageViews: 0
+      },
+      topPages: [],
+      message: error instanceof Error ? error.message : "GA4 讀取失敗"
+    }))
   ]);
   const bestPost = analytics.topPosts[0] ?? null;
   const strongestCandidate = analytics.viralCandidates[0] ?? null;
@@ -101,6 +115,54 @@ export default async function AnalyticsPage({
           </p>
           <p className="mt-3 text-sm text-[var(--muted)]">cron metrics route 也會順手刷新 7 天內到期的 token</p>
         </article>
+      </section>
+
+      <section className="glass-panel rounded-[1.8rem] border border-[var(--border)] p-6">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <p className="text-xs uppercase tracking-[0.24em] text-[var(--muted)]">GA4 Overview</p>
+            <h2 className="mt-3 text-3xl font-semibold">{gaOverview.configured ? "網站流量總覽" : "GA4 尚未接好"}</h2>
+            <p className="mt-3 max-w-3xl text-sm leading-7 text-[var(--muted)]">{gaOverview.message}</p>
+          </div>
+          <div className="rounded-[1.2rem] border border-[var(--border)] bg-white/70 px-4 py-3 text-sm">
+            <p className="text-xs uppercase tracking-[0.22em] text-[var(--muted)]">Property ID</p>
+            <p className="mt-2 font-semibold">{gaOverview.propertyId || "未設定"}</p>
+          </div>
+        </div>
+
+        <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {[
+            { label: "Active Users", value: gaOverview.totals.activeUsers },
+            { label: "New Users", value: gaOverview.totals.newUsers },
+            { label: "Sessions", value: gaOverview.totals.sessions },
+            { label: "Page Views", value: gaOverview.totals.screenPageViews }
+          ].map((card) => (
+            <article key={card.label} className="metric-card">
+              <p className="text-xs uppercase tracking-[0.24em] text-[var(--muted)]">{card.label}</p>
+              <p className="mt-3 text-3xl font-semibold">{card.value}</p>
+              <p className="mt-2 text-sm text-[var(--muted)]">近 30 天 GA4 站點總量</p>
+            </article>
+          ))}
+        </div>
+
+        <div className="mt-6 space-y-3">
+          <p className="text-xs uppercase tracking-[0.24em] text-[var(--muted)]">Top Pages</p>
+          {gaOverview.topPages.length ? (
+            gaOverview.topPages.map((page) => (
+              <article key={page.path} className="rounded-[1.4rem] border border-[var(--border)] bg-white/72 p-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <p className="font-medium">{page.path}</p>
+                  <div className="flex flex-wrap gap-2 text-sm text-[var(--muted)]">
+                    <span className="pill-tag">Views {page.views}</span>
+                    <span className="pill-tag">Users {page.users}</span>
+                  </div>
+                </div>
+              </article>
+            ))
+          ) : (
+            <p className="text-sm text-[var(--muted)]">補好 GA4 後，這裡會開始顯示近 30 天最常被閱讀的頁面。</p>
+          )}
+        </div>
       </section>
 
       {analytics.personaSnapshot ? (

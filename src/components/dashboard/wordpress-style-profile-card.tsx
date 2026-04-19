@@ -19,6 +19,7 @@ export function WordPressStyleProfileCard({
 }) {
   const [selectedSiteId, setSelectedSiteId] = useState(sites[0]?.id ?? "");
   const [sampleSize, setSampleSize] = useState("12");
+  const [useAllPosts, setUseAllPosts] = useState(true);
   const [message, setMessage] = useState<string | null>(null);
   const [writingStyleProfile, setWritingStyleProfile] = useState(initialWritingStyleProfile);
   const [affiliateLinkPolicy, setAffiliateLinkPolicy] = useState(initialAffiliateLinkPolicy);
@@ -36,7 +37,7 @@ export function WordPressStyleProfileCard({
         </div>
       </div>
 
-      <div className="mt-6 grid gap-4 lg:grid-cols-[1fr_180px_auto]">
+      <div className="mt-6 grid gap-4 lg:grid-cols-[1fr_180px_180px_auto]">
         <label className="rounded-3xl bg-white/85 p-4">
           <span className="mb-2 block text-sm text-[var(--muted)]">分析站台</span>
           <select
@@ -59,7 +60,19 @@ export function WordPressStyleProfileCard({
             inputMode="numeric"
             value={sampleSize}
             onChange={(event) => setSampleSize(event.target.value.replace(/[^\d]/g, "").slice(0, 2))}
+            disabled={useAllPosts}
           />
+        </label>
+        <label className="rounded-3xl bg-white/85 p-4">
+          <span className="mb-2 block text-sm text-[var(--muted)]">分析範圍</span>
+          <select
+            className="w-full rounded-2xl border border-[var(--border)] bg-transparent px-4 py-3 outline-none"
+            value={useAllPosts ? "all" : "sample"}
+            onChange={(event) => setUseAllPosts(event.target.value === "all")}
+          >
+            <option value="all">全部文章</option>
+            <option value="sample">指定篇數</option>
+          </select>
         </label>
         <div className="flex items-end">
           <button
@@ -74,7 +87,8 @@ export function WordPressStyleProfileCard({
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({
                     accountId: selectedSiteId,
-                    sampleSize: Number(sampleSize) || 12
+                    sampleSize: Number(sampleSize) || 12,
+                    useAllPosts
                   })
                 });
 

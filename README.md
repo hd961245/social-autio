@@ -34,6 +34,8 @@ Open `http://localhost:3000`.
 - 設定環境變數：`ADMIN_PASSWORD`、`ADMIN_SESSION_SECRET`、`THREADS_APP_ID`、`THREADS_APP_SECRET`、`THREADS_REDIRECT_URI`、`TOKEN_ENCRYPTION_KEY`
 - 若要使用 AI 草稿引擎，可設定 `OPENAI_API_KEY`、`GEMINI_API_KEY` 或 `ANTHROPIC_API_KEY`
 - AI provider 可在內容引擎中選擇 `Auto / Gemini / Claude / OpenAI`
+- 若要在 `Analytics` 看網站流量總覽，另外設定 `GA4_PROPERTY_ID`、`GA4_CLIENT_EMAIL`、`GA4_PRIVATE_KEY`
+- `GA4_CLIENT_EMAIL` / `GA4_PRIVATE_KEY` 來自 Google Cloud service account，並且該帳號需要加入 GA4 property 權限
 - 若要讓排程、metrics、keywords 與 automation 自動執行，另外設定 `INNGEST_EVENT_KEY`、`INNGEST_SIGNING_KEY`、`INNGEST_SERVE_ORIGIN`
 - `THREADS_REDIRECT_URI` 應設為 `https://social-audio.zeabur.app/api/threads/callback`
 - 首次部署後執行一次 `npm run db:push`

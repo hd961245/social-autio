@@ -18,5 +18,8 @@ export const env = {
   tokenEncryptionKey: () => required("TOKEN_ENCRYPTION_KEY"),
   openaiApiKey: () => process.env.OPENAI_API_KEY?.trim() || "",
   anthropicApiKey: () => process.env.ANTHROPIC_API_KEY?.trim() || "",
-  geminiApiKey: () => process.env.GEMINI_API_KEY?.trim() || ""
+  geminiApiKey: () => process.env.GEMINI_API_KEY?.trim() || "",
+  ga4PropertyId: () => process.env.GA4_PROPERTY_ID?.trim() || "",
+  ga4ClientEmail: () => process.env.GA4_CLIENT_EMAIL?.trim() || "",
+  ga4PrivateKey: () => process.env.GA4_PRIVATE_KEY?.replace(/\\n/g, "\n").trim() || ""
 };
