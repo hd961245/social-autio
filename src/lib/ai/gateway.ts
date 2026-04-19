@@ -105,7 +105,8 @@ async function runOpenAiRewrite(input: RewriteInput): Promise<RewriteOutput> {
   });
 
   if (!response.ok) {
-    throw new Error(`OpenAI API error (${response.status})`);
+    const detail = await response.text();
+    throw new Error(`OpenAI API error (${response.status}): ${detail.slice(0, 400)}`);
   }
 
   const data = (await response.json()) as {
@@ -153,7 +154,8 @@ async function runGeminiRewrite(input: RewriteInput): Promise<RewriteOutput> {
   );
 
   if (!response.ok) {
-    throw new Error(`Gemini API error (${response.status})`);
+    const detail = await response.text();
+    throw new Error(`Gemini API error (${response.status}): ${detail.slice(0, 400)}`);
   }
 
   const data = (await response.json()) as {
@@ -200,7 +202,8 @@ async function runClaudeRewrite(input: RewriteInput): Promise<RewriteOutput> {
   });
 
   if (!response.ok) {
-    throw new Error(`Claude API error (${response.status})`);
+    const detail = await response.text();
+    throw new Error(`Claude API error (${response.status}): ${detail.slice(0, 400)}`);
   }
 
   const data = (await response.json()) as {
@@ -269,7 +272,8 @@ async function runOpenAiWritingProfile(input: WritingProfileInput): Promise<Writ
   });
 
   if (!response.ok) {
-    throw new Error(`OpenAI API error (${response.status})`);
+    const detail = await response.text();
+    throw new Error(`OpenAI API error (${response.status}): ${detail.slice(0, 400)}`);
   }
 
   const data = (await response.json()) as {
@@ -317,7 +321,8 @@ async function runGeminiWritingProfile(input: WritingProfileInput): Promise<Writ
   );
 
   if (!response.ok) {
-    throw new Error(`Gemini API error (${response.status})`);
+    const detail = await response.text();
+    throw new Error(`Gemini API error (${response.status}): ${detail.slice(0, 400)}`);
   }
 
   const data = (await response.json()) as {
@@ -364,7 +369,8 @@ async function runClaudeWritingProfile(input: WritingProfileInput): Promise<Writ
   });
 
   if (!response.ok) {
-    throw new Error(`Claude API error (${response.status})`);
+    const detail = await response.text();
+    throw new Error(`Claude API error (${response.status}): ${detail.slice(0, 400)}`);
   }
 
   const data = (await response.json()) as {
