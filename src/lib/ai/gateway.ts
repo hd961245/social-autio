@@ -34,6 +34,30 @@ type WritingProfileOutput = {
   affiliateLinkPolicy: string;
 };
 
+type ProviderId = "openai" | "gemini" | "claude";
+
+function getProviderOrder(preferredProvider: RewriteInput["preferredProvider"] | WritingProfileInput["preferredProvider"]) {
+  const ordered: ProviderId[] = [];
+
+  if (preferredProvider && preferredProvider !== "auto") {
+    ordered.push(preferredProvider);
+  }
+
+  for (const provider of ["openai", "gemini", "claude"] as const) {
+    if (!ordered.includes(provider)) {
+      ordered.push(provider);
+    }
+  }
+
+  return ordered;
+}
+
+function hasProviderKey(provider: ProviderId) {
+  if (provider === "openai") return Boolean(env.openaiApiKey());
+  if (provider === "gemini") return Boolean(env.geminiApiKey());
+  return Boolean(env.anthropicApiKey());
+}
+
 function extractTextFromJsonBlock(raw: string) {
   const match = raw.match(/\{[\s\S]*\}/);
   if (!match) {
@@ -357,73 +381,55 @@ async function runClaudeWritingProfile(input: WritingProfileInput): Promise<Writ
 }
 
 export async function rewriteContentWithAi(input: RewriteInput): Promise<RewriteOutput> {
-  const preferredProvider = input.preferredProvider ?? "auto";
+  const errors: string[] = [];
 
-  if (preferredProvider === "openai") {
-    return runOpenAiRewrite(input);
-  }
-
-  if (preferredProvider === "gemini") {
-    return runGeminiRewrite(input);
-  }
-
-  if (preferredProvider === "claude") {
-    return runClaudeRewrite(input);
-  }
-
-  try {
-    if (env.openaiApiKey()) {
-      return await runOpenAiRewrite(input);
+  for (const provider of getProviderOrder(input.preferredProvider ?? "auto")) {
+    if (!hasProviderKey(provider)) {
+      errors.push(`${provider}: missing api key`);
+      continue;
     }
-  } catch {}
 
-  try {
-    if (env.geminiApiKey()) {
-      return await runGeminiRewrite(input);
-    }
-  } catch {}
+    try {
+      if (provider === "openai") {
+        return await runOpenAiRewrite(input);
+      }
 
-  try {
-    if (env.anthropicApiKey()) {
+      if (provider === "gemini") {
+        return await runGeminiRewrite(input);
+      }
+
       return await runClaudeRewrite(input);
+    } catch (error) {
+      errors.push(`${provider}: ${error instanceof Error ? error.message : "unknown error"}`);
     }
-  } catch {}
+  }
 
-  throw new Error("No AI provider available");
+  throw new Error(errors.length ? `No AI provider available. ${errors.join(" | ")}` : "No AI provider available");
 }
 
 export async function generateWritingProfileWithAi(input: WritingProfileInput): Promise<WritingProfileOutput> {
-  const preferredProvider = input.preferredProvider ?? "auto";
+  const errors: string[] = [];
 
-  if (preferredProvider === "openai") {
-    return runOpenAiWritingProfile(input);
-  }
-
-  if (preferredProvider === "gemini") {
-    return runGeminiWritingProfile(input);
-  }
-
-  if (preferredProvider === "claude") {
-    return runClaudeWritingProfile(input);
-  }
-
-  try {
-    if (env.openaiApiKey()) {
-      return await runOpenAiWritingProfile(input);
+  for (const provider of getProviderOrder(input.preferredProvider ?? "auto")) {
+    if (!hasProviderKey(provider)) {
+      errors.push(`${provider}: missing api key`);
+      continue;
     }
-  } catch {}
 
-  try {
-    if (env.geminiApiKey()) {
-      return await runGeminiWritingProfile(input);
-    }
-  } catch {}
+    try {
+      if (provider === "openai") {
+        return await runOpenAiWritingProfile(input);
+      }
 
-  try {
-    if (env.anthropicApiKey()) {
+      if (provider === "gemini") {
+        return await runGeminiWritingProfile(input);
+      }
+
       return await runClaudeWritingProfile(input);
+    } catch (error) {
+      errors.push(`${provider}: ${error instanceof Error ? error.message : "unknown error"}`);
     }
-  } catch {}
+  }
 
-  throw new Error("No AI provider available");
+  throw new Error(errors.length ? `No AI provider available. ${errors.join(" | ")}` : "No AI provider available");
 }
