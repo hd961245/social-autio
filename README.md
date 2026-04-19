@@ -57,6 +57,7 @@ Open `http://localhost:3000`.
 - 每 6 小時：收集 metrics + 刷新即將到期 token
 - 每 30 分鐘：關鍵字掃描
 - 每 30 分鐘：自動化規則執行
+- 每 15 分鐘：檢查各 Threads persona 是否到了每日自動生文時間
 - 每 3 小時：刷新 Source Watchlist 最新內容
 - 每天 08:00（UTC+8）：把開啟 daily auto-import 的來源自動送進站內草稿池
 
@@ -65,6 +66,7 @@ Open `http://localhost:3000`.
 - `Threads`：即時發文、排程、Queue、分析
 - `Threads Personas`：每個 Threads 帳號可維護不同人設與預設語氣
 - `Persona Playbook`：每個 Threads 帳號可定義題材範圍、hook 風格、CTA 風格與語氣禁區
+- `Daily AI Autopilot`：每個 Threads 帳號可設定每日自動生文時間、方向與草稿 / 排程模式
 - `WordPress`：只建立 / 更新草稿，不直接發佈
 - `Content Engine`：輸入 URL / text / image，產出 Threads + WordPress draft
 - `Content Desk`：把 Inbox / Sources / Engine / Queue 收在同一個工作台

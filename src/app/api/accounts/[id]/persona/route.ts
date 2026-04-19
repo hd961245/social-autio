@@ -9,7 +9,17 @@ const personaSchema = z.object({
   topicFocus: z.string().trim().max(800).optional().or(z.literal("")),
   hookStyle: z.string().trim().max(800).optional().or(z.literal("")),
   ctaStyle: z.string().trim().max(800).optional().or(z.literal("")),
-  voiceGuardrails: z.string().trim().max(1200).optional().or(z.literal(""))
+  voiceGuardrails: z.string().trim().max(1200).optional().or(z.literal("")),
+  autoGenerateEnabled: z.boolean().optional(),
+  autoGenerateTime: z
+    .string()
+    .trim()
+    .regex(/^([01]\d|2[0-3]):([0-5]\d)$/)
+    .optional()
+    .or(z.literal("")),
+  autoGenerateMode: z.enum(["draft", "scheduled"]).optional(),
+  autoGeneratePrompt: z.string().trim().max(2000).optional().or(z.literal("")),
+  autoGenerateGoal: z.string().trim().max(1000).optional().or(z.literal(""))
 });
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -26,7 +36,12 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         topicFocus: payload.topicFocus || null,
         hookStyle: payload.hookStyle || null,
         ctaStyle: payload.ctaStyle || null,
-        voiceGuardrails: payload.voiceGuardrails || null
+        voiceGuardrails: payload.voiceGuardrails || null,
+        autoGenerateEnabled: payload.autoGenerateEnabled ?? false,
+        autoGenerateTime: payload.autoGenerateTime || "09:00",
+        autoGenerateMode: payload.autoGenerateMode || "scheduled",
+        autoGeneratePrompt: payload.autoGeneratePrompt || null,
+        autoGenerateGoal: payload.autoGenerateGoal || null
       }
     });
 
@@ -40,7 +55,12 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         topicFocus: account.topicFocus,
         hookStyle: account.hookStyle,
         ctaStyle: account.ctaStyle,
-        voiceGuardrails: account.voiceGuardrails
+        voiceGuardrails: account.voiceGuardrails,
+        autoGenerateEnabled: account.autoGenerateEnabled,
+        autoGenerateTime: account.autoGenerateTime,
+        autoGenerateMode: account.autoGenerateMode,
+        autoGeneratePrompt: account.autoGeneratePrompt,
+        autoGenerateGoal: account.autoGenerateGoal
       }
     });
   } catch (error) {

@@ -1,6 +1,7 @@
 import { cron } from "inngest";
 import { inngest } from "@/inngest/client";
 import { evaluateAutomationRules } from "@/lib/automation/rules-engine";
+import { runDailyPersonaAutopilot } from "@/lib/automation/daily-persona";
 import { scanKeywordMatches } from "@/lib/keywords/monitor";
 import { collectMetricsSnapshots, refreshExpiringTokens } from "@/lib/metrics-service";
 import { runScheduledPosts } from "@/lib/scheduler/engine";
@@ -54,11 +55,19 @@ export const dailySourceImportFunction = inngest.createFunction(
   }
 );
 
+export const dailyPersonaAutopilotFunction = inngest.createFunction(
+  { id: "daily-persona-autopilot", retries: 1, triggers: [cron("*/15 * * * *")] },
+  async ({ step }) => {
+    return step.run("generate-daily-persona-posts", async () => runDailyPersonaAutopilot());
+  }
+);
+
 export const inngestFunctions = [
   schedulerFunction,
   metricsFunction,
   keywordScanFunction,
   automationFunction,
   sourceWatchRefreshFunction,
-  dailySourceImportFunction
+  dailySourceImportFunction,
+  dailyPersonaAutopilotFunction
 ];

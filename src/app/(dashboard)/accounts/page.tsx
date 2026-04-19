@@ -18,7 +18,7 @@ export default async function AccountsPage() {
       <PageIntro
         eyebrow="Accounts"
         title="已連接帳號"
-        description="查看 Threads 授權狀態、同步時間與目前可用帳號。後續會在這裡補 token refresh 與更多平台來源。"
+        description="查看 Threads 授權狀態、同步時間與目前可用帳號。每支 Threads 帳號也可以在這裡設定自己的人設，以及每天自動生文的節奏。"
         action={
           <a href="/accounts/connect" className="rounded-full bg-[var(--accent)] px-4 py-3 text-sm text-white">
             連接 Threads 帳號
@@ -48,7 +48,12 @@ export default async function AccountsPage() {
           topicFocus: account.topicFocus ?? "",
           hookStyle: account.hookStyle ?? "",
           ctaStyle: account.ctaStyle ?? "",
-          voiceGuardrails: account.voiceGuardrails ?? ""
+          voiceGuardrails: account.voiceGuardrails ?? "",
+          autoGenerateEnabled: account.autoGenerateEnabled ?? false,
+          autoGenerateTime: account.autoGenerateTime ?? "09:00",
+          autoGenerateMode: account.autoGenerateMode === "draft" ? "draft" : "scheduled",
+          autoGeneratePrompt: account.autoGeneratePrompt ?? "",
+          autoGenerateGoal: account.autoGenerateGoal ?? ""
         }))}
       />
     </div>

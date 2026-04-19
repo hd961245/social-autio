@@ -33,6 +33,11 @@ model PlatformAccount {
   hookStyle         String?
   ctaStyle          String?
   voiceGuardrails   String?
+  autoGenerateEnabled Boolean         @default(false)
+  autoGenerateTime  String?           @default("09:00")
+  autoGenerateMode  String?           @default("scheduled")
+  autoGeneratePrompt String?
+  autoGenerateGoal  String?
   profilePictureUrl String?
   accessToken       String
   tokenType         String
