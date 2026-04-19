@@ -135,7 +135,7 @@ async function runGeminiRewrite(input: RewriteInput): Promise<RewriteOutput> {
   }
 
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
     {
       method: "POST",
       headers: {
@@ -188,7 +188,7 @@ async function runClaudeRewrite(input: RewriteInput): Promise<RewriteOutput> {
       "anthropic-version": "2023-06-01"
     },
     body: JSON.stringify({
-      model: "claude-3-5-sonnet-latest",
+      model: "claude-sonnet-4-20250514",
       max_tokens: 1200,
       messages: [
         {
@@ -299,7 +299,7 @@ async function runGeminiWritingProfile(input: WritingProfileInput): Promise<Writ
   }
 
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
     {
       method: "POST",
       headers: {
@@ -352,7 +352,7 @@ async function runClaudeWritingProfile(input: WritingProfileInput): Promise<Writ
       "anthropic-version": "2023-06-01"
     },
     body: JSON.stringify({
-      model: "claude-3-5-sonnet-latest",
+      model: "claude-sonnet-4-20250514",
       max_tokens: 1600,
       messages: [
         {
