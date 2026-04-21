@@ -1,10 +1,12 @@
 import { env } from "@/lib/env";
+import { findEditorialPresetBySiteUrl } from "@/lib/content/editorial-presets";
 
 type RewriteInput = {
   title: string;
   rawText: string;
   personaPrompt: string;
   tone: string;
+  siteUrl?: string;
   wordpressTemplate?: "opinion" | "case-study" | "tool-review" | "weekly-recap";
   preferredProvider?: "auto" | "gemini" | "claude" | "openai";
 };
@@ -89,8 +91,11 @@ function extractTextFromJsonBlock(raw: string) {
 }
 
 function buildPrompt(input: RewriteInput) {
+  const preset = findEditorialPresetBySiteUrl(input.siteUrl);
+
   return [
     "你是一個多平台內容編輯引擎。",
+    preset ? `Site preset: ${preset.label}。${preset.summary}` : "",
     `Persona: ${input.personaPrompt}`,
     `Tone: ${input.tone}`,
     `WordPress template: ${input.wordpressTemplate ?? "opinion"}`,
@@ -100,7 +105,9 @@ function buildPrompt(input: RewriteInput) {
     "wordpressHtml 請輸出可直接貼入 WordPress 的 HTML 內容，而且要像一篇真的可編輯 blog 初稿，不要只有摘要。",
     "wordpressHtml 結構至少包含：開頭導語、2-4 個小標段落、重點條列、結尾觀點或 CTA。",
     "wordpressHtml 必須保留一個明確的聯盟連結 / 推廣連結插槽區塊。",
+    "wordpressHtml 開頭前段必須先有一個『編輯規劃』區塊，寫出：文章類型、主軸 pillar、讀者決策階段、主 CTA、次 CTA、建議內鏈。",
     "如果來源是一則社群貼文，請主動補出『為什麼這件事值得注意』與『可執行的下一步』。",
+    preset ? `站點規則：\n${preset.planningRules.map((rule, index) => `${index + 1}. ${rule}`).join("\n")}` : "",
     `Title: ${input.title}`,
     `Source: ${input.rawText}`
   ].join("\n");

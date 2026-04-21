@@ -34,6 +34,9 @@ export function WordPressStyleProfileCard({
           <p className="mt-3 max-w-2xl text-sm leading-7 text-[var(--muted)]">
             讀取你自己的 WordPress 舊文章，整理成一份後續生成草稿都會沿用的寫作方式，並額外保留聯盟連結與推廣段落的規劃。
           </p>
+          <p className="mt-2 max-w-2xl text-sm leading-7 text-[var(--muted)]">
+            如果這是已經定義好內容系統的站台，先按「套用站台記憶」；如果想再更像你平常的寫法，再跑一次舊文分析。
+          </p>
         </div>
       </div>
 
@@ -75,38 +78,70 @@ export function WordPressStyleProfileCard({
           </select>
         </label>
         <div className="flex items-end">
-          <button
-            disabled={!selectedSiteId || isPending}
-            className="rounded-full bg-[var(--accent)] px-5 py-3 text-sm text-white disabled:opacity-60"
-            onClick={() =>
-              startTransition(async () => {
-                setMessage(null);
+          <div className="flex flex-wrap gap-3">
+            <button
+              disabled={!selectedSiteId || isPending}
+              className="rounded-full border border-[var(--border)] bg-white px-5 py-3 text-sm text-[var(--foreground)] disabled:opacity-60"
+              onClick={() =>
+                startTransition(async () => {
+                  setMessage(null);
 
-                const response = await fetch("/api/wordpress/style-profile", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    accountId: selectedSiteId,
-                    sampleSize: Number(sampleSize) || 12,
-                    useAllPosts
-                  })
-                });
+                  const response = await fetch("/api/wordpress/preset-memory", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      accountId: selectedSiteId
+                    })
+                  });
 
-                const result = await response.json();
+                  const result = await response.json();
 
-                if (!response.ok) {
-                  setMessage(result.message ?? "分析失敗");
-                  return;
-                }
+                  if (!response.ok) {
+                    setMessage(result.message ?? "套用 preset 失敗");
+                    return;
+                  }
 
-                setWritingStyleProfile(result.writingStyleProfile ?? "");
-                setAffiliateLinkPolicy(result.affiliateLinkPolicy ?? "");
-                setMessage(result.message ?? "已更新你的寫作方式設定。");
-              })
-            }
-          >
-            {isPending ? "分析中..." : "分析我的舊文"}
-          </button>
+                  setWritingStyleProfile(result.writingStyleProfile ?? "");
+                  setAffiliateLinkPolicy(result.affiliateLinkPolicy ?? "");
+                  setMessage(result.message ?? "已套用站台記憶。");
+                })
+              }
+            >
+              {isPending ? "處理中..." : "套用站台記憶"}
+            </button>
+            <button
+              disabled={!selectedSiteId || isPending}
+              className="rounded-full bg-[var(--accent)] px-5 py-3 text-sm text-white disabled:opacity-60"
+              onClick={() =>
+                startTransition(async () => {
+                  setMessage(null);
+
+                  const response = await fetch("/api/wordpress/style-profile", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      accountId: selectedSiteId,
+                      sampleSize: Number(sampleSize) || 12,
+                      useAllPosts
+                    })
+                  });
+
+                  const result = await response.json();
+
+                  if (!response.ok) {
+                    setMessage(result.message ?? "分析失敗");
+                    return;
+                  }
+
+                  setWritingStyleProfile(result.writingStyleProfile ?? "");
+                  setAffiliateLinkPolicy(result.affiliateLinkPolicy ?? "");
+                  setMessage(result.message ?? "已更新你的寫作方式設定。");
+                })
+              }
+            >
+              {isPending ? "分析中..." : "分析我的舊文"}
+            </button>
+          </div>
         </div>
       </div>
 

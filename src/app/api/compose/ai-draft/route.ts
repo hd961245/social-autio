@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { rewriteContentWithAi } from "@/lib/ai/gateway";
 import { buildAccountStyleMemory } from "@/lib/ai/style-memory";
+import { buildEditorialMemoryPrompt, findEditorialPresetBySiteUrl } from "@/lib/content/editorial-presets";
 import { extractContentFromUrl } from "@/lib/content/url-ingest";
 import { env } from "@/lib/env";
 import { prisma } from "@/lib/prisma";
@@ -127,16 +128,22 @@ export async function POST(request: Request) {
     }
 
     const styleMemory = await buildAccountStyleMemory(account.id);
+    const editorialSiteUrl = account.platform === "wordpress" ? account.platformUserId : undefined;
+    const preset = findEditorialPresetBySiteUrl(editorialSiteUrl);
     const personaPrompt = [
       buildPersonaPlaybook(account),
-      settings?.globalPersonaPrompt?.trim() || "用冷靜、有觀點、像內容策略師一樣的語氣，幫我拆解重點。",
-      styleMemory,
-      settings?.affiliateLinkPolicy?.trim() ? `聯盟與推廣連結策略：${settings.affiliateLinkPolicy.trim()}` : ""
+      buildEditorialMemoryPrompt({
+        siteUrl: editorialSiteUrl,
+        globalPersonaPrompt: settings?.globalPersonaPrompt,
+        writingStyleProfile: settings?.writingStyleProfile,
+        affiliateLinkPolicy: settings?.affiliateLinkPolicy
+      }) || "用冷靜、有觀點、像內容策略師一樣的語氣，幫我拆解重點。",
+      styleMemory
     ]
       .filter(Boolean)
       .join("\n\n");
 
-    const tone = account.defaultTone?.trim() || settings?.defaultTone?.trim() || "sharp-observer";
+    const tone = account.defaultTone?.trim() || settings?.defaultTone?.trim() || preset?.defaultTone || "sharp-observer";
     const provider = body.provider || (settings?.aiProvider?.trim() as ComposeAiDraftInput["provider"]) || "auto";
     const diagnostics = getAiDiagnostics();
 
@@ -145,6 +152,7 @@ export async function POST(request: Request) {
       rawText: safeText,
       personaPrompt,
       tone,
+      siteUrl: editorialSiteUrl,
       wordpressTemplate: body.wordpressTemplate || "opinion",
       preferredProvider: provider
     });

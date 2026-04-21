@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { rewriteContentWithAi } from "@/lib/ai/gateway";
+import { buildEditorialMemoryPrompt, findEditorialPresetBySiteUrl } from "@/lib/content/editorial-presets";
+import { inferWordPressDraftPlanning } from "@/lib/content/wordpress-templates";
 import { fetchWordPressPostById } from "@/lib/platforms/wordpress/client";
 import { prisma } from "@/lib/prisma";
 
@@ -54,10 +56,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: false, message: "原始文章沒有可複寫的內容。" }, { status: 400 });
     }
 
+    const preset = findEditorialPresetBySiteUrl(account.platformUserId);
     const personaPrompt = [
-      settings?.globalPersonaPrompt?.trim() || "用冷靜、有觀點、像內容策略師一樣的語氣，幫我拆解重點。",
-      settings?.writingStyleProfile?.trim() ? `寫作風格基底：${settings.writingStyleProfile.trim()}` : "",
-      settings?.affiliateLinkPolicy?.trim() ? `聯盟與推廣連結策略：${settings.affiliateLinkPolicy.trim()}` : "",
+      buildEditorialMemoryPrompt({
+        siteUrl: account.platformUserId,
+        globalPersonaPrompt: settings?.globalPersonaPrompt,
+        writingStyleProfile: settings?.writingStyleProfile,
+        affiliateLinkPolicy: settings?.affiliateLinkPolicy
+      }) || "用冷靜、有觀點、像內容策略師一樣的語氣，幫我拆解重點。",
       "請不要直接改寫成近似同義版本，而是保留核心主題，換一個更適合再次發布的新切角。",
       "輸出的 WordPress 草稿要保留可插入聯盟連結、導購段落與 CTA 的空間。"
     ]
@@ -69,8 +75,14 @@ export async function POST(request: Request) {
       title,
       rawText: `原始文章標題：${title}\n\n摘要：${excerpt}\n\n原始文章內容：${content}`,
       personaPrompt,
-      tone: settings?.defaultTone?.trim() || "sharp-observer",
+      tone: settings?.defaultTone?.trim() || preset?.defaultTone || "sharp-observer",
+      siteUrl: account.platformUserId,
       preferredProvider
+    });
+    const planning = inferWordPressDraftPlanning({
+      title: aiResult.wordpressTitle || `${title}｜重寫版`,
+      summary: aiResult.summary,
+      templateId: "opinion"
     });
 
     const draft = await prisma.post.create({
@@ -82,6 +94,9 @@ export async function POST(request: Request) {
         textContent: aiResult.wordpressExcerpt,
         htmlContent: aiResult.wordpressHtml,
         excerpt: aiResult.wordpressExcerpt,
+        categories: JSON.stringify([planning.pillar, planning.contentType]),
+        tags: JSON.stringify([planning.targetStage, ...planning.internalLinks]),
+        topicTag: planning.pillar,
         status: "draft",
         errorMessage: null
       }
