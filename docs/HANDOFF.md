@@ -1,7 +1,7 @@
 # Social Audio Handoff
 
 > Version: v1.0  
-> Updated: 2026-04-18  
+> Updated: 2026-04-21  
 > Scope: practical handoff notes for switching computers, reopening the project, or continuing in a new Codex thread
 
 ## 1. What To Read First
@@ -100,6 +100,17 @@ Action:
 - check UI disable reason
 - verify DB banner / Threads account availability
 
+### Case E. Accounts look cleared after switching computers
+
+Action:
+
+- verify production `DATABASE_URL`
+- verify current Zeabur deployment is the expected commit
+- check `Ops` account counts
+- run `npm run db:push` if recent schema changes exist
+
+Do not assume local machine changes deleted cloud accounts.
+
 ## 7. Current Key Debug Surfaces
 
 Use these pages first:
@@ -129,3 +140,11 @@ Before assuming a logic bug, always ask:
 `Is this code, schema, environment, or cloud state?`
 
 Most recent failures were environment or schema first, not product logic first.
+
+## 10. Next Strategic Direction
+
+The next major product layer is:
+
+`AI auto-schedule + controlled auto-publish + comment-aware optimization`
+
+Read [docs/PERSISTENCE_AND_AUTOMATION.md](./PERSISTENCE_AND_AUTOMATION.md) before implementing that layer.

@@ -1,7 +1,7 @@
 # Social Audio PRD
 
 > Version: v3.1  
-> Updated: 2026-04-16  
+> Updated: 2026-04-21  
 > Status: Active Build  
 > Repo: https://github.com/hd961245/social-autio
 
@@ -446,6 +446,24 @@ Success looks like:
 - each Threads persona develops its own playbook from real use
 - the system gets better at deciding which account should publish what
 - monetization modules become more intentional instead of static placeholders
+
+### Phase 4.5 AI Operator Layer
+
+After persona learning becomes more stable, the next operating layer is controlled automation.
+
+Focus:
+
+- AI auto-schedule recommendations
+- per-persona auto-publish opt-in
+- publish preflight before autonomous send
+- reply and quote sentiment clustering
+- comment-aware rewrite and follow-up suggestions
+
+Success looks like:
+
+- the system can prepare and schedule posts with minimal user friction
+- autonomous actions remain bounded by diagnostics and persona guardrails
+- comments and replies become optimization input, not just passive metrics
 
 ### Phase 5. Management Console Direction
 

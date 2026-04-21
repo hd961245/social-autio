@@ -1,7 +1,7 @@
 # Social Audio State
 
 > Version: v1.0  
-> Updated: 2026-04-18  
+> Updated: 2026-04-21  
 > Scope: current project state, real implementation status, and recent operational issues
 
 ## 1. Current Product State
@@ -155,6 +155,19 @@ If scheduling / automation is expected:
 - `INNGEST_SIGNING_KEY`
 - `INNGEST_SERVE_ORIGIN`
 
+## 6.1 Persistence Rule Across Computers
+
+Switching computers should not remove bound Threads or WordPress accounts.
+
+If accounts appear to disappear after changing machines, treat it as one of:
+
+- wrong production database
+- different Zeabur environment
+- outdated schema
+- old deployment still being served
+
+Do not treat it as a local-machine-only issue.
+
 ## 7. Required Post-Deploy Steps
 
 After schema changes, cloud usually needs:
@@ -171,6 +184,7 @@ If continuing product work, the best next areas are:
 2. stronger WordPress backend state sync
 3. content asset metadata
 4. persona outcome learning
+5. AI auto-schedule and comment-aware optimization layer
 
 ## 9. Current Rule Of Thumb
 

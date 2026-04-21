@@ -9,6 +9,7 @@ Threads-first 自媒體創業者管理中台。
 - Bootstrap Guide: [docs/BOOTSTRAP.md](./docs/BOOTSTRAP.md)
 - Current State: [docs/STATE.md](./docs/STATE.md)
 - Handoff Notes: [docs/HANDOFF.md](./docs/HANDOFF.md)
+- Persistence + Automation: [docs/PERSISTENCE_AND_AUTOMATION.md](./docs/PERSISTENCE_AND_AUTOMATION.md)
 - Deploy / Recovery: [docs/ZEABUR.md](./docs/ZEABUR.md)
 - Workflow SOP: [docs/WORKFLOW.md](./docs/WORKFLOW.md)
 - Current focus: Threads publishing + WordPress draft studio + Content Desk + Content Inventory

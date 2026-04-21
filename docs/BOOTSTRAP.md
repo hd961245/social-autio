@@ -1,7 +1,7 @@
 # Social Audio Bootstrap
 
 > Version: v1.0  
-> Updated: 2026-04-18  
+> Updated: 2026-04-21  
 > Audience: next AI thread, next computer, or fast project re-entry
 
 ## 1. One-Screen Summary
@@ -83,6 +83,19 @@ If not done, app may load fine but fail at runtime.
 4. Threads accounts are visible in `Accounts`
 5. `Ops` has no obvious blocking warning
 
+## 8.1 Persistence Reminder
+
+Changing computers should not clear accounts.
+
+If accounts seem missing, assume:
+
+- wrong DB
+- wrong environment
+- outdated schema
+- stale deployment
+
+before assuming product logic is deleting records.
+
 ## 9. Best Next Product Work
 
 If continuing feature work, highest-value next items are:
@@ -91,9 +104,10 @@ If continuing feature work, highest-value next items are:
 2. stronger WordPress backend state sync
 3. content asset metadata
 4. persona outcome learning
+5. AI auto-schedule and comment-aware optimization
 
 ## 10. Short Prompt For A New AI Thread
 
 Use this as the first message if restarting elsewhere:
 
-`Read docs/BOOTSTRAP.md, docs/STATE.md, and docs/HANDOFF.md first. This repo is a Threads-first self-media entrepreneur management console with WordPress draft-only workflow, multi-persona Threads accounts, Content Desk, Inventory, Ops diagnostics, and recent cloud/runtime issues around Threads OAuth, DB reachability, and schema drift. Continue from current main without re-deriving product direction.`
+`Read docs/BOOTSTRAP.md, docs/STATE.md, docs/HANDOFF.md, and docs/PERSISTENCE_AND_AUTOMATION.md first. This repo is a Threads-first self-media entrepreneur management console with WordPress draft-only workflow, multi-persona Threads accounts, Content Desk, Inventory, Ops diagnostics, and recent cloud/runtime issues around Threads OAuth, DB reachability, schema drift, and stale deployments. Changing computers should not clear accounts; treat missing accounts as DB/environment/schema first. Continue from current main without re-deriving product direction.`
