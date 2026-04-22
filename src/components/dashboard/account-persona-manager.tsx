@@ -18,6 +18,9 @@ type AccountPersona = {
   autoGenerateMode: "draft" | "scheduled";
   autoGeneratePrompt: string;
   autoGenerateGoal: string;
+  lastAutopilotStatus?: string;
+  lastAutopilotDetail?: string;
+  lastAutopilotAt?: string;
 };
 
 export function AccountPersonaManager({ accounts }: { accounts: AccountPersona[] }) {
@@ -247,6 +250,20 @@ export function AccountPersonaManager({ accounts }: { accounts: AccountPersona[]
                     />
                   </label>
                 </div>
+
+                <div className="mt-4 rounded-[1.2rem] border border-[var(--border)] bg-white px-4 py-4 text-sm">
+                  <p className="text-[11px] uppercase tracking-[0.2em] text-[var(--muted)]">最近一次自動生文</p>
+                  {account.lastAutopilotDetail ? (
+                    <>
+                      <p className="mt-2 font-medium">{account.lastAutopilotDetail}</p>
+                      <p className="mt-1 text-[var(--muted)]">
+                        {account.lastAutopilotAt} {account.lastAutopilotStatus ? `· ${account.lastAutopilotStatus}` : ""}
+                      </p>
+                    </>
+                  ) : (
+                    <p className="mt-2 text-[var(--muted)]">這個 persona 還沒有自動生文紀錄。</p>
+                  )}
+                </div>
               </div>
 
               <div className="mt-4 flex flex-wrap items-center gap-3">
@@ -285,6 +302,49 @@ export function AccountPersonaManager({ accounts }: { accounts: AccountPersona[]
                 <a href={`/compose?accountId=${account.id}`} className="rounded-full border border-[var(--border)] bg-white px-4 py-2 text-sm">
                   用這個帳號開稿
                 </a>
+                <button
+                  type="button"
+                  disabled={isPending}
+                  className="rounded-full border border-[var(--border)] bg-white px-4 py-2 text-sm disabled:opacity-60"
+                  onClick={() => {
+                    startTransition(async () => {
+                      setMessage(null);
+                      const response = await fetch(`/api/accounts/${account.id}/autopilot`, {
+                        method: "POST"
+                      });
+                      const result = await response.json();
+
+                      if (!response.ok) {
+                        setMessage(result.message ?? "立即試跑失敗");
+                        return;
+                      }
+
+                      const nowLabel = new Date().toLocaleString("zh-TW", { hour12: false });
+                      setLocalAccounts((current) =>
+                        current.map((item) =>
+                          item.id === account.id
+                            ? {
+                                ...item,
+                                lastAutopilotStatus: result.result?.postStatus ?? "draft",
+                                lastAutopilotDetail:
+                                  result.result?.postStatus === "scheduled"
+                                    ? `已立即試跑 AI 自動生文，並排進發文佇列。Provider: ${result.result?.provider ?? "auto"}`
+                                    : `已立即試跑 AI 自動生文，並存成草稿。Provider: ${result.result?.provider ?? "auto"}`,
+                                lastAutopilotAt: nowLabel
+                              }
+                            : item
+                        )
+                      );
+                      setMessage(
+                        result.result?.postStatus === "scheduled"
+                          ? `已替 ${account.username} 產出一篇文，並排進佇列。`
+                          : `已替 ${account.username} 產出一篇草稿。`
+                      );
+                    });
+                  }}
+                >
+                  立即試跑一篇
+                </button>
               </div>
             </article>
           ))}

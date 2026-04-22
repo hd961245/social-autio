@@ -26,6 +26,11 @@ export default async function AccountsPage() {
       take: 8
     }).catch(() => [])
   ]);
+  const latestAutopilotLogByAccount = new Map(
+    autopilotLogs
+      .filter((log) => log.accountId)
+      .map((log) => [log.accountId as string, log] as const)
+  );
 
   const enabledAutopilotCount = rawAccounts.filter(
     (account) => account.platform === "threads" && account.autoGenerateEnabled
@@ -123,7 +128,12 @@ export default async function AccountsPage() {
           autoGenerateTime: account.autoGenerateTime ?? "09:00",
           autoGenerateMode: account.autoGenerateMode === "draft" ? "draft" : "scheduled",
           autoGeneratePrompt: account.autoGeneratePrompt ?? "",
-          autoGenerateGoal: account.autoGenerateGoal ?? ""
+          autoGenerateGoal: account.autoGenerateGoal ?? "",
+          lastAutopilotStatus: latestAutopilotLogByAccount.get(account.id)?.status,
+          lastAutopilotDetail: latestAutopilotLogByAccount.get(account.id)?.detail ?? "",
+          lastAutopilotAt: latestAutopilotLogByAccount.get(account.id)?.executedAt.toLocaleString("zh-TW", {
+            hour12: false
+          }) ?? ""
         }))}
       />
     </div>
