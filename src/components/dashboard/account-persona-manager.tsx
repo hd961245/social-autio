@@ -21,6 +21,8 @@ type AccountPersona = {
   lastAutopilotStatus?: string;
   lastAutopilotDetail?: string;
   lastAutopilotAt?: string;
+  recommendedScheduleLabel?: string;
+  recommendedScheduleDetail?: string;
 };
 
 export function AccountPersonaManager({ accounts }: { accounts: AccountPersona[] }) {
@@ -252,6 +254,12 @@ export function AccountPersonaManager({ accounts }: { accounts: AccountPersona[]
                 </div>
 
                 <div className="mt-4 rounded-[1.2rem] border border-[var(--border)] bg-white px-4 py-4 text-sm">
+                  <p className="text-[11px] uppercase tracking-[0.2em] text-[var(--muted)]">建議排程時段</p>
+                  <p className="mt-2 text-lg font-semibold">{account.recommendedScheduleLabel ?? "09:20"}</p>
+                  <p className="mt-1 text-[var(--muted)]">{account.recommendedScheduleDetail ?? "目前資料還不夠，先用保守預設時段。"}</p>
+                </div>
+
+                <div className="mt-4 rounded-[1.2rem] border border-[var(--border)] bg-white px-4 py-4 text-sm">
                   <p className="text-[11px] uppercase tracking-[0.2em] text-[var(--muted)]">最近一次自動生文</p>
                   {account.lastAutopilotDetail ? (
                     <>
@@ -328,7 +336,7 @@ export function AccountPersonaManager({ accounts }: { accounts: AccountPersona[]
                                 lastAutopilotStatus: result.result?.postStatus ?? "draft",
                                 lastAutopilotDetail:
                                   result.result?.postStatus === "scheduled"
-                                    ? `已立即試跑 AI 自動生文，並排進發文佇列。Provider: ${result.result?.provider ?? "auto"}`
+                                    ? `已立即試跑 AI 自動生文，並排進發文佇列（建議時段 ${result.result?.scheduledForLabel ?? "即刻"}）。Provider: ${result.result?.provider ?? "auto"}`
                                     : `已立即試跑 AI 自動生文，並存成草稿。Provider: ${result.result?.provider ?? "auto"}`,
                                 lastAutopilotAt: nowLabel
                               }
@@ -337,7 +345,7 @@ export function AccountPersonaManager({ accounts }: { accounts: AccountPersona[]
                       );
                       setMessage(
                         result.result?.postStatus === "scheduled"
-                          ? `已替 ${account.username} 產出一篇文，並排進佇列。`
+                          ? `已替 ${account.username} 產出一篇文，並排進佇列（建議時段 ${result.result?.scheduledForLabel ?? "即刻"}）。`
                           : `已替 ${account.username} 產出一篇草稿。`
                       );
                     });

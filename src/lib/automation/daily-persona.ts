@@ -1,4 +1,5 @@
 import { rewriteContentWithAi } from "@/lib/ai/gateway";
+import { inferBestScheduleTime } from "@/lib/automation/autopilot-timing";
 import { prisma } from "@/lib/prisma";
 import { buildAccountStyleMemory } from "@/lib/ai/style-memory";
 
@@ -176,6 +177,28 @@ async function generateDailyPersonaPost(params: {
         id: params.accountId,
         isActive: true,
         platform: "threads"
+      },
+      include: {
+        posts: {
+          where: {
+            status: "published",
+            publishedAt: {
+              not: null
+            }
+          },
+          orderBy: {
+            publishedAt: "desc"
+          },
+          take: 18,
+          include: {
+            metrics: {
+              orderBy: {
+                capturedAt: "desc"
+              },
+              take: 1
+            }
+          }
+        }
       }
     })
   ]);
@@ -239,7 +262,25 @@ async function generateDailyPersonaPost(params: {
   });
 
   const status = account.autoGenerateMode === "draft" ? "draft" : "scheduled";
-  const scheduledAt = status === "scheduled" ? new Date(params.now.getTime() + 60 * 1000) : null;
+  const timingSuggestion =
+    status === "scheduled"
+      ? inferBestScheduleTime({
+          now: params.now,
+          goal: account.autoGenerateGoal,
+          posts: account.posts.map((post) => ({
+            publishedAt: post.publishedAt,
+            metrics: post.metrics.map((metric) => ({
+              views: metric.views,
+              likes: metric.likes,
+              replies: metric.replies,
+              reposts: metric.reposts,
+              quotes: metric.quotes,
+              shares: metric.shares
+            }))
+          }))
+        })
+      : null;
+  const scheduledAt = status === "scheduled" ? timingSuggestion?.scheduledAt ?? new Date(params.now.getTime() + 60 * 1000) : null;
   const post = await prisma.post.create({
     data: {
       userId: account.userId,
@@ -263,7 +304,7 @@ async function generateDailyPersonaPost(params: {
       status,
       detail:
         status === "scheduled"
-          ? `${detailPrefix}，並排入佇列。Provider: ${result.provider}`
+          ? `${detailPrefix}，並排入佇列（預計 ${scheduledAt?.toLocaleString("zh-TW", { hour12: false })} 發出，建議時段 ${timingSuggestion?.label ?? "即刻"}）。Provider: ${result.provider}`
           : `${detailPrefix}，已存成草稿。Provider: ${result.provider}`
     }
   });
@@ -272,6 +313,9 @@ async function generateDailyPersonaPost(params: {
     status: "created" as const,
     postId: post.id,
     postStatus: status,
-    provider: result.provider
+    provider: result.provider,
+    scheduledForLabel: timingSuggestion?.label ?? null,
+    scheduledAt: scheduledAt?.toISOString() ?? null,
+    timingDetail: timingSuggestion?.detail ?? null
   };
 }

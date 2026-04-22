@@ -1,6 +1,7 @@
 import { AccountCardItem } from "@/components/dashboard/account-card";
 import { AccountPersonaManager } from "@/components/dashboard/account-persona-manager";
 import { PageIntro } from "@/components/dashboard/page-intro";
+import { inferBestScheduleTime } from "@/lib/automation/autopilot-timing";
 import { prisma } from "@/lib/prisma";
 import { getAccountSummaries } from "@/lib/dashboard-data";
 
@@ -11,7 +12,29 @@ export default async function AccountsPage() {
   const [rawAccounts, autopilotLogs] = await Promise.all([
     prisma.platformAccount.findMany({
       where: { isActive: true },
-      orderBy: [{ platform: "asc" }, { createdAt: "desc" }]
+      orderBy: [{ platform: "asc" }, { createdAt: "desc" }],
+      include: {
+        posts: {
+          where: {
+            status: "published",
+            publishedAt: {
+              not: null
+            }
+          },
+          orderBy: {
+            publishedAt: "desc"
+          },
+          take: 18,
+          include: {
+            metrics: {
+              orderBy: {
+                capturedAt: "desc"
+              },
+              take: 1
+            }
+          }
+        }
+      }
     }).catch(() => []),
     prisma.automationLog.findMany({
       where: {
@@ -114,6 +137,27 @@ export default async function AccountsPage() {
 
       <AccountPersonaManager
         accounts={rawAccounts.map((account) => ({
+          ...(() => {
+            const timing = inferBestScheduleTime({
+              goal: account.autoGenerateGoal,
+              posts: account.posts.map((post) => ({
+                publishedAt: post.publishedAt,
+                metrics: post.metrics.map((metric) => ({
+                  views: metric.views,
+                  likes: metric.likes,
+                  replies: metric.replies,
+                  reposts: metric.reposts,
+                  quotes: metric.quotes,
+                  shares: metric.shares
+                }))
+              }))
+            });
+
+            return {
+              recommendedScheduleLabel: timing.label,
+              recommendedScheduleDetail: timing.detail
+            };
+          })(),
           id: account.id,
           username: `@${account.platformUsername}`,
           platform: account.platform,
