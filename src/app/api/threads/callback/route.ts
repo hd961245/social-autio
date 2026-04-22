@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { encryptString } from "@/lib/crypto";
+import { toDisplayErrorMessage } from "@/lib/error-display";
 import { prisma } from "@/lib/prisma";
 import { getPlatformAdapter } from "@/lib/platforms";
 import { THREADS_STATE_COOKIE } from "@/lib/platforms/threads/constants";
@@ -84,17 +85,19 @@ export async function GET(request: Request) {
 
     return NextResponse.redirect(new URL("/accounts?connected=threads", request.url));
   } catch (error) {
+    const { message, rawMessage } = toDisplayErrorMessage(error);
+
     await prisma.automationLog.create({
       data: {
         actionType: "threads_callback",
         status: "failed",
-        detail: `${logDetailPrefix} | ${error instanceof Error ? error.message : "Invalid callback payload"}`
+        detail: `${logDetailPrefix} | ${rawMessage}`
       }
     }).catch(() => null);
 
     return NextResponse.json({
       ok: false,
-      message: error instanceof Error ? error.message : "Invalid callback payload"
+      message
     }, { status: 400 });
   }
 }
