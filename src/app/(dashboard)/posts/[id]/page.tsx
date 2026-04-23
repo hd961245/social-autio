@@ -1,4 +1,5 @@
 import { PageIntro } from "@/components/dashboard/page-intro";
+import { ReplyOptimizeCard } from "@/components/dashboard/reply-optimize-card";
 import { getThreadPostDeepDive } from "@/lib/dashboard-data";
 
 export const dynamic = "force-dynamic";
@@ -96,6 +97,8 @@ export default async function PostDetailPage({ params }: { params: Promise<{ id:
           </div>
         </article>
       </section>
+
+      <ReplyOptimizeCard postId={post.id} replies={post.replies} />
 
       <section className="glass-panel rounded-[2rem] border border-[var(--border)] p-6">
         <p className="text-[11px] uppercase tracking-[0.3em] text-[var(--muted)]">Timeline</p>

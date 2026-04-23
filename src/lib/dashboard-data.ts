@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { getPlatformAdapter } from "@/lib/platforms";
 
 export type AccountSummary = {
   id: string;
@@ -148,6 +149,7 @@ export type ThreadPostDeepDive = {
   account: string;
   text: string;
   platformUrl: string | null;
+  platformPostId: string | null;
   publishedAt: string;
   latest: {
     views: number;
@@ -167,6 +169,12 @@ export type ThreadPostDeepDive = {
   insights: string[];
   nextAction: string;
   timeline: ThreadMetricTimelinePoint[];
+  replies: Array<{
+    id: string;
+    username: string;
+    text: string;
+    timestamp: string;
+  }>;
 };
 
 function clamp(value: number, min: number, max: number) {
@@ -933,6 +941,21 @@ export async function getThreadPostDeepDive(postId: string): Promise<ThreadPostD
       return null;
     }
 
+    const replies =
+      post.platformPostId
+        ? await getPlatformAdapter("threads")
+            .getPostReplies(post.accountId, post.platformPostId)
+            .then((items) =>
+              items.slice(0, 8).map((reply) => ({
+                id: reply.id,
+                username: reply.username,
+                text: reply.text,
+                timestamp: new Date(reply.timestamp).toLocaleString("zh-TW", { hour12: false })
+              }))
+            )
+            .catch(() => [])
+        : [];
+
     const latest = post.metrics.at(-1);
     const timeline: ThreadMetricTimelinePoint[] = post.metrics.map((metric) => ({
       label: metric.capturedAt.toLocaleString("zh-TW", {
@@ -976,6 +999,7 @@ export async function getThreadPostDeepDive(postId: string): Promise<ThreadPostD
       account: `@${post.account.platformUsername}`,
       text: post.textContent ?? post.title ?? "(無文字內容)",
       platformUrl: post.platformUrl,
+      platformPostId: post.platformPostId,
       publishedAt: formatDate(post.publishedAt ?? post.createdAt),
       latest: latestMetrics,
       health: {
@@ -987,7 +1011,8 @@ export async function getThreadPostDeepDive(postId: string): Promise<ThreadPostD
       },
       insights: health.insights,
       nextAction: health.nextAction,
-      timeline
+      timeline,
+      replies
     };
   } catch {
     return null;
