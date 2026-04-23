@@ -17,6 +17,13 @@ export function ReplyOptimizeCard({
   replies: ReplySample[];
 }) {
   const [message, setMessage] = useState<string | null>(null);
+  const [insights, setInsights] = useState<{
+    provider: string;
+    summary: string;
+    tension: string;
+    opportunity: string;
+    followUpAngle: string;
+  } | null>(null);
   const [isPending, startTransition] = useTransition();
 
   return (
@@ -30,31 +37,78 @@ export function ReplyOptimizeCard({
           </p>
         </div>
 
-        <button
-          type="button"
-          disabled={isPending || replies.length === 0}
-          className="rounded-full bg-[var(--accent)] px-4 py-2 text-sm text-white disabled:opacity-60"
-          onClick={() => {
-            startTransition(async () => {
-              setMessage(null);
-              const response = await fetch(`/api/posts/${postId}/optimize-from-replies`, {
-                method: "POST"
+        <div className="flex flex-wrap gap-3">
+          <button
+            type="button"
+            disabled={isPending || replies.length === 0}
+            className="rounded-full border border-[var(--border)] bg-white px-4 py-2 text-sm disabled:opacity-60"
+            onClick={() => {
+              startTransition(async () => {
+                setMessage(null);
+                const response = await fetch(`/api/posts/${postId}/reply-insights`, {
+                  method: "POST"
+                });
+                const result = await response.json();
+
+                if (!response.ok) {
+                  setMessage(result.message ?? "留言洞察生成失敗");
+                  return;
+                }
+
+                setInsights(result.result);
+                setMessage(`已根據 ${result.replyCount} 則留言整理出 AI 洞察。`);
               });
-              const result = await response.json();
+            }}
+          >
+            {isPending ? "整理中..." : "AI 幫我整理留言洞察"}
+          </button>
+          <button
+            type="button"
+            disabled={isPending || replies.length === 0}
+            className="rounded-full bg-[var(--accent)] px-4 py-2 text-sm text-white disabled:opacity-60"
+            onClick={() => {
+              startTransition(async () => {
+                setMessage(null);
+                const response = await fetch(`/api/posts/${postId}/optimize-from-replies`, {
+                  method: "POST"
+                });
+                const result = await response.json();
 
-              if (!response.ok) {
-                setMessage(result.message ?? "生成優化版失敗");
-                return;
-              }
+                if (!response.ok) {
+                  setMessage(result.message ?? "生成優化版失敗");
+                  return;
+                }
 
-              setMessage(`已根據 ${result.replyCount} 則留言建立新草稿，現在帶你去 Compose。`);
-              window.location.href = `/compose?postId=${result.draftId}`;
-            });
-          }}
-        >
-          {isPending ? "生成中..." : "根據留言生成優化版"}
-        </button>
+                setMessage(`已根據 ${result.replyCount} 則留言建立新草稿，現在帶你去 Compose。`);
+                window.location.href = `/compose?postId=${result.draftId}`;
+              });
+            }}
+          >
+            {isPending ? "生成中..." : "根據留言生成優化版"}
+          </button>
+        </div>
       </div>
+
+      {insights ? (
+        <div className="mt-6 grid gap-3 lg:grid-cols-2">
+          <article className="rounded-[1.2rem] border border-[var(--border)] bg-white/72 px-4 py-4">
+            <p className="text-[11px] uppercase tracking-[0.2em] text-[var(--muted)]">Summary</p>
+            <p className="mt-2 text-sm leading-7 text-[var(--muted)]">{insights.summary}</p>
+          </article>
+          <article className="rounded-[1.2rem] border border-[var(--border)] bg-white/72 px-4 py-4">
+            <p className="text-[11px] uppercase tracking-[0.2em] text-[var(--muted)]">Tension</p>
+            <p className="mt-2 text-sm leading-7 text-[var(--muted)]">{insights.tension}</p>
+          </article>
+          <article className="rounded-[1.2rem] border border-[var(--border)] bg-white/72 px-4 py-4">
+            <p className="text-[11px] uppercase tracking-[0.2em] text-[var(--muted)]">Opportunity</p>
+            <p className="mt-2 text-sm leading-7 text-[var(--muted)]">{insights.opportunity}</p>
+          </article>
+          <article className="rounded-[1.2rem] border border-[var(--border)] bg-white/72 px-4 py-4">
+            <p className="text-[11px] uppercase tracking-[0.2em] text-[var(--muted)]">Follow-up Angle</p>
+            <p className="mt-2 text-sm leading-7 text-[var(--muted)]">{insights.followUpAngle}</p>
+          </article>
+        </div>
+      ) : null}
 
       <div className="mt-6 space-y-3">
         {replies.length === 0 ? (

@@ -36,6 +36,23 @@ type WritingProfileOutput = {
   affiliateLinkPolicy: string;
 };
 
+type ReplyInsightInput = {
+  originalText: string;
+  replies: Array<{
+    username: string;
+    text: string;
+  }>;
+  preferredProvider?: "auto" | "gemini" | "claude" | "openai";
+};
+
+type ReplyInsightOutput = {
+  provider: "openai" | "gemini" | "claude";
+  summary: string;
+  tension: string;
+  opportunity: string;
+  followUpAngle: string;
+};
+
 type ProviderId = "openai" | "gemini" | "claude";
 const AI_PROVIDER_TIMEOUT_MS = 12000;
 
@@ -256,6 +273,15 @@ function extractProfileFromJsonBlock(raw: string) {
   return JSON.parse(match[0]) as Omit<WritingProfileOutput, "provider">;
 }
 
+function extractReplyInsightsFromJsonBlock(raw: string) {
+  const match = raw.match(/\{[\s\S]*\}/);
+  if (!match) {
+    throw new Error("AI response did not include JSON.");
+  }
+
+  return JSON.parse(match[0]) as Omit<ReplyInsightOutput, "provider">;
+}
+
 function buildWritingProfilePrompt(input: WritingProfileInput) {
   const samples = input.samples
     .slice(0, 12)
@@ -278,6 +304,29 @@ function buildWritingProfilePrompt(input: WritingProfileInput) {
     "兩個欄位都請用繁體中文，寫成可直接拿來約束後續草稿生成的實用指令。",
     samples
   ].join("\n\n");
+}
+
+function buildReplyInsightPrompt(input: ReplyInsightInput) {
+  const replyBlock = input.replies
+    .slice(0, 10)
+    .map((reply, index) => `${index + 1}. @${reply.username}: ${reply.text}`)
+    .join("\n");
+
+  return [
+    "你是一位內容策略編輯，正在閱讀一篇 Threads 貼文底下的留言。",
+    "請輸出 JSON，欄位只能有：summary, tension, opportunity, followUpAngle。",
+    "summary：用 2-3 句整理這波留言的主要訊號。",
+    "tension：指出留言裡最核心的分歧、疑問或阻力。",
+    "opportunity：指出最值得延伸成下一篇內容的切口。",
+    "followUpAngle：直接寫一句下一篇 Threads 最適合怎麼切進去。",
+    "全部用繁體中文，務必簡潔、可操作。",
+    "",
+    "原始 Threads：",
+    input.originalText,
+    "",
+    "留言樣本：",
+    replyBlock
+  ].join("\n");
 }
 
 async function runOpenAiWritingProfile(input: WritingProfileInput): Promise<WritingProfileOutput> {
@@ -414,6 +463,140 @@ async function runClaudeWritingProfile(input: WritingProfileInput): Promise<Writ
   };
 }
 
+async function runOpenAiReplyInsights(input: ReplyInsightInput): Promise<ReplyInsightOutput> {
+  const apiKey = env.openaiApiKey();
+
+  if (!apiKey) {
+    throw new Error("Missing OPENAI_API_KEY");
+  }
+
+  const response = await fetchWithTimeout("https://api.openai.com/v1/responses", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`
+    },
+    body: JSON.stringify({
+      model: "gpt-4.1-mini",
+      input: buildReplyInsightPrompt(input)
+    })
+  });
+
+  if (!response.ok) {
+    const detail = await response.text();
+    throw new Error(`OpenAI API error (${response.status}): ${detail.slice(0, 400)}`);
+  }
+
+  const data = (await response.json()) as {
+    output_text?: string;
+    output?: Array<{
+      content?: Array<{ type?: string; text?: string }>;
+    }>;
+  };
+
+  const text =
+    data.output_text?.trim() ||
+    data.output?.flatMap((item) => item.content ?? []).map((item) => item.text ?? "").join("\n") ||
+    "";
+  const parsed = extractReplyInsightsFromJsonBlock(text);
+
+  return {
+    provider: "openai",
+    ...parsed
+  };
+}
+
+async function runGeminiReplyInsights(input: ReplyInsightInput): Promise<ReplyInsightOutput> {
+  const apiKey = env.geminiApiKey();
+
+  if (!apiKey) {
+    throw new Error("Missing GEMINI_API_KEY");
+  }
+
+  const response = await fetchWithTimeout(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        contents: [
+          {
+            role: "user",
+            parts: [{ text: buildReplyInsightPrompt(input) }]
+          }
+        ]
+      })
+    }
+  );
+
+  if (!response.ok) {
+    const detail = await response.text();
+    throw new Error(`Gemini API error (${response.status}): ${detail.slice(0, 400)}`);
+  }
+
+  const data = (await response.json()) as {
+    candidates?: Array<{
+      content?: {
+        parts?: Array<{ text?: string }>;
+      };
+    }>;
+  };
+
+  const text = data.candidates?.[0]?.content?.parts?.map((part) => part.text ?? "").join("\n") ?? "";
+  const parsed = extractReplyInsightsFromJsonBlock(text);
+
+  return {
+    provider: "gemini",
+    ...parsed
+  };
+}
+
+async function runClaudeReplyInsights(input: ReplyInsightInput): Promise<ReplyInsightOutput> {
+  const apiKey = env.anthropicApiKey();
+
+  if (!apiKey) {
+    throw new Error("Missing ANTHROPIC_API_KEY");
+  }
+
+  const response = await fetchWithTimeout("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01"
+    },
+    body: JSON.stringify({
+      model: "claude-sonnet-4-20250514",
+      max_tokens: 1000,
+      messages: [
+        {
+          role: "user",
+          content: buildReplyInsightPrompt(input)
+        }
+      ]
+    })
+  });
+
+  if (!response.ok) {
+    const detail = await response.text();
+    throw new Error(`Claude API error (${response.status}): ${detail.slice(0, 400)}`);
+  }
+
+  const data = (await response.json()) as {
+    content?: Array<{ type?: string; text?: string }>;
+  };
+
+  const text = data.content?.map((item) => item.text ?? "").join("\n") ?? "";
+  const parsed = extractReplyInsightsFromJsonBlock(text);
+
+  return {
+    provider: "claude",
+    ...parsed
+  };
+}
+
 export async function rewriteContentWithAi(input: RewriteInput): Promise<RewriteOutput> {
   const errors: string[] = [];
 
@@ -460,6 +643,33 @@ export async function generateWritingProfileWithAi(input: WritingProfileInput): 
       }
 
       return await runClaudeWritingProfile(input);
+    } catch (error) {
+      errors.push(`${provider}: ${error instanceof Error ? error.message : "unknown error"}`);
+    }
+  }
+
+  throw new Error(errors.length ? `No AI provider available. ${errors.join(" | ")}` : "No AI provider available");
+}
+
+export async function summarizeReplyInsightsWithAi(input: ReplyInsightInput): Promise<ReplyInsightOutput> {
+  const errors: string[] = [];
+
+  for (const provider of getProviderOrder(input.preferredProvider ?? "auto")) {
+    if (!hasProviderKey(provider)) {
+      errors.push(`${provider}: missing api key`);
+      continue;
+    }
+
+    try {
+      if (provider === "openai") {
+        return await runOpenAiReplyInsights(input);
+      }
+
+      if (provider === "gemini") {
+        return await runGeminiReplyInsights(input);
+      }
+
+      return await runClaudeReplyInsights(input);
     } catch (error) {
       errors.push(`${provider}: ${error instanceof Error ? error.message : "unknown error"}`);
     }
