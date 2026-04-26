@@ -226,7 +226,7 @@ export function AccountPersonaManager({ accounts }: { accounts: AccountPersona[]
                     <span className="mb-2 block text-sm text-[var(--muted)]">每日方向提醒</span>
                     <textarea
                       className="min-h-28 w-full resize-none rounded-2xl border border-[var(--border)] bg-transparent p-4 outline-none"
-                      placeholder="例如：每天用創業者 / 投資 / 內容策略視角，挑一個值得討論的現象切入。"
+                      placeholder="留白就沿用上方的站台方向；如果這個 persona 要有自己的每日切角，再填在這裡。"
                       value={account.autoGeneratePrompt}
                       onChange={(event) => {
                         const value = event.target.value;
@@ -241,7 +241,7 @@ export function AccountPersonaManager({ accounts }: { accounts: AccountPersona[]
                     <span className="mb-2 block text-sm text-[var(--muted)]">希望達成的效果</span>
                     <textarea
                       className="min-h-24 w-full resize-none rounded-2xl border border-[var(--border)] bg-transparent p-4 outline-none"
-                      placeholder="例如：增加留言、讓人收藏、建立專業感、把流量導回站內長文。"
+                      placeholder="留白就沿用上方的站台目標；如果這個 persona 要追不同結果，再填在這裡。"
                       value={account.autoGenerateGoal}
                       onChange={(event) => {
                         const value = event.target.value;

@@ -195,6 +195,8 @@ model AppSettings {
   automationPaused      Boolean  @default(false)
   keywordScanPaused     Boolean  @default(false)
   globalPersonaPrompt   String?
+  editorialDirection    String?
+  editorialGoal         String?
   defaultTone           String?  @default("sharp-observer")
   aiProvider            String?  @default("auto")
   writingStyleProfile   String?

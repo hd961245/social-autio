@@ -1,5 +1,6 @@
 import { AccountCardItem } from "@/components/dashboard/account-card";
 import { AccountPersonaManager } from "@/components/dashboard/account-persona-manager";
+import { AutopilotEditorialControl } from "@/components/dashboard/autopilot-editorial-control";
 import { PageIntro } from "@/components/dashboard/page-intro";
 import { inferBestScheduleTime } from "@/lib/automation/autopilot-timing";
 import { prisma } from "@/lib/prisma";
@@ -9,7 +10,7 @@ export const dynamic = "force-dynamic";
 
 export default async function AccountsPage() {
   const displayAccounts = await getAccountSummaries();
-  const [rawAccounts, autopilotLogs] = await Promise.all([
+  const [rawAccounts, autopilotLogs, settings] = await Promise.all([
     prisma.platformAccount.findMany({
       where: { isActive: true },
       orderBy: [{ platform: "asc" }, { createdAt: "desc" }],
@@ -47,7 +48,8 @@ export default async function AccountsPage() {
         executedAt: "desc"
       },
       take: 8
-    }).catch(() => [])
+    }).catch(() => []),
+    prisma.appSettings.findFirst().catch(() => null)
   ]);
   const latestAutopilotLogByAccount = new Map(
     autopilotLogs
@@ -89,8 +91,7 @@ export default async function AccountsPage() {
             <p className="text-[11px] uppercase tracking-[0.3em] text-[var(--muted)]">AI Autopilot</p>
             <h2 className="mt-2 text-3xl font-semibold">先產文，再自動存草稿或加入排程</h2>
             <p className="mt-3 max-w-3xl text-sm leading-7 text-[var(--muted)]">
-              這條線現在已經是可用的第一版。你在下方打開「每日自動生文」後，系統會依照該帳號的人設、題材範圍、每日方向與目標，自己生成一篇 Threads 內容。
-              如果模式選 `draft`，會先存草稿；如果模式選 `scheduled`，會自動排進發布佇列，之後交給 scheduler 發出去。
+              這條線現在會先吃站台方向、WordPress 舊文記憶，再套到各 Threads persona。你只要先確認上方的全域方向，下面各帳號主要負責決定要不要啟用、幾點跑，以及要先存草稿還是直接排進發布佇列。
             </p>
           </div>
           <div className="rounded-[1.4rem] border border-[var(--border)] bg-white/80 px-5 py-4">
@@ -132,6 +133,13 @@ export default async function AccountsPage() {
               </div>
             ))
           )}
+        </div>
+
+        <div className="mt-6">
+          <AutopilotEditorialControl
+            initialDirection={settings?.editorialDirection ?? ""}
+            initialGoal={settings?.editorialGoal ?? ""}
+          />
         </div>
       </section>
 

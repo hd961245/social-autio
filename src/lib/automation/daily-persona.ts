@@ -2,6 +2,7 @@ import { rewriteContentWithAi } from "@/lib/ai/gateway";
 import { inferBestScheduleTime } from "@/lib/automation/autopilot-timing";
 import { prisma } from "@/lib/prisma";
 import { buildAccountStyleMemory } from "@/lib/ai/style-memory";
+import { buildEditorialMemoryPrompt } from "@/lib/content/editorial-presets";
 
 const AUTOMATION_TIMEZONE = "Asia/Taipei";
 
@@ -207,6 +208,15 @@ async function generateDailyPersonaPost(params: {
     throw new Error("找不到可用的 Threads 帳號。");
   }
 
+  const wordpressSite = await prisma.platformAccount.findFirst({
+    where: {
+      userId: account.userId,
+      platform: "wordpress",
+      isActive: true
+    },
+    orderBy: [{ lastSyncedAt: "desc" }, { createdAt: "desc" }]
+  });
+
   if (params.mode === "scheduled-only-if-due" && !isDueForDailyRun(params.now, account.autoGenerateTime)) {
     return {
       status: "skipped" as const,
@@ -235,11 +245,16 @@ async function generateDailyPersonaPost(params: {
   }
 
   const styleMemory = await buildAccountStyleMemory(account.id);
+  const editorialMemory = buildEditorialMemoryPrompt({
+    siteUrl: wordpressSite?.platformUserId,
+    globalPersonaPrompt: settings?.globalPersonaPrompt,
+    writingStyleProfile: settings?.writingStyleProfile,
+    affiliateLinkPolicy: settings?.affiliateLinkPolicy
+  });
   const personaPrompt = [
     buildPersonaPlaybook(account),
-    settings?.globalPersonaPrompt?.trim() || "用冷靜、有觀點、像內容策略師一樣的語氣，幫我拆解重點。",
-    styleMemory,
-    settings?.affiliateLinkPolicy?.trim() ? `聯盟與推廣連結策略：${settings.affiliateLinkPolicy.trim()}` : ""
+    editorialMemory || settings?.globalPersonaPrompt?.trim() || "用冷靜、有觀點、像內容策略師一樣的語氣，幫我拆解重點。",
+    styleMemory
   ]
     .filter(Boolean)
     .join("\n\n");
@@ -249,8 +264,8 @@ async function generateDailyPersonaPost(params: {
     dateKey,
     accountUsername: account.platformUsername,
     topicFocus: account.topicFocus,
-    prompt: account.autoGeneratePrompt,
-    goal: account.autoGenerateGoal
+    prompt: account.autoGeneratePrompt || settings?.editorialDirection,
+    goal: account.autoGenerateGoal || settings?.editorialGoal
   });
 
   const result = await rewriteContentWithAi({
@@ -266,7 +281,7 @@ async function generateDailyPersonaPost(params: {
     status === "scheduled"
       ? inferBestScheduleTime({
           now: params.now,
-          goal: account.autoGenerateGoal,
+          goal: account.autoGenerateGoal || settings?.editorialGoal,
           posts: account.posts.map((post) => ({
             publishedAt: post.publishedAt,
             metrics: post.metrics.map((metric) => ({
@@ -304,8 +319,8 @@ async function generateDailyPersonaPost(params: {
       status,
       detail:
         status === "scheduled"
-          ? `${detailPrefix}，並排入佇列（預計 ${scheduledAt?.toLocaleString("zh-TW", { hour12: false })} 發出，建議時段 ${timingSuggestion?.label ?? "即刻"}）。Provider: ${result.provider}`
-          : `${detailPrefix}，已存成草稿。Provider: ${result.provider}`
+          ? `${detailPrefix}，並排入佇列（預計 ${scheduledAt?.toLocaleString("zh-TW", { hour12: false })} 發出，建議時段 ${timingSuggestion?.label ?? "即刻"}）。方向：${(account.autoGeneratePrompt || settings?.editorialDirection || "站台預設方向").slice(0, 36)}。Provider: ${result.provider}`
+          : `${detailPrefix}，已存成草稿。方向：${(account.autoGeneratePrompt || settings?.editorialDirection || "站台預設方向").slice(0, 36)}。Provider: ${result.provider}`
     }
   });
 

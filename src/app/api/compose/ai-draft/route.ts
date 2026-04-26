@@ -98,6 +98,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: false, message: "目前找不到這個帳號，請重新整理後再試。" }, { status: 404 });
     }
 
+    const wordpressSite =
+      account.platform === "wordpress"
+        ? account
+        : await prisma.platformAccount.findFirst({
+            where: {
+              userId: account.userId,
+              platform: "wordpress",
+              isActive: true
+            },
+            orderBy: [{ lastSyncedAt: "desc" }, { createdAt: "desc" }]
+          });
+
     let safeTitle = rawTitle;
     let safeText = rawText;
     let sourceLabel = sourceType === "url" ? "URL import" : "純文字素材";
@@ -128,7 +140,7 @@ export async function POST(request: Request) {
     }
 
     const styleMemory = await buildAccountStyleMemory(account.id);
-    const editorialSiteUrl = account.platform === "wordpress" ? account.platformUserId : undefined;
+    const editorialSiteUrl = wordpressSite?.platformUserId;
     const preset = findEditorialPresetBySiteUrl(editorialSiteUrl);
     const personaPrompt = [
       buildPersonaPlaybook(account),
