@@ -133,7 +133,7 @@ export default async function AccountsPage() {
       <PageIntro
         eyebrow="Accounts"
         title="已連接帳號"
-        description="查看 Threads 授權狀態、同步時間與目前可用帳號。每支 Threads 帳號也可以在這裡設定自己的人設，並啟用每天自動產文後直接存草稿或排進發布隊列。"
+        description="查看 Threads 授權狀態、同步時間與目前可用帳號。每支 Threads 帳號也可以在這裡設定人設，並啟用每天自動產文後直接進總表待確認，或自動排進發布佇列。"
         action={
           <a href="/accounts/connect" className="rounded-full bg-[var(--accent)] px-4 py-3 text-sm text-white">
             連接 Threads 帳號
@@ -156,9 +156,9 @@ export default async function AccountsPage() {
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <p className="text-[11px] uppercase tracking-[0.3em] text-[var(--muted)]">AI Autopilot</p>
-            <h2 className="mt-2 text-3xl font-semibold">先產文，再自動存草稿或加入排程</h2>
+            <h2 className="mt-2 text-3xl font-semibold">先定方向，再讓系統每天自己出稿</h2>
             <p className="mt-3 max-w-3xl text-sm leading-7 text-[var(--muted)]">
-              這條線現在會先吃站台方向、WordPress 舊文記憶，再套到各 Threads persona。你只要先確認上方的全域方向，下面各帳號主要負責決定要不要啟用、幾點跑，以及要先存草稿還是直接排進發布佇列。
+              這條線現在會先吃站台方向、WordPress 舊文記憶，再套到各 Threads persona。你只要先確認上方的全域方向，下面各帳號主要負責決定要不要啟用、幾點跑，以及文章要先進總表待確認，還是直接排進發布佇列。
             </p>
           </div>
           <div className="rounded-[1.4rem] border border-[var(--border)] bg-white/80 px-5 py-4">

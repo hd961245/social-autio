@@ -112,9 +112,9 @@ export function AccountPersonaManager({ accounts }: { accounts: AccountPersona[]
       <div className="flex items-end justify-between gap-4">
         <div>
           <p className="text-[11px] uppercase tracking-[0.3em] text-[var(--muted)]">Persona Studio</p>
-          <h2 className="mt-2 text-3xl font-semibold">把人設收成可運行的發文控制台</h2>
+          <h2 className="mt-2 text-3xl font-semibold">把人設收成每日出稿控制台</h2>
           <p className="mt-3 max-w-3xl text-sm leading-7 text-[var(--muted)]">
-            第一層只留下你每天真的會碰的東西：開關、時間、模式和最近狀態。人設細節收進進階設定，不再讓整頁像表單牆。
+            第一層只留下你每天真的會碰的東西：開關、時間、是否先進總表，以及最近狀態。人設細節收進進階設定，不再讓整頁像表單牆。
           </p>
         </div>
       </div>
@@ -153,7 +153,7 @@ export function AccountPersonaManager({ accounts }: { accounts: AccountPersona[]
                     <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                       {[
                         { label: "每天時間", value: account.autoGenerateTime || "09:00", detail: "AI 開始檢查的時間" },
-                        { label: "模式", value: account.autoGenerateMode === "scheduled" ? "排進佇列" : "先存草稿", detail: "發出前是否先進 queue" },
+                        { label: "模式", value: account.autoGenerateMode === "scheduled" ? "自動排程" : "進總表待確認", detail: "是否先讓你打勾確認" },
                         { label: "建議時段", value: account.recommendedScheduleLabel || "09:20", detail: "依最近表現推估" },
                         { label: "最近分數", value: String(account.recentAverageScore || 0), detail: "近 18 篇平均表現" }
                       ].map((item) => (
@@ -240,9 +240,12 @@ export function AccountPersonaManager({ accounts }: { accounts: AccountPersona[]
                         );
                       }}
                     >
+                      <option value="draft">先進總表待確認</option>
                       <option value="scheduled">直接排程發布</option>
-                      <option value="draft">先存成草稿</option>
                     </select>
+                    <p className="mt-2 text-xs leading-6 text-[var(--muted)]">
+                      建議先用「進總表待確認」，每天進來勾選後直接發，會更符合你的工作流。
+                    </p>
                   </label>
 
                   <div className="rounded-[1.25rem] border border-[var(--border)] bg-white p-4">
@@ -476,12 +479,12 @@ export function AccountPersonaManager({ accounts }: { accounts: AccountPersona[]
                         setMessage(
                           result.result?.postStatus === "scheduled"
                             ? `已替 ${account.username} 產出一篇文，並排進 ${result.result?.scheduledForLabel ?? "即刻"} 的佇列。`
-                            : `已替 ${account.username} 產出一篇草稿。`
+                            : `已替 ${account.username} 產出一篇文，已進總表待確認。`
                         );
                       });
                     }}
                   >
-                    立即試跑一篇
+                    立即生一篇
                   </button>
                   <a href={`/compose?accountId=${account.id}`} className="rounded-full border border-[var(--border)] bg-white px-4 py-2 text-sm">
                     用這個帳號開稿
