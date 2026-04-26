@@ -115,12 +115,96 @@ async function fetchWithTimeout(input: RequestInfo | URL, init?: RequestInit, ti
 }
 
 function extractTextFromJsonBlock(raw: string) {
-  const match = raw.match(/\{[\s\S]*\}/);
-  if (!match) {
+  const parsed = parseLooseJsonObject(raw);
+
+  return {
+    summary: typeof parsed.summary === "string" ? parsed.summary.trim() : "",
+    threadsDraft: typeof parsed.threadsDraft === "string" ? parsed.threadsDraft.trim() : "",
+    wordpressTitle: typeof parsed.wordpressTitle === "string" ? parsed.wordpressTitle.trim() : "",
+    wordpressExcerpt: typeof parsed.wordpressExcerpt === "string" ? parsed.wordpressExcerpt.trim() : "",
+    wordpressHtml: typeof parsed.wordpressHtml === "string" ? parsed.wordpressHtml.trim() : ""
+  };
+}
+
+function extractCandidateJson(raw: string) {
+  const fencedMatch = raw.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  if (fencedMatch?.[1]) {
+    return fencedMatch[1].trim();
+  }
+
+  const start = raw.indexOf("{");
+  const end = raw.lastIndexOf("}");
+
+  if (start === -1 || end === -1 || end <= start) {
     throw new Error("AI response did not include JSON.");
   }
 
-  return JSON.parse(match[0]) as Omit<RewriteOutput, "provider">;
+  return raw.slice(start, end + 1);
+}
+
+function escapeInvalidControlCharsInJson(raw: string) {
+  let result = "";
+  let inString = false;
+  let escaping = false;
+
+  for (let index = 0; index < raw.length; index += 1) {
+    const char = raw[index];
+
+    if (escaping) {
+      result += char;
+      escaping = false;
+      continue;
+    }
+
+    if (char === "\\") {
+      result += char;
+      escaping = true;
+      continue;
+    }
+
+    if (char === "\"") {
+      inString = !inString;
+      result += char;
+      continue;
+    }
+
+    if (inString) {
+      if (char === "\n") {
+        result += "\\n";
+        continue;
+      }
+
+      if (char === "\r") {
+        result += "\\r";
+        continue;
+      }
+
+      if (char === "\t") {
+        result += "\\t";
+        continue;
+      }
+    }
+
+    result += char;
+  }
+
+  return result;
+}
+
+function parseLooseJsonObject(raw: string) {
+  const candidate = extractCandidateJson(raw);
+
+  try {
+    return JSON.parse(candidate) as Record<string, unknown>;
+  } catch (error) {
+    const repaired = escapeInvalidControlCharsInJson(candidate);
+
+    try {
+      return JSON.parse(repaired) as Record<string, unknown>;
+    } catch {
+      throw error;
+    }
+  }
 }
 
 function buildPrompt(input: RewriteInput) {
@@ -284,21 +368,23 @@ async function runClaudeRewrite(input: RewriteInput): Promise<RewriteOutput> {
 }
 
 function extractProfileFromJsonBlock(raw: string) {
-  const match = raw.match(/\{[\s\S]*\}/);
-  if (!match) {
-    throw new Error("AI response did not include JSON.");
-  }
+  const parsed = parseLooseJsonObject(raw);
 
-  return JSON.parse(match[0]) as Omit<WritingProfileOutput, "provider">;
+  return {
+    writingStyleProfile: typeof parsed.writingStyleProfile === "string" ? parsed.writingStyleProfile.trim() : "",
+    affiliateLinkPolicy: typeof parsed.affiliateLinkPolicy === "string" ? parsed.affiliateLinkPolicy.trim() : ""
+  };
 }
 
 function extractReplyInsightsFromJsonBlock(raw: string) {
-  const match = raw.match(/\{[\s\S]*\}/);
-  if (!match) {
-    throw new Error("AI response did not include JSON.");
-  }
+  const parsed = parseLooseJsonObject(raw);
 
-  return JSON.parse(match[0]) as Omit<ReplyInsightOutput, "provider">;
+  return {
+    summary: typeof parsed.summary === "string" ? parsed.summary.trim() : "",
+    tension: typeof parsed.tension === "string" ? parsed.tension.trim() : "",
+    opportunity: typeof parsed.opportunity === "string" ? parsed.opportunity.trim() : "",
+    followUpAngle: typeof parsed.followUpAngle === "string" ? parsed.followUpAngle.trim() : ""
+  };
 }
 
 function buildWritingProfilePrompt(input: WritingProfileInput) {
