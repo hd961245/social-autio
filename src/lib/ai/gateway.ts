@@ -56,6 +56,22 @@ type ReplyInsightOutput = {
 type ProviderId = "openai" | "gemini" | "claude";
 const AI_PROVIDER_TIMEOUT_MS = 12000;
 
+function describeProviderError(error: unknown) {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  if (typeof error === "string") {
+    return error;
+  }
+
+  try {
+    return JSON.stringify(error);
+  } catch {
+    return "unknown error";
+  }
+}
+
 function getProviderOrder(preferredProvider: RewriteInput["preferredProvider"] | WritingProfileInput["preferredProvider"]) {
   const ordered: ProviderId[] = [];
 
@@ -617,7 +633,7 @@ export async function rewriteContentWithAi(input: RewriteInput): Promise<Rewrite
 
       return await runClaudeRewrite(input);
     } catch (error) {
-      errors.push(`${provider}: ${error instanceof Error ? error.message : "unknown error"}`);
+      errors.push(`${provider}: ${describeProviderError(error)}`);
     }
   }
 
@@ -644,7 +660,7 @@ export async function generateWritingProfileWithAi(input: WritingProfileInput): 
 
       return await runClaudeWritingProfile(input);
     } catch (error) {
-      errors.push(`${provider}: ${error instanceof Error ? error.message : "unknown error"}`);
+      errors.push(`${provider}: ${describeProviderError(error)}`);
     }
   }
 
@@ -671,7 +687,7 @@ export async function summarizeReplyInsightsWithAi(input: ReplyInsightInput): Pr
 
       return await runClaudeReplyInsights(input);
     } catch (error) {
-      errors.push(`${provider}: ${error instanceof Error ? error.message : "unknown error"}`);
+      errors.push(`${provider}: ${describeProviderError(error)}`);
     }
   }
 

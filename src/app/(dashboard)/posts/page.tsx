@@ -10,16 +10,16 @@ export default async function PostsPage() {
   return (
     <div className="space-y-6">
       <PageIntro
-        eyebrow="Publishing Queue"
-        title="排程與發布紀錄"
-        description="Threads 繼續走立即發佈與排程；WordPress 改成可編輯草稿工作區，方便先整理長文再慢慢修。"
+        eyebrow="Master Review"
+        title="文章總表"
+        description="AI 先把文章準備好，你在這裡只要看方向、打勾、直接發。排程、已發出與 WordPress 草稿也一起收在同一張表。"
       />
 
       <section className="glass-panel rounded-[2rem] border border-[var(--border)] p-6">
         <div className="mb-6 flex items-center justify-between gap-4">
           <div>
-            <p className="text-sm text-[var(--muted)]">排程由 Inngest 每分鐘觸發一次 scheduler function。</p>
-            <p className="mt-1 text-xs text-[var(--muted)]">WordPress 草稿不會自動發布；Threads 排程若沒接上 `/api/inngest` 才會停在 `scheduled`。</p>
+            <p className="text-sm text-[var(--muted)]">這裡是主要工作表，預設先看待確認的 Threads 草稿。</p>
+            <p className="mt-1 text-xs text-[var(--muted)]">如果你只想做最後確認，直接勾選後發布就好；排程還是由 Inngest 自動處理。</p>
           </div>
           <div className="flex gap-3">
             <form action="/api/cron/scheduler" method="post">
