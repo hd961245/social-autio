@@ -829,7 +829,7 @@ export async function getComposeHealth(): Promise<ComposeHealth> {
     ].filter(Boolean) as string[];
     const aiReady = aiProviders.length > 0;
     const aiMessage = aiReady
-      ? `已設定 ${aiProviders.join(" / ")}${env.openaiApiKey() ? ` · ${env.openaiModel()}` : ""}`
+      ? `已設定 ${aiProviders.join(" / ")}${env.geminiApiKey() ? ` · ${env.geminiModel()}` : env.openaiApiKey() ? ` · ${env.openaiModel()}` : ""}`
       : "尚未設定任何 AI provider";
 
     if (!threadsAccount) {

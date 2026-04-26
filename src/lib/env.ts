@@ -21,6 +21,7 @@ export const env = {
   openaiModel: () => process.env.OPENAI_MODEL?.trim() || "gpt-4.1-mini",
   anthropicApiKey: () => process.env.ANTHROPIC_API_KEY?.trim() || "",
   geminiApiKey: () => process.env.GEMINI_API_KEY?.trim() || "",
+  geminiModel: () => process.env.GEMINI_MODEL?.trim() || "gemini-2.5-flash-lite",
   telegramBotToken: () => process.env.TELEGRAM_BOT_TOKEN?.trim() || "",
   telegramChatId: () => process.env.TELEGRAM_CHAT_ID?.trim() || "",
   appBaseUrl: () => process.env.APP_BASE_URL?.trim() || process.env.INNGEST_SERVE_ORIGIN?.trim() || "",

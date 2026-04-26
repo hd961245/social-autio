@@ -193,13 +193,14 @@ async function runOpenAiRewrite(input: RewriteInput): Promise<RewriteOutput> {
 
 async function runGeminiRewrite(input: RewriteInput): Promise<RewriteOutput> {
   const apiKey = env.geminiApiKey();
+  const model = env.geminiModel();
 
   if (!apiKey) {
     throw new Error("Missing GEMINI_API_KEY");
   }
 
   const response = await fetchWithTimeout(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
     {
       method: "POST",
       headers: {
@@ -394,13 +395,14 @@ async function runOpenAiWritingProfile(input: WritingProfileInput): Promise<Writ
 
 async function runGeminiWritingProfile(input: WritingProfileInput): Promise<WritingProfileOutput> {
   const apiKey = env.geminiApiKey();
+  const model = env.geminiModel();
 
   if (!apiKey) {
     throw new Error("Missing GEMINI_API_KEY");
   }
 
   const response = await fetchWithTimeout(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
     {
       method: "POST",
       headers: {
@@ -530,13 +532,14 @@ async function runOpenAiReplyInsights(input: ReplyInsightInput): Promise<ReplyIn
 
 async function runGeminiReplyInsights(input: ReplyInsightInput): Promise<ReplyInsightOutput> {
   const apiKey = env.geminiApiKey();
+  const model = env.geminiModel();
 
   if (!apiKey) {
     throw new Error("Missing GEMINI_API_KEY");
   }
 
   const response = await fetchWithTimeout(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
     {
       method: "POST",
       headers: {

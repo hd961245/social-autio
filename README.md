@@ -36,6 +36,7 @@ Open `http://localhost:3000`.
 - 設定環境變數：`ADMIN_PASSWORD`、`ADMIN_SESSION_SECRET`、`THREADS_APP_ID`、`THREADS_APP_SECRET`、`THREADS_REDIRECT_URI`、`TOKEN_ENCRYPTION_KEY`
 - 若要使用 AI 草稿引擎，可設定 `OPENAI_API_KEY`、`GEMINI_API_KEY` 或 `ANTHROPIC_API_KEY`
 - 若你有自己的 OpenAI 相容 AI API，可另外設定 `OPENAI_BASE_URL` 與 `OPENAI_MODEL`
+- 若你只想走 Gemini，可設定 `GEMINI_API_KEY` 與 `GEMINI_MODEL`，預設會用 `gemini-2.5-flash-lite`
 - AI provider 可在內容引擎中選擇 `Auto / Gemini / Claude / OpenAI`
 - 若要使用 Threads 排程前 Telegram 確認，另外設定 `TELEGRAM_BOT_TOKEN`、`TELEGRAM_CHAT_ID`、`APP_BASE_URL`
 - 若要在 `Analytics` 看網站流量總覽，另外設定 `GA4_PROPERTY_ID`、`GA4_CLIENT_EMAIL`、`GA4_PRIVATE_KEY`

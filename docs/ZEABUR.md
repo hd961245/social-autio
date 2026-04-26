@@ -26,6 +26,7 @@ OPENAI_BASE_URL=https://api.openai.com/v1
 OPENAI_MODEL=gpt-4.1-mini
 ANTHROPIC_API_KEY=
 GEMINI_API_KEY=
+GEMINI_MODEL=gemini-2.5-flash-lite
 CRON_SECRET=<random secret>
 INNGEST_EVENT_KEY=
 INNGEST_SIGNING_KEY=
