@@ -8,6 +8,7 @@ Threads-first 自媒體創業者管理中台。
 - Next-Stage Roadmap: [docs/ROADMAP.md](./docs/ROADMAP.md)
 - Bootstrap Guide: [docs/BOOTSTRAP.md](./docs/BOOTSTRAP.md)
 - Current State: [docs/STATE.md](./docs/STATE.md)
+- Product Map (ZH): [docs/PRODUCT_MAP_ZH.md](./docs/PRODUCT_MAP_ZH.md)
 - Handoff Notes: [docs/HANDOFF.md](./docs/HANDOFF.md)
 - Persistence + Automation: [docs/PERSISTENCE_AND_AUTOMATION.md](./docs/PERSISTENCE_AND_AUTOMATION.md)
 - Deploy / Recovery: [docs/ZEABUR.md](./docs/ZEABUR.md)

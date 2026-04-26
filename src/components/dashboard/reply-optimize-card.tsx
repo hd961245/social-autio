@@ -86,6 +86,33 @@ export function ReplyOptimizeCard({
           >
             {isPending ? "生成中..." : "根據留言生成優化版"}
           </button>
+          <button
+            type="button"
+            disabled={isPending || replies.length === 0}
+            className="rounded-full border border-[var(--accent)] px-4 py-2 text-sm text-[var(--accent)] disabled:opacity-60"
+            onClick={() => {
+              startTransition(async () => {
+                setMessage(null);
+                const response = await fetch(`/api/posts/${postId}/optimize-from-replies`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ mode: "scheduled" })
+                });
+                const result = await response.json();
+
+                if (!response.ok) {
+                  setMessage(result.message ?? "排程 follow-up 失敗");
+                  return;
+                }
+
+                setMessage(
+                  `已根據 ${result.replyCount} 則留言建立 follow-up，並排進 ${result.scheduledForLabel ?? "即刻"} 的發文佇列。`
+                );
+              });
+            }}
+          >
+            {isPending ? "排程中..." : "根據留言生成並排程"}
+          </button>
         </div>
       </div>
 
