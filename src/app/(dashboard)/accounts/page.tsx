@@ -8,6 +8,66 @@ import { getAccountSummaries } from "@/lib/dashboard-data";
 
 export const dynamic = "force-dynamic";
 
+function getMetricScore(metric?: {
+  views: number;
+  likes: number;
+  replies: number;
+  reposts: number;
+  quotes: number;
+  shares: number;
+} | null) {
+  if (!metric) {
+    return 0;
+  }
+
+  return (
+    metric.views +
+    metric.likes * 12 +
+    metric.replies * 18 +
+    metric.reposts * 22 +
+    metric.quotes * 18 +
+    metric.shares * 20
+  );
+}
+
+function buildHourlyBars(
+  posts: Array<{
+    publishedAt: Date | null;
+    metrics: Array<{
+      views: number;
+      likes: number;
+      replies: number;
+      reposts: number;
+      quotes: number;
+      shares: number;
+    }>;
+  }>
+) {
+  const buckets = new Map<number, { hour: number; score: number; count: number }>();
+
+  for (const post of posts) {
+    if (!post.publishedAt) {
+      continue;
+    }
+
+    const metric = post.metrics[0];
+    const score = getMetricScore(metric);
+    const hour = post.publishedAt.getHours();
+    const current = buckets.get(hour) ?? { hour, score: 0, count: 0 };
+    current.score += score;
+    current.count += 1;
+    buckets.set(hour, current);
+  }
+
+  return [...buckets.values()]
+    .sort((left, right) => right.score / Math.max(right.count, 1) - left.score / Math.max(left.count, 1))
+    .slice(0, 5)
+    .map((bucket) => ({
+      label: `${String(bucket.hour).padStart(2, "0")}:00`,
+      value: Math.round(bucket.score / Math.max(bucket.count, 1))
+    }));
+}
+
 export default async function AccountsPage() {
   const displayAccounts = await getAccountSummaries();
   const [rawAccounts, autopilotLogs, settings] = await Promise.all([
@@ -51,6 +111,13 @@ export default async function AccountsPage() {
     }).catch(() => []),
     prisma.appSettings.findFirst().catch(() => null)
   ]);
+  const autopilotLogCountByAccount = new Map<string, number>();
+  for (const log of autopilotLogs) {
+    if (!log.accountId) {
+      continue;
+    }
+    autopilotLogCountByAccount.set(log.accountId, (autopilotLogCountByAccount.get(log.accountId) ?? 0) + 1);
+  }
   const latestAutopilotLogByAccount = new Map(
     autopilotLogs
       .filter((log) => log.accountId)
@@ -185,7 +252,16 @@ export default async function AccountsPage() {
           lastAutopilotDetail: latestAutopilotLogByAccount.get(account.id)?.detail ?? "",
           lastAutopilotAt: latestAutopilotLogByAccount.get(account.id)?.executedAt.toLocaleString("zh-TW", {
             hour12: false
-          }) ?? ""
+          }) ?? "",
+          recentPublishedCount: account.posts.length,
+          recentAverageScore:
+            account.posts.length > 0
+              ? Math.round(
+                  account.posts.reduce((sum, post) => sum + getMetricScore(post.metrics[0]), 0) / Math.max(account.posts.length, 1)
+                )
+              : 0,
+          autopilotRunCount: autopilotLogCountByAccount.get(account.id) ?? 0,
+          hourlyBars: buildHourlyBars(account.posts)
         }))}
       />
     </div>
