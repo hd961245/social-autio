@@ -465,13 +465,13 @@ export function AccountPersonaManager({ accounts }: { accounts: AccountPersona[]
                             item.id === account.id
                               ? {
                                   ...item,
-                                  lastAutopilotStatus: result.result?.postStatus ?? "draft",
-                                  lastAutopilotDetail:
-                                    result.result?.postStatus === "scheduled"
-                                      ? `已立即試跑 AI 自動生文，並排進 ${result.result?.scheduledForLabel ?? "即刻"} 的發文佇列。Provider: ${result.result?.provider ?? "auto"}`
-                                      : `已立即試跑 AI 自動生文，並存成草稿。Provider: ${result.result?.provider ?? "auto"}`,
+                                lastAutopilotStatus: result.result?.postStatus ?? "draft",
+                                lastAutopilotDetail:
+                                  result.result?.postStatus === "scheduled"
+                                    ? `已立即試跑 AI 自動生文，並排進 ${result.result?.scheduledForLabel ?? "即刻"} 的發文佇列。Provider: ${result.result?.provider ?? "auto"}`
+                                      : `已立即試跑 AI 自動生文，並補了 ${result.result?.createdCount ?? 1} 篇候選稿到總表。Provider: ${result.result?.provider ?? "auto"}`,
                                   lastAutopilotAt: nowLabel,
-                                  autopilotRunCount: item.autopilotRunCount + 1
+                                  autopilotRunCount: item.autopilotRunCount + (result.result?.createdCount ?? 1)
                                 }
                               : item
                           )
@@ -479,7 +479,7 @@ export function AccountPersonaManager({ accounts }: { accounts: AccountPersona[]
                         setMessage(
                           result.result?.postStatus === "scheduled"
                             ? `已替 ${account.username} 產出一篇文，並排進 ${result.result?.scheduledForLabel ?? "即刻"} 的佇列。`
-                            : `已替 ${account.username} 產出一篇文，已進總表待確認。`
+                            : `已替 ${account.username} 補了 ${result.result?.createdCount ?? 1} 篇候選稿到總表。`
                         );
                       });
                     }}
