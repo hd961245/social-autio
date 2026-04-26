@@ -148,19 +148,21 @@ function buildPrompt(input: RewriteInput) {
 
 async function runOpenAiRewrite(input: RewriteInput): Promise<RewriteOutput> {
   const apiKey = env.openaiApiKey();
+  const baseUrl = env.openaiBaseUrl().replace(/\/$/, "");
+  const model = env.openaiModel();
 
   if (!apiKey) {
     throw new Error("Missing OPENAI_API_KEY");
   }
 
-  const response = await fetchWithTimeout("https://api.openai.com/v1/responses", {
+  const response = await fetchWithTimeout(`${baseUrl}/responses`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${apiKey}`
     },
     body: JSON.stringify({
-      model: "gpt-4.1-mini",
+      model,
       input: buildPrompt(input)
     })
   });
@@ -347,19 +349,21 @@ function buildReplyInsightPrompt(input: ReplyInsightInput) {
 
 async function runOpenAiWritingProfile(input: WritingProfileInput): Promise<WritingProfileOutput> {
   const apiKey = env.openaiApiKey();
+  const baseUrl = env.openaiBaseUrl().replace(/\/$/, "");
+  const model = env.openaiModel();
 
   if (!apiKey) {
     throw new Error("Missing OPENAI_API_KEY");
   }
 
-  const response = await fetchWithTimeout("https://api.openai.com/v1/responses", {
+  const response = await fetchWithTimeout(`${baseUrl}/responses`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${apiKey}`
     },
     body: JSON.stringify({
-      model: "gpt-4.1-mini",
+      model,
       input: buildWritingProfilePrompt(input)
     })
   });
@@ -481,19 +485,21 @@ async function runClaudeWritingProfile(input: WritingProfileInput): Promise<Writ
 
 async function runOpenAiReplyInsights(input: ReplyInsightInput): Promise<ReplyInsightOutput> {
   const apiKey = env.openaiApiKey();
+  const baseUrl = env.openaiBaseUrl().replace(/\/$/, "");
+  const model = env.openaiModel();
 
   if (!apiKey) {
     throw new Error("Missing OPENAI_API_KEY");
   }
 
-  const response = await fetchWithTimeout("https://api.openai.com/v1/responses", {
+  const response = await fetchWithTimeout(`${baseUrl}/responses`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${apiKey}`
     },
     body: JSON.stringify({
-      model: "gpt-4.1-mini",
+      model,
       input: buildReplyInsightPrompt(input)
     })
   });

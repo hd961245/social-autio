@@ -19,7 +19,9 @@ export default async function ComposePage({
     tokenStatus: "missing" as const,
     tokenMessage: "尚未讀到 token 狀態",
     queueCount: 0,
-    queueMessage: "尚未讀到排程資料"
+    queueMessage: "尚未讀到排程資料",
+    aiReady: false,
+    aiMessage: "尚未讀到 AI 設定"
   }));
   const publishLogs = await getPublishOutcomeLogs().catch(() => []);
   const params = await searchParams;
@@ -191,7 +193,7 @@ export default async function ComposePage({
         }
       />
       <DatabaseBanner status={databaseStatus} />
-      <section className="grid gap-4 md:grid-cols-3">
+      <section className="grid gap-4 md:grid-cols-4">
         <article className="metric-card">
           <p className="text-xs uppercase tracking-[0.24em] text-[var(--muted)]">Threads Ready</p>
           <p className="mt-3 text-2xl font-semibold">{composeHealth.threadsReady ? "Ready" : "Blocked"}</p>
@@ -208,6 +210,11 @@ export default async function ComposePage({
           <p className="text-xs uppercase tracking-[0.24em] text-[var(--muted)]">Scheduled Queue</p>
           <p className="mt-3 text-2xl font-semibold">{composeHealth.queueCount}</p>
           <p className="mt-2 text-sm text-[var(--muted)]">{composeHealth.queueMessage}</p>
+        </article>
+        <article className="metric-card">
+          <p className="text-xs uppercase tracking-[0.24em] text-[var(--muted)]">AI Writing</p>
+          <p className="mt-3 text-2xl font-semibold">{composeHealth.aiReady ? "Ready" : "Blocked"}</p>
+          <p className="mt-2 text-sm text-[var(--muted)]">{composeHealth.aiMessage}</p>
         </article>
       </section>
       <PostComposerForm

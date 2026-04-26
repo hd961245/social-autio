@@ -653,7 +653,11 @@ export function PostComposerForm({
                         const diagnostics = result.availableProviders
                           ? `可用 provider：OpenAI ${result.availableProviders.openai ? "on" : "off"} / Gemini ${result.availableProviders.gemini ? "on" : "off"} / Claude ${result.availableProviders.claude ? "on" : "off"}`
                           : "";
-                        setAiMessage([result.message ?? "AI 起稿失敗", diagnostics].filter(Boolean).join("｜"));
+                        const suggestion =
+                          typeof result.message === "string" && result.message.includes("timeout")
+                            ? "目前部署環境對 Gemini / Claude 回應逾時，建議改填 OPENAI_API_KEY，或直接改接 OPENAI_BASE_URL + OPENAI_MODEL 用你自己的相容 AI API。"
+                            : "";
+                        setAiMessage([result.message ?? "AI 起稿失敗", diagnostics, suggestion].filter(Boolean).join("｜"));
                         setAiMessageTone("error");
                         return;
                       }

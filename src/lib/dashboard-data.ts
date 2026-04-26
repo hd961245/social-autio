@@ -77,6 +77,8 @@ export type ComposeHealth = {
   tokenMessage: string;
   queueCount: number;
   queueMessage: string;
+  aiReady: boolean;
+  aiMessage: string;
 };
 
 export type PublishOutcomeSummary = {
@@ -803,6 +805,7 @@ export async function getDashboardStats() {
 
 export async function getComposeHealth(): Promise<ComposeHealth> {
   try {
+    const { env } = await import("@/lib/env");
     const [threadsAccount, scheduledCount] = await Promise.all([
       prisma.platformAccount.findFirst({
         where: { isActive: true, platform: "threads" },
@@ -819,6 +822,15 @@ export async function getComposeHealth(): Promise<ComposeHealth> {
         }
       })
     ]);
+    const aiProviders = [
+      env.openaiApiKey() ? "OpenAI" : null,
+      env.geminiApiKey() ? "Gemini" : null,
+      env.anthropicApiKey() ? "Claude" : null
+    ].filter(Boolean) as string[];
+    const aiReady = aiProviders.length > 0;
+    const aiMessage = aiReady
+      ? `已設定 ${aiProviders.join(" / ")}${env.openaiApiKey() ? ` · ${env.openaiModel()}` : ""}`
+      : "尚未設定任何 AI provider";
 
     if (!threadsAccount) {
       return {
@@ -827,7 +839,9 @@ export async function getComposeHealth(): Promise<ComposeHealth> {
         tokenStatus: "missing",
         tokenMessage: "沒有 Threads token 可用",
         queueCount: scheduledCount,
-        queueMessage: scheduledCount > 0 ? `目前有 ${scheduledCount} 筆 Threads 排程 / 待確認貼文` : "目前沒有待送出的 Threads 排程"
+        queueMessage: scheduledCount > 0 ? `目前有 ${scheduledCount} 筆 Threads 排程 / 待確認貼文` : "目前沒有待送出的 Threads 排程",
+        aiReady,
+        aiMessage
       };
     }
 
@@ -839,7 +853,9 @@ export async function getComposeHealth(): Promise<ComposeHealth> {
       tokenStatus: expiringSoon ? "expiring" : "healthy",
       tokenMessage: expiringSoon ? "Threads token 7 天內將到期，建議儘快重新授權" : "Threads token 狀態正常",
       queueCount: scheduledCount,
-      queueMessage: scheduledCount > 0 ? `目前有 ${scheduledCount} 筆 Threads 排程 / 待確認貼文` : "目前沒有待送出的 Threads 排程"
+      queueMessage: scheduledCount > 0 ? `目前有 ${scheduledCount} 筆 Threads 排程 / 待確認貼文` : "目前沒有待送出的 Threads 排程",
+      aiReady,
+      aiMessage
     };
   } catch {
     return {
@@ -848,7 +864,9 @@ export async function getComposeHealth(): Promise<ComposeHealth> {
       tokenStatus: "missing",
       tokenMessage: "尚未讀到 token 狀態",
       queueCount: 0,
-      queueMessage: "尚未讀到排程資料"
+      queueMessage: "尚未讀到排程資料",
+      aiReady: false,
+      aiMessage: "尚未讀到 AI 設定"
     };
   }
 }
