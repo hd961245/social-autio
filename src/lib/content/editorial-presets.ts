@@ -75,18 +75,25 @@ export function buildEditorialMemoryPrompt(params: {
   globalPersonaPrompt?: string | null;
   writingStyleProfile?: string | null;
   affiliateLinkPolicy?: string | null;
+  concise?: boolean;
 }) {
   const preset = findEditorialPresetBySiteUrl(params.siteUrl);
+  const limit = (value: string, max: number) => (value.length > max ? `${value.slice(0, max - 1)}…` : value);
+  const concise = Boolean(params.concise);
 
   return [
-    preset ? `站點記憶：${preset.label}。${preset.summary}` : "",
-    preset?.globalPersonaPrompt ?? "",
-    params.globalPersonaPrompt?.trim() ?? "",
-    preset?.writingStyleProfile ? `站點寫作規則：\n${preset.writingStyleProfile}` : "",
-    params.writingStyleProfile?.trim() ? `寫作風格基底：${params.writingStyleProfile.trim()}` : "",
-    preset?.affiliateLinkPolicy ? `站點 CTA / 聯盟規則：\n${preset.affiliateLinkPolicy}` : "",
-    params.affiliateLinkPolicy?.trim() ? `聯盟與推廣連結策略：${params.affiliateLinkPolicy.trim()}` : "",
-    preset ? `起稿前規劃：\n${preset.planningRules.map((rule, index) => `${index + 1}. ${rule}`).join("\n")}` : ""
+    preset ? `站點記憶：${preset.label}。${limit(preset.summary, concise ? 90 : 220)}` : "",
+    preset?.globalPersonaPrompt ? limit(preset.globalPersonaPrompt, concise ? 120 : 260) : "",
+    params.globalPersonaPrompt?.trim() ? limit(params.globalPersonaPrompt.trim(), concise ? 120 : 260) : "",
+    preset?.writingStyleProfile
+      ? `站點寫作規則：\n${limit(preset.writingStyleProfile, concise ? 180 : 420)}`
+      : "",
+    params.writingStyleProfile?.trim()
+      ? `寫作風格基底：${limit(params.writingStyleProfile.trim(), concise ? 180 : 420)}`
+      : "",
+    concise ? "" : preset?.affiliateLinkPolicy ? `站點 CTA / 聯盟規則：\n${limit(preset.affiliateLinkPolicy, 320)}` : "",
+    concise ? "" : params.affiliateLinkPolicy?.trim() ? `聯盟與推廣連結策略：${limit(params.affiliateLinkPolicy.trim(), 320)}` : "",
+    preset ? `起稿前規劃：\n${preset.planningRules.slice(0, concise ? 2 : preset.planningRules.length).map((rule, index) => `${index + 1}. ${rule}`).join("\n")}` : ""
   ]
     .filter(Boolean)
     .join("\n\n");

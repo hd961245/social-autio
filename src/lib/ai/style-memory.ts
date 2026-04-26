@@ -4,7 +4,12 @@ function stripText(value: string) {
   return value.replace(/\s+/g, " ").trim();
 }
 
-export async function buildAccountStyleMemory(accountId: string) {
+function limitText(value: string, max = 420) {
+  const normalized = stripText(value);
+  return normalized.length > max ? `${normalized.slice(0, max - 1)}…` : normalized;
+}
+
+export async function buildAccountStyleMemory(accountId: string, options?: { concise?: boolean }) {
   const [settings, recentPosts] = await Promise.all([
     prisma.appSettings.findFirst({
       select: {
@@ -31,7 +36,7 @@ export async function buildAccountStyleMemory(accountId: string) {
 
   const recentThreadsBlock = recentPosts
     .map((post, index) => {
-      const text = stripText(post.textContent ?? "").slice(0, 220);
+      const text = limitText(post.textContent ?? "", options?.concise ? 120 : 220);
       if (!text) {
         return "";
       }
@@ -41,7 +46,12 @@ export async function buildAccountStyleMemory(accountId: string) {
     .filter(Boolean)
     .join("\n");
 
-  return [settings?.writingStyleProfile?.trim() ? `你的長文寫作習慣：${settings.writingStyleProfile.trim()}` : "", recentThreadsBlock]
+  return [
+    settings?.writingStyleProfile?.trim()
+      ? `你的長文寫作習慣：${limitText(settings.writingStyleProfile.trim(), options?.concise ? 220 : 420)}`
+      : "",
+    recentThreadsBlock
+  ]
     .filter(Boolean)
     .join("\n\n");
 }

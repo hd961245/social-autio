@@ -139,7 +139,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: false, message: "這份素材目前抓不到可改寫內容。" }, { status: 400 });
     }
 
-    const styleMemory = await buildAccountStyleMemory(account.id);
+    const styleMemory = await buildAccountStyleMemory(account.id, {
+      concise: account.platform === "threads"
+    });
     const editorialSiteUrl = wordpressSite?.platformUserId;
     const preset = findEditorialPresetBySiteUrl(editorialSiteUrl);
     const personaPrompt = [
@@ -148,7 +150,8 @@ export async function POST(request: Request) {
         siteUrl: editorialSiteUrl,
         globalPersonaPrompt: settings?.globalPersonaPrompt,
         writingStyleProfile: settings?.writingStyleProfile,
-        affiliateLinkPolicy: settings?.affiliateLinkPolicy
+        affiliateLinkPolicy: settings?.affiliateLinkPolicy,
+        concise: account.platform === "threads"
       }) || "用冷靜、有觀點、像內容策略師一樣的語氣，幫我拆解重點。",
       styleMemory
     ]

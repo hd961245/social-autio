@@ -244,12 +244,15 @@ async function generateDailyPersonaPost(params: {
     }
   }
 
-  const styleMemory = await buildAccountStyleMemory(account.id);
+  const styleMemory = await buildAccountStyleMemory(account.id, {
+    concise: true
+  });
   const editorialMemory = buildEditorialMemoryPrompt({
     siteUrl: wordpressSite?.platformUserId,
     globalPersonaPrompt: settings?.globalPersonaPrompt,
     writingStyleProfile: settings?.writingStyleProfile,
-    affiliateLinkPolicy: settings?.affiliateLinkPolicy
+    affiliateLinkPolicy: settings?.affiliateLinkPolicy,
+    concise: true
   });
   const personaPrompt = [
     buildPersonaPlaybook(account),
