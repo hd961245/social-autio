@@ -3,6 +3,7 @@ import { inferBestScheduleTime } from "@/lib/automation/autopilot-timing";
 import { prisma } from "@/lib/prisma";
 import { buildAccountStyleMemory } from "@/lib/ai/style-memory";
 import { buildEditorialMemoryPrompt } from "@/lib/content/editorial-presets";
+import { getPlatformAdapter } from "@/lib/platforms";
 
 const AUTOMATION_TIMEZONE = "Asia/Taipei";
 const DAILY_DRAFT_CANDIDATE_COUNT = 3;
@@ -106,6 +107,94 @@ function buildDailyIdeaBrief(params: {
   ]
     .filter(Boolean)
     .join("\n");
+}
+
+function getMetricScore(metric?: {
+  views: number;
+  likes: number;
+  replies: number;
+  reposts: number;
+  quotes: number;
+  shares: number;
+} | null) {
+  if (!metric) {
+    return 0;
+  }
+
+  return metric.views + metric.likes * 12 + metric.replies * 18 + metric.reposts * 22 + metric.quotes * 18 + metric.shares * 20;
+}
+
+function squeezeText(value: string, max = 180) {
+  const normalized = value.replace(/\s+/g, " ").trim();
+  return normalized.length > max ? `${normalized.slice(0, max - 1)}…` : normalized;
+}
+
+async function buildAutopilotFeedbackMemory(input: {
+  accountId: string;
+  accountUsername: string;
+  posts: Array<{
+    textContent: string | null;
+    title: string | null;
+    platformPostId: string | null;
+    publishedAt: Date | null;
+    metrics: Array<{
+      views: number;
+      likes: number;
+      replies: number;
+      reposts: number;
+      quotes: number;
+      shares: number;
+    }>;
+  }>;
+}) {
+  const topPosts = [...input.posts]
+    .sort((left, right) => getMetricScore(right.metrics[0]) - getMetricScore(left.metrics[0]))
+    .slice(0, 3)
+    .map((post, index) => {
+      const metric = post.metrics[0];
+      const summary = squeezeText(post.textContent ?? post.title ?? "", 170);
+      if (!summary) {
+        return "";
+      }
+
+      return `高表現貼文 ${index + 1}：${summary}\n訊號：views ${metric?.views ?? 0} / likes ${metric?.likes ?? 0} / replies ${metric?.replies ?? 0} / reposts ${metric?.reposts ?? 0}`;
+    })
+    .filter(Boolean)
+    .join("\n\n");
+
+  const replySource = input.posts.find((post) => post.platformPostId);
+  let replySignals = "";
+
+  if (replySource?.platformPostId) {
+    try {
+      const replies = await getPlatformAdapter("threads").getPostReplies(input.accountId, replySource.platformPostId);
+      const meaningfulReplies = replies
+        .filter((reply) => reply.text.trim().length > 0)
+        .slice(0, 5)
+        .map((reply, index) => `${index + 1}. @${reply.username}: ${squeezeText(reply.text, 120)}`);
+
+      if (meaningfulReplies.length > 0) {
+        replySignals = [
+          `最近這個 persona 的留言樣本（@${input.accountUsername}）：`,
+          ...meaningfulReplies,
+          "請留意留言裡反覆出現的疑問、反對點或延伸需求，讓下一篇更像在接續這波討論。"
+        ].join("\n");
+      }
+    } catch {
+      replySignals = "";
+    }
+  }
+
+  if (!topPosts && !replySignals) {
+    return "";
+  }
+
+  return [
+    topPosts ? `最近高表現內容記憶：\n${topPosts}` : "",
+    replySignals
+  ]
+    .filter(Boolean)
+    .join("\n\n");
 }
 
 export async function runDailyPersonaAutopilot(now = new Date()) {
@@ -268,6 +357,24 @@ async function generateDailyPersonaPost(params: {
   const styleMemory = await buildAccountStyleMemory(account.id, {
     concise: true
   });
+  const feedbackMemory = await buildAutopilotFeedbackMemory({
+    accountId: account.id,
+    accountUsername: account.platformUsername,
+    posts: account.posts.map((post) => ({
+      textContent: post.textContent,
+      title: post.title,
+      platformPostId: post.platformPostId,
+      publishedAt: post.publishedAt,
+      metrics: post.metrics.map((metric) => ({
+        views: metric.views,
+        likes: metric.likes,
+        replies: metric.replies,
+        reposts: metric.reposts,
+        quotes: metric.quotes,
+        shares: metric.shares
+      }))
+    }))
+  });
   const editorialMemory = buildEditorialMemoryPrompt({
     siteUrl: wordpressSite?.platformUserId,
     globalPersonaPrompt: settings?.globalPersonaPrompt,
@@ -278,7 +385,8 @@ async function generateDailyPersonaPost(params: {
   const personaPrompt = [
     buildPersonaPlaybook(account),
     editorialMemory || settings?.globalPersonaPrompt?.trim() || "用冷靜、有觀點、像內容策略師一樣的語氣，幫我拆解重點。",
-    styleMemory
+    styleMemory,
+    feedbackMemory
   ]
     .filter(Boolean)
     .join("\n\n");
