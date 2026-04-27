@@ -61,6 +61,32 @@ export default async function OpsPage() {
       </section>
 
       <section className="glass-panel rounded-[2rem] border border-[var(--border)] p-6">
+        <p className="text-[11px] uppercase tracking-[0.3em] text-[var(--muted)]">Deploy Checklist</p>
+        <h2 className="mt-2 text-3xl font-semibold">部署前檢查</h2>
+        <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {diagnostics.deployChecklist.map((item) => (
+            <article key={item.label} className="rounded-[1.5rem] border border-[var(--border)] bg-white/75 p-4">
+              <div className="flex items-center justify-between gap-3">
+                <p className="font-medium">{item.label}</p>
+                <span
+                  className={`rounded-full px-3 py-1 text-xs ${
+                    item.status === "pass"
+                      ? "bg-emerald-50 text-emerald-700"
+                      : item.status === "check"
+                        ? "bg-amber-50 text-amber-700"
+                        : "bg-rose-50 text-rose-700"
+                  }`}
+                >
+                  {item.status}
+                </span>
+              </div>
+              <p className="mt-3 text-sm text-[var(--muted)]">{item.detail}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="glass-panel rounded-[2rem] border border-[var(--border)] p-6">
         <p className="text-[11px] uppercase tracking-[0.3em] text-[var(--muted)]">Schema Checks</p>
         <h2 className="mt-2 text-3xl font-semibold">資料庫欄位抽查</h2>
         <div className="mt-6 grid gap-4 md:grid-cols-2">

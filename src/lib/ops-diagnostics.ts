@@ -48,6 +48,11 @@ type OpsDiagnostics = {
     detail: string;
     executedAt: string;
   }>;
+  deployChecklist: Array<{
+    label: string;
+    status: "pass" | "check" | "fail";
+    detail: string;
+  }>;
 };
 
 function maskConnectionString(value: string) {
@@ -162,6 +167,61 @@ export async function getOpsDiagnostics(): Promise<OpsDiagnostics> {
       hints.push("如果 callback log 顯示 executed、但 Threads Accounts 還是 0，先比對 Zeabur app service 與 callback 實際命中的環境是不是同一份。");
     }
 
+    const deployChecklist: OpsDiagnostics["deployChecklist"] = [
+      {
+        label: "DATABASE_URL / DB 連線",
+        status: process.env.DATABASE_URL ? "pass" : "fail",
+        detail: process.env.DATABASE_URL ? `已連到 ${maskConnectionString(process.env.DATABASE_URL)}` : "缺少 DATABASE_URL，這份環境不能正常工作。"
+      },
+      {
+        label: "Schema 已同步",
+        status: looksDrifted ? "fail" : "pass",
+        detail: looksDrifted ? "偵測到新欄位缺失，請先執行 npm run db:push。" : "抽查到的新欄位都已存在。"
+      },
+      {
+        label: "Threads 基本 env",
+        status:
+          process.env.THREADS_APP_ID && process.env.THREADS_APP_SECRET && process.env.THREADS_REDIRECT_URI && process.env.TOKEN_ENCRYPTION_KEY
+            ? "pass"
+            : "fail",
+        detail:
+          process.env.THREADS_APP_ID && process.env.THREADS_APP_SECRET && process.env.THREADS_REDIRECT_URI && process.env.TOKEN_ENCRYPTION_KEY
+            ? "Threads OAuth 需要的基本變數已存在。"
+            : "Threads OAuth 需要的 env 不完整。"
+      },
+      {
+        label: "AI Provider 健康",
+        status:
+          geminiHealth.ok || Boolean(process.env.OPENAI_API_KEY) || Boolean(process.env.ANTHROPIC_API_KEY)
+            ? geminiHealth.ok
+              ? "pass"
+              : "check"
+            : "fail",
+        detail:
+          geminiHealth.ok
+            ? `Gemini 可用，模型 ${geminiHealth.model ?? "n/a"}。`
+            : Boolean(process.env.OPENAI_API_KEY) || Boolean(process.env.ANTHROPIC_API_KEY)
+              ? "Gemini 健康檢查未過，但仍有其他 AI provider 可作為備援。"
+              : "目前沒有可用的 AI provider。"
+      },
+      {
+        label: "Inngest / 排程",
+        status:
+          process.env.INNGEST_EVENT_KEY && process.env.INNGEST_SIGNING_KEY && process.env.INNGEST_SERVE_ORIGIN
+            ? "pass"
+            : "check",
+        detail:
+          process.env.INNGEST_EVENT_KEY && process.env.INNGEST_SIGNING_KEY && process.env.INNGEST_SERVE_ORIGIN
+            ? "Inngest 主要 env 已存在。"
+            : "Inngest env 不完整，手動功能可用，但排程可能不穩。"
+      },
+      {
+        label: "已有 Threads 帳號",
+        status: threadsAccounts > 0 ? "pass" : "check",
+        detail: threadsAccounts > 0 ? `目前資料庫裡有 ${threadsAccounts} 個 Threads 帳號。` : "目前還沒有 Threads 帳號，之後可能需要重新授權。"
+      }
+    ];
+
     return {
       database: {
         ready: true,
@@ -199,7 +259,8 @@ export async function getOpsDiagnostics(): Promise<OpsDiagnostics> {
         status: log.status,
         detail: log.detail ?? "threads callback log",
         executedAt: log.executedAt.toLocaleString("zh-TW", { hour12: false })
-      }))
+      })),
+      deployChecklist
     };
   } catch (error) {
     warnings.push("目前資料庫連線失敗，請先檢查 DATABASE_URL。");
@@ -237,7 +298,61 @@ export async function getOpsDiagnostics(): Promise<OpsDiagnostics> {
       },
       warnings,
       hints,
-      threadsCallbackLogs: []
+      threadsCallbackLogs: [],
+      deployChecklist: [
+        {
+          label: "DATABASE_URL / DB 連線",
+          status: "fail",
+          detail: "目前資料庫連不上，先不要部署。"
+        },
+        {
+          label: "Schema 已同步",
+          status: "check",
+          detail: "資料庫目前連不上，還無法判斷是否需要 db:push。"
+        },
+        {
+          label: "Threads 基本 env",
+          status:
+            process.env.THREADS_APP_ID && process.env.THREADS_APP_SECRET && process.env.THREADS_REDIRECT_URI && process.env.TOKEN_ENCRYPTION_KEY
+              ? "pass"
+              : "fail",
+          detail:
+            process.env.THREADS_APP_ID && process.env.THREADS_APP_SECRET && process.env.THREADS_REDIRECT_URI && process.env.TOKEN_ENCRYPTION_KEY
+              ? "Threads OAuth 需要的基本變數已存在。"
+              : "Threads OAuth 需要的 env 不完整。"
+        },
+        {
+          label: "AI Provider 健康",
+          status:
+            geminiHealth.ok || Boolean(process.env.OPENAI_API_KEY) || Boolean(process.env.ANTHROPIC_API_KEY)
+              ? geminiHealth.ok
+                ? "pass"
+                : "check"
+              : "fail",
+          detail:
+            geminiHealth.ok
+              ? `Gemini 可用，模型 ${geminiHealth.model ?? "n/a"}。`
+              : Boolean(process.env.OPENAI_API_KEY) || Boolean(process.env.ANTHROPIC_API_KEY)
+                ? "Gemini 健康檢查未過，但仍有其他 AI provider 可作為備援。"
+                : "目前沒有可用的 AI provider。"
+        },
+        {
+          label: "Inngest / 排程",
+          status:
+            process.env.INNGEST_EVENT_KEY && process.env.INNGEST_SIGNING_KEY && process.env.INNGEST_SERVE_ORIGIN
+              ? "pass"
+              : "check",
+          detail:
+            process.env.INNGEST_EVENT_KEY && process.env.INNGEST_SIGNING_KEY && process.env.INNGEST_SERVE_ORIGIN
+              ? "Inngest 主要 env 已存在。"
+              : "Inngest env 不完整，手動功能可用，但排程可能不穩。"
+        },
+        {
+          label: "已有 Threads 帳號",
+          status: "check",
+          detail: "資料庫目前連不上，暫時無法確認帳號狀態。"
+        }
+      ]
     };
   }
 }
