@@ -1,3 +1,4 @@
+import { runGeminiHealthCheck } from "@/lib/ai/health";
 import { prisma } from "@/lib/prisma";
 
 type EnvCheck = {
@@ -17,6 +18,27 @@ type OpsDiagnostics = {
     wordpressAccounts: number;
     posts: number;
     sourceWatches: number;
+  };
+  aiHealth: {
+    configured: {
+      openai: boolean;
+      gemini: boolean;
+      claude: boolean;
+    };
+    gemini: {
+      ok: boolean;
+      model?: string;
+      latencyMs?: number;
+      message: string;
+    };
+  };
+  schema: {
+    looksDrifted: boolean;
+    detail: string;
+    checks: Array<{
+      column: string;
+      status: "present" | "missing";
+    }>;
   };
   warnings: string[];
   hints: string[];
@@ -71,13 +93,20 @@ export async function getOpsDiagnostics(): Promise<OpsDiagnostics> {
 
   const warnings: string[] = [];
   const hints: string[] = [];
+  const geminiHealth = await runGeminiHealthCheck();
 
   try {
-    const [threadsAccounts, wordpressAccounts, posts, sourceWatches] = await Promise.all([
+    const [threadsAccounts, wordpressAccounts, posts, sourceWatches, schemaRows] = await Promise.all([
       prisma.platformAccount.count({ where: { platform: "threads" } }),
       prisma.platformAccount.count({ where: { platform: "wordpress" } }),
       prisma.post.count(),
-      prisma.sourceWatch.count()
+      prisma.sourceWatch.count(),
+      prisma.$queryRawUnsafe<Array<{ column_name: string }>>(
+        `select column_name
+         from information_schema.columns
+         where table_name = 'AppSettings'
+           and column_name in ('editorialDirection', 'editorialGoal')`
+      )
     ]);
     const callbackLogs = await prisma.automationLog.findMany({
       where: {
@@ -88,6 +117,12 @@ export async function getOpsDiagnostics(): Promise<OpsDiagnostics> {
       },
       take: 5
     });
+    const schemaColumns = new Set(schemaRows.map((row) => row.column_name));
+    const schemaChecks = ["editorialDirection", "editorialGoal"].map((column) => ({
+      column,
+      status: schemaColumns.has(column) ? ("present" as const) : ("missing" as const)
+    }));
+    const looksDrifted = schemaChecks.some((check) => check.status === "missing");
 
     if (!process.env.DATABASE_URL) {
       warnings.push("目前沒有 DATABASE_URL，這份環境不會讀到原本雲端資料。");
@@ -102,6 +137,16 @@ export async function getOpsDiagnostics(): Promise<OpsDiagnostics> {
     if (!process.env.INNGEST_EVENT_KEY || !process.env.INNGEST_SIGNING_KEY || !process.env.INNGEST_SERVE_ORIGIN) {
       warnings.push("Inngest 環境變數不完整，排程任務可能不會正常工作。");
       hints.push("補齊 `INNGEST_EVENT_KEY`、`INNGEST_SIGNING_KEY`、`INNGEST_SERVE_ORIGIN` 後，再到 Inngest 確認 `/api/inngest` 已 sync。");
+    }
+
+    if (!geminiHealth.ok) {
+      warnings.push(`Gemini health check 失敗：${geminiHealth.message}`);
+      hints.push("如果你主要靠 Gemini 產文，先確認 `GEMINI_API_KEY`、`GEMINI_MODEL` 是否正確，再測一次 `/api/ai/health`。");
+    }
+
+    if (looksDrifted) {
+      warnings.push("目前資料庫欄位看起來落後於最新 schema，這份環境很可能還沒跑最新的 db:push。");
+      hints.push("目前線上環境請先執行 `npm run db:push`，再重新測一次 Accounts / Autopilot / AI 相關頁面。");
     }
 
     if (process.env.DATABASE_URL && (threadsAccounts > 0 || wordpressAccounts > 0)) {
@@ -129,6 +174,24 @@ export async function getOpsDiagnostics(): Promise<OpsDiagnostics> {
         posts,
         sourceWatches
       },
+      aiHealth: {
+        configured: {
+          openai: Boolean(process.env.OPENAI_API_KEY),
+          gemini: Boolean(process.env.GEMINI_API_KEY),
+          claude: Boolean(process.env.ANTHROPIC_API_KEY)
+        },
+        gemini: {
+          ok: geminiHealth.ok,
+          model: geminiHealth.model,
+          latencyMs: geminiHealth.latencyMs,
+          message: geminiHealth.message
+        }
+      },
+      schema: {
+        looksDrifted,
+        detail: looksDrifted ? "缺少部分新欄位，像是還沒跑最新 db:push。" : "目前抽查到的新欄位都已存在。",
+        checks: schemaChecks
+      },
       warnings,
       hints,
       threadsCallbackLogs: callbackLogs.map((log) => ({
@@ -153,6 +216,24 @@ export async function getOpsDiagnostics(): Promise<OpsDiagnostics> {
         wordpressAccounts: 0,
         posts: 0,
         sourceWatches: 0
+      },
+      aiHealth: {
+        configured: {
+          openai: Boolean(process.env.OPENAI_API_KEY),
+          gemini: Boolean(process.env.GEMINI_API_KEY),
+          claude: Boolean(process.env.ANTHROPIC_API_KEY)
+        },
+        gemini: {
+          ok: geminiHealth.ok,
+          model: geminiHealth.model,
+          latencyMs: geminiHealth.latencyMs,
+          message: geminiHealth.message
+        }
+      },
+      schema: {
+        looksDrifted: false,
+        detail: "資料庫目前連不上，還無法判斷 schema 是否落後。",
+        checks: []
       },
       warnings,
       hints,

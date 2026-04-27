@@ -29,6 +29,65 @@ export default async function OpsPage() {
         ))}
       </section>
 
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        {[
+          {
+            label: "AI Health",
+            value: diagnostics.aiHealth.gemini.ok ? "Ready" : "Check",
+            detail: diagnostics.aiHealth.gemini.message
+          },
+          {
+            label: "Gemini Model",
+            value: diagnostics.aiHealth.gemini.model ?? "n/a",
+            detail: diagnostics.aiHealth.gemini.latencyMs ? `${diagnostics.aiHealth.gemini.latencyMs}ms` : "尚未量到延遲"
+          },
+          {
+            label: "OpenAI",
+            value: diagnostics.aiHealth.configured.openai ? "Configured" : "Missing",
+            detail: "目前是否有 OPENAI_API_KEY"
+          },
+          {
+            label: "Schema",
+            value: diagnostics.schema.looksDrifted ? "Drifted" : "Aligned",
+            detail: diagnostics.schema.detail
+          }
+        ].map((item) => (
+          <article key={item.label} className="glass-panel rounded-[1.75rem] border border-[var(--border)] p-5">
+            <p className="text-xs uppercase tracking-[0.24em] text-[var(--muted)]">{item.label}</p>
+            <p className="mt-4 text-3xl font-semibold leading-none">{item.value}</p>
+            <p className="mt-4 text-sm leading-6 text-[var(--muted)]">{item.detail}</p>
+          </article>
+        ))}
+      </section>
+
+      <section className="glass-panel rounded-[2rem] border border-[var(--border)] p-6">
+        <p className="text-[11px] uppercase tracking-[0.3em] text-[var(--muted)]">Schema Checks</p>
+        <h2 className="mt-2 text-3xl font-semibold">資料庫欄位抽查</h2>
+        <div className="mt-6 grid gap-4 md:grid-cols-2">
+          {diagnostics.schema.checks.map((check) => (
+            <article key={check.column} className="rounded-[1.5rem] border border-[var(--border)] bg-white/75 p-4">
+              <div className="flex items-center justify-between gap-3">
+                <p className="font-medium">{check.column}</p>
+                <span
+                  className={`rounded-full px-3 py-1 text-xs ${
+                    check.status === "present"
+                      ? "bg-emerald-50 text-emerald-700"
+                      : "bg-rose-50 text-rose-700"
+                  }`}
+                >
+                  {check.status}
+                </span>
+              </div>
+            </article>
+          ))}
+          {diagnostics.schema.checks.length === 0 ? (
+            <article className="rounded-[1.5rem] border border-[var(--border)] bg-white/75 p-4 text-sm text-[var(--muted)]">
+              目前沒有可用的 schema 抽查結果。
+            </article>
+          ) : null}
+        </div>
+      </section>
+
       <section className="glass-panel rounded-[2rem] border border-[var(--border)] p-6">
         <p className="text-[11px] uppercase tracking-[0.3em] text-[var(--muted)]">Environment Checks</p>
         <h2 className="mt-2 text-3xl font-semibold">關鍵環境變數</h2>
