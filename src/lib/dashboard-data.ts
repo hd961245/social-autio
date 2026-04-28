@@ -21,6 +21,7 @@ export type PostSummary = {
   personaLabel?: string;
   topicTag?: string | null;
   isFreshToday?: boolean;
+  reviewScore?: number;
   status: string;
   requiresApproval?: boolean;
   approvalState?: string | null;
@@ -450,6 +451,34 @@ function formatDate(value?: Date | null) {
   }
 
   return value.toLocaleString("zh-TW", { hour12: false });
+}
+
+function scoreDraftForReview(input: {
+  title?: string | null;
+  text?: string | null;
+  topicTag?: string | null;
+  createdAt: Date;
+  personaLabel?: string | null;
+}) {
+  const title = input.title?.trim() ?? "";
+  const text = (input.text ?? "").trim();
+  let score = 58;
+
+  if (input.topicTag === "opinion") score += 16;
+  if (input.topicTag === "howto") score += 12;
+  if (input.topicTag === "news") score += 8;
+  if (title.startsWith("[觀點]")) score += 10;
+  if (title.startsWith("[教學]")) score += 8;
+  if (title.startsWith("[快訊]")) score += 4;
+  if (/\d/.test(text)) score += 6;
+  if (text.length >= 80 && text.length <= 230) score += 8;
+  if (text.length > 260) score -= 6;
+  if (input.personaLabel) score += 4;
+
+  const ageHours = Math.max(0, (Date.now() - input.createdAt.getTime()) / (1000 * 60 * 60));
+  score += Math.max(0, 12 - ageHours);
+
+  return Math.round(clamp(score, 0, 100));
 }
 
 function getTokenStatus(tokenExpiresAt: Date) {
@@ -962,6 +991,17 @@ export async function getPostSummaries(): Promise<PostSummary[]> {
       personaLabel: post.account.personaLabel ?? undefined,
       topicTag: post.topicTag,
       isFreshToday: dayFormatter.format(post.createdAt) === todayKey,
+      reviewScore:
+        post.account.platform === "threads" &&
+        ["draft", "awaiting_approval", "approval_rejected"].includes(post.status)
+          ? scoreDraftForReview({
+              title: post.title,
+              text: post.textContent ?? post.title,
+              topicTag: post.topicTag,
+              createdAt: post.createdAt,
+              personaLabel: post.account.personaLabel
+            })
+          : undefined,
       status: post.status,
       requiresApproval: post.requiresApproval,
       approvalState: post.approvalState,

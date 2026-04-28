@@ -50,6 +50,7 @@ export function PostsList({ posts }: { posts: PostSummary[] }) {
   const [personaFilter, setPersonaFilter] = useState("all");
   const [topicFilter, setTopicFilter] = useState<TopicFilter>("all");
   const [todayOnly, setTodayOnly] = useState(true);
+  const [topPicksOnly, setTopPicksOnly] = useState(true);
   const [query, setQuery] = useState("");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [message, setMessage] = useState<string | null>(null);
@@ -65,7 +66,7 @@ export function PostsList({ posts }: { posts: PostSummary[] }) {
   );
 
   const visibleItems = useMemo(() => {
-    return items.filter((post) => {
+    const filtered = items.filter((post) => {
       const matchesThreadsOrWp = post.platform === "threads" || post.platform === "wordpress";
       const matchesStatus =
         statusFilter === "all" ||
@@ -84,7 +85,38 @@ export function PostsList({ posts }: { posts: PostSummary[] }) {
 
       return matchesThreadsOrWp && matchesStatus && matchesPersona && matchesTopic && matchesToday && matchesQuery;
     });
-  }, [items, personaFilter, topicFilter, todayOnly, query, statusFilter]);
+
+    if (!topPicksOnly || !todayOnly || statusFilter !== "draft") {
+      return filtered;
+    }
+
+    const threadFreshDrafts = filtered.filter(
+      (post) =>
+        post.platform === "threads" &&
+        post.isFreshToday &&
+        ["draft", "awaiting_approval", "approval_rejected"].includes(post.status)
+    );
+    const nonThreadItems = filtered.filter(
+      (post) =>
+        !(post.platform === "threads" && post.isFreshToday && ["draft", "awaiting_approval", "approval_rejected"].includes(post.status))
+    );
+
+    const grouped = new Map<string, typeof threadFreshDrafts>();
+    for (const post of threadFreshDrafts) {
+      const key = post.personaLabel || post.account;
+      const group = grouped.get(key) ?? [];
+      group.push(post);
+      grouped.set(key, group);
+    }
+
+    const curated = Array.from(grouped.values()).flatMap((group) =>
+      [...group]
+        .sort((left, right) => (right.reviewScore ?? 0) - (left.reviewScore ?? 0))
+        .slice(0, 3)
+    );
+
+    return [...curated, ...nonThreadItems];
+  }, [items, personaFilter, topicFilter, todayOnly, topPicksOnly, query, statusFilter]);
 
   const selectableIds = visibleItems.filter(isConfirmable).map((post) => post.id);
   const selectedCount = selectedIds.length;
@@ -255,12 +287,25 @@ export function PostsList({ posts }: { posts: PostSummary[] }) {
           <div className="rounded-[1.2rem] border border-[var(--border)] bg-[rgba(249,245,238,0.8)] px-4 py-3 text-sm">
             <p className="font-medium">今天的動作</p>
             <p className="mt-1 text-[var(--muted)]">
-              {selectedCount > 0 ? `已勾選 ${selectedCount} 篇，可直接發到 Threads。` : "先勾選你要送出的文，再一次直接發布。"}
+              {selectedCount > 0
+                ? `已勾選 ${selectedCount} 篇，可直接發到 Threads。`
+                : todayOnly && topPicksOnly
+                  ? "先看每個 persona 今天最值得看的 2-3 篇，再決定要發哪篇。"
+                  : "先勾選你要送出的文，再一次直接發布。"}
             </p>
           </div>
         </div>
 
         <div className="mt-4 flex flex-wrap items-center gap-3 rounded-[1.4rem] border border-[var(--border)] bg-[rgba(255,252,248,0.9)] px-4 py-3">
+          <button
+            type="button"
+            className={`rounded-full px-4 py-2 text-sm ${
+              topPicksOnly ? "bg-[var(--card-dark)] text-white" : "bg-[rgba(255,255,255,0.9)] text-[var(--foreground)]"
+            }`}
+            onClick={() => setTopPicksOnly((current) => !current)}
+          >
+            {topPicksOnly ? "每個 persona 只看精選 3 篇" : "顯示所有候選稿"}
+          </button>
           <label className="inline-flex items-center gap-2 text-sm text-[var(--muted)]">
             <input
               type="checkbox"
@@ -340,6 +385,7 @@ export function PostsList({ posts }: { posts: PostSummary[] }) {
                       <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--muted)]">{post.personaLabel}</p>
                     ) : null}
                     {getTopicTagLabel(post.topicTag) ? <span className="pill-tag">{getTopicTagLabel(post.topicTag)}</span> : null}
+                    {post.reviewScore ? <span className="pill-tag">精選分數 {post.reviewScore}</span> : null}
                   </div>
                 </div>
 

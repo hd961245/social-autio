@@ -15,6 +15,34 @@ function paragraphize(text: string) {
         .join("\n");
 }
 
+function buildSummary(cleaned: string) {
+  const firstParagraphs = cleaned
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .slice(0, 3);
+
+  return firstParagraphs.join(" ").slice(0, 180);
+}
+
+function buildOutlineHeadings(title: string, cleaned: string) {
+  const shortTitle = title.replace(/^#+\s*/, "").trim();
+  const signal =
+    cleaned
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .find((line) => line.length >= 18)
+      ?.slice(0, 42) || shortTitle;
+
+  return [
+    "這個題目為什麼現在值得看",
+    "事件脈絡與關鍵數字",
+    `我怎麼解讀「${signal}」`,
+    "對讀者真正有用的下一步"
+  ];
+}
+
 function buildWordPressDraft(
   threadText: string,
   options: {
@@ -36,6 +64,8 @@ function buildWordPressDraft(
     cleaned.split("\n").find(Boolean)?.replace(/^#+\s*/, "").slice(0, 80) ||
     "Threads 延伸文章";
   const tags = extractTags(cleaned);
+  const summary = buildSummary(cleaned);
+  const outlineHeadings = buildOutlineHeadings(title, cleaned);
   const paragraphs = cleaned
     .split("\n")
     .map((line) => line.trim())
@@ -50,10 +80,12 @@ function buildWordPressDraft(
   const htmlParts = [
     "<p>這篇草稿是從一則已發布的 Threads 延伸進來，目標不是備份原文，而是把原本短貼的觀點整理成可繼續寫的長文底稿。</p>",
     options.postUrl ? `<p>原始 Threads 貼文：<a href="${options.postUrl}">${options.postUrl}</a></p>` : "",
+    `<section><h2>文章摘要</h2><p>${summary}</p></section>`,
+    `<section><h2>建議段落架構</h2><ol>${outlineHeadings.map((heading) => `<li>${heading}</li>`).join("")}</ol></section>`,
     buildTemplateHtml({
       templateId: "opinion",
       title,
-      summary: cleaned.slice(0, 220),
+      summary,
       paragraphs,
       points,
       affiliatePolicy: options.affiliatePolicy || "",
@@ -67,7 +99,7 @@ function buildWordPressDraft(
 
   return {
     title,
-    excerpt: cleaned.slice(0, 140),
+    excerpt: summary.slice(0, 140),
     html: htmlParts.join("\n"),
     tags
   };
