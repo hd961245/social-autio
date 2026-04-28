@@ -1,5 +1,6 @@
 import { PageIntro } from "@/components/dashboard/page-intro";
 import { ReplyOptimizeCard } from "@/components/dashboard/reply-optimize-card";
+import { WordPressExpansionCard } from "@/components/dashboard/wordpress-expansion-card";
 import { getThreadPostDeepDive } from "@/lib/dashboard-data";
 
 export const dynamic = "force-dynamic";
@@ -99,6 +100,13 @@ export default async function PostDetailPage({ params }: { params: Promise<{ id:
       </section>
 
       <ReplyOptimizeCard postId={post.id} replies={post.replies} />
+
+      <WordPressExpansionCard
+        postId={post.id}
+        eligible={post.longformCandidate.eligible}
+        reason={post.longformCandidate.reason}
+        recommendation={post.longformCandidate.recommendation}
+      />
 
       <section className="glass-panel rounded-[2rem] border border-[var(--border)] p-6">
         <p className="text-[11px] uppercase tracking-[0.3em] text-[var(--muted)]">Timeline</p>

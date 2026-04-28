@@ -27,6 +27,10 @@ export function SourceWatchlist({ initialItems }: { initialItems: SourceItem[] }
   const [preferredOutcome, setPreferredOutcome] = useState<"threads" | "wordpress">("threads");
   const [message, setMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const financeStarterCount = items.filter((item) => item.sourceUrl.includes("api.investing.com")).length;
+  const financeStarterAutoCount = items.filter(
+    (item) => item.sourceUrl.includes("api.investing.com") && item.autoImportEnabled
+  ).length;
 
   function getStatusLabel(status: SourceItem["lastHandledStatus"]) {
     if (status === "imported") return "已改寫";
@@ -42,6 +46,81 @@ export function SourceWatchlist({ initialItems }: { initialItems: SourceItem[] }
 
   return (
     <div className="space-y-6">
+      <section className="glass-panel rounded-[2rem] border border-[var(--border)] p-6">
+        <div className="grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">
+          <div>
+            <p className="text-[11px] uppercase tracking-[0.3em] text-[var(--muted)]">Starter Pack</p>
+            <h2 className="mt-2 text-3xl font-semibold">理財新聞一鍵起手包</h2>
+            <p className="mt-3 max-w-2xl text-sm leading-7 text-[var(--muted)]">
+              如果你其中一個 Threads 和 WordPress 都是理財題材，先把基礎來源包收進來最省事。這組會先用穩定的 Investing.com RSS，讓系統每天自動挑出更值得寫的 2-3 篇候選稿。
+            </p>
+            <div className="mt-5 flex flex-wrap gap-3">
+              <button
+                disabled={isPending}
+                className="rounded-full bg-[var(--accent)] px-5 py-3 text-sm text-white disabled:opacity-60"
+                onClick={() =>
+                  startTransition(async () => {
+                    setMessage(null);
+                    const response = await fetch("/api/sources/starter-pack", { method: "POST" });
+                    const result = await response.json();
+
+                    if (!response.ok) {
+                      setMessage(result.message ?? "加入 starter pack 失敗");
+                      return;
+                    }
+
+                    const createdItems = (result.items ?? []).map((item: SourceItem) => ({
+                      id: item.id,
+                      label: item.label,
+                      sourceType: item.sourceType,
+                      sourceUrl: item.sourceUrl,
+                      isActive: item.isActive,
+                      autoImportEnabled: item.autoImportEnabled,
+                      preferredOutcome: item.preferredOutcome,
+                      lastFetchedAt: "尚未刷新",
+                      lastItemTitle: "",
+                      lastItemUrl: "",
+                      lastExcerpt: "",
+                      lastHandledStatus: "new" as const,
+                      lastError: ""
+                    }));
+
+                    if (createdItems.length) {
+                      setItems((current) => [...createdItems, ...current]);
+                    }
+
+                    setMessage(
+                      createdItems.length
+                        ? `已加入 ${createdItems.length} 個理財來源，等等就能直接刷新或等每日自動匯入。`
+                        : "這組理財來源已經都在名單裡了。"
+                    );
+                  })
+                }
+              >
+                {isPending ? "加入中..." : "一鍵加入理財來源"}
+              </button>
+            </div>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-1">
+            {[
+              { label: "已收進來源", value: financeStarterCount, detail: "目前已加入的理財 starter feeds" },
+              { label: "自動匯入中", value: financeStarterAutoCount, detail: "會每天自動產候選稿的來源" },
+              {
+                label: "預設候選數",
+                value: 3,
+                detail: "每日預期先挑 2-3 篇 Threads 候選稿"
+              }
+            ].map((card) => (
+              <article key={card.label} className="metric-card">
+                <p className="text-xs uppercase tracking-[0.24em] text-[var(--muted)]">{card.label}</p>
+                <p className="mt-3 text-3xl font-semibold">{card.value}</p>
+                <p className="mt-2 text-sm leading-6 text-[var(--muted)]">{card.detail}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
       <section className="glass-panel rounded-[2rem] border border-[var(--border)] p-6">
         <div>
           <p className="text-[11px] uppercase tracking-[0.3em] text-[var(--muted)]">Source Watchlist</p>

@@ -170,6 +170,11 @@ export type ThreadPostDeepDive = {
   };
   insights: string[];
   nextAction: string;
+  longformCandidate: {
+    eligible: boolean;
+    reason: string;
+    recommendation: string;
+  };
   timeline: ThreadMetricTimelinePoint[];
   replies: Array<{
     id: string;
@@ -1011,6 +1016,25 @@ export async function getThreadPostDeepDive(postId: string): Promise<ThreadPostD
         shares: metric.shares
       }))
     });
+    const longformSignals = {
+      engagementRate: health.engagementRate,
+      conversationRate: health.conversationRate,
+      amplificationRate: health.amplificationRate,
+      views: latestMetrics.views,
+      replies: latestMetrics.replies
+    };
+    const longformEligible =
+      longformSignals.engagementRate >= 0.06 ||
+      longformSignals.conversationRate >= 0.018 ||
+      longformSignals.amplificationRate >= 0.012 ||
+      health.momentum === "spiking" ||
+      longformSignals.replies >= 8;
+    const longformReason = longformEligible
+      ? `這篇貼文的互動率 ${(longformSignals.engagementRate * 100).toFixed(1)}%、對話率 ${(longformSignals.conversationRate * 100).toFixed(1)}%，已經足夠把短觀點擴成一篇有脈絡的長文。`
+      : `這篇目前比較像短內容測試，雖然有 ${longformSignals.views} 次瀏覽，但對話率 ${(longformSignals.conversationRate * 100).toFixed(1)}% 還不高，建議先再觀察一輪。`;
+    const longformRecommendation = longformEligible
+      ? "先把這篇 Threads 的結論保留，再補背景、案例、反例和可操作建議，整理成一篇有觀點的 WordPress 草稿。"
+      : "先把它當成市場測試樣本，觀察留言與二次擴散；如果後續開始有討論，再轉成長文會更準。";
 
     return {
       id: post.id,
@@ -1029,6 +1053,11 @@ export async function getThreadPostDeepDive(postId: string): Promise<ThreadPostD
       },
       insights: health.insights,
       nextAction: health.nextAction,
+      longformCandidate: {
+        eligible: longformEligible,
+        reason: longformReason,
+        recommendation: longformRecommendation
+      },
       timeline,
       replies
     };
