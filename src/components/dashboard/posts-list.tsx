@@ -32,6 +32,13 @@ function truncate(value: string, length = 82) {
   return normalized.length > length ? `${normalized.slice(0, length - 1)}…` : normalized;
 }
 
+function getTopicTagLabel(topicTag?: string | null) {
+  if (topicTag === "news") return "快訊";
+  if (topicTag === "opinion") return "觀點";
+  if (topicTag === "howto") return "教學";
+  return null;
+}
+
 function isConfirmable(post: PostSummary) {
   return post.platform === "threads" && ["draft", "failed", "approval_rejected", "scheduled", "awaiting_approval"].includes(post.status);
 }
@@ -295,9 +302,12 @@ export function PostsList({ posts }: { posts: PostSummary[] }) {
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium">{truncate(post.title ?? post.text, 92)}</p>
                   <p className="mt-1 line-clamp-2 text-xs leading-6 text-[var(--muted)]">{truncate(post.text, 150)}</p>
-                  {post.personaLabel ? (
-                    <p className="mt-2 text-[11px] uppercase tracking-[0.18em] text-[var(--muted)]">{post.personaLabel}</p>
-                  ) : null}
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    {post.personaLabel ? (
+                      <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--muted)]">{post.personaLabel}</p>
+                    ) : null}
+                    {getTopicTagLabel(post.topicTag) ? <span className="pill-tag">{getTopicTagLabel(post.topicTag)}</span> : null}
+                  </div>
                 </div>
 
                 <div className="text-sm">

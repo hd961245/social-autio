@@ -19,6 +19,7 @@ export type PostSummary = {
   accountId: string;
   platform: string;
   personaLabel?: string;
+  topicTag?: string | null;
   status: string;
   requiresApproval?: boolean;
   approvalState?: string | null;
@@ -197,6 +198,7 @@ export type WordPressExpansionCandidate = {
   amplificationRate: number;
   momentumLabel: string;
   longformScore: number;
+  suggestedTitle: string;
   reason: string;
   recommendation: string;
 };
@@ -950,6 +952,7 @@ export async function getPostSummaries(): Promise<PostSummary[]> {
       accountId: post.accountId,
       platform: post.account.platform,
       personaLabel: post.account.personaLabel ?? undefined,
+      topicTag: post.topicTag,
       status: post.status,
       requiresApproval: post.requiresApproval,
       approvalState: post.approvalState,
@@ -1174,6 +1177,7 @@ export async function getWordPressExpansionCandidates(): Promise<WordPressExpans
             (health.engagementRate * 1000 + health.conversationRate * 1600 + health.amplificationRate * 1300) *
               (health.momentum === "spiking" ? 1.12 : 1)
           ),
+          suggestedTitle: `從「${(post.title ?? post.textContent ?? "這則 Threads").replace(/^\[[^\]]+\]\s*/, "").slice(0, 28)}」延伸：把短觀點整理成可收藏的完整文章`,
           reason: eligible
             ? `互動率 ${(health.engagementRate * 100).toFixed(1)}%、對話率 ${(health.conversationRate * 100).toFixed(1)}%，已經有足夠訊號支撐成長文。`
             : `這篇雖然有曝光，但目前更適合先當短內容觀察樣本。`,
@@ -1202,6 +1206,7 @@ export async function getWordPressExpansionCandidates(): Promise<WordPressExpans
         amplificationRate: post.amplificationRate,
         momentumLabel: post.momentumLabel,
         longformScore: post.longformScore,
+        suggestedTitle: post.suggestedTitle,
         reason: post.reason,
         recommendation: post.recommendation
       }));

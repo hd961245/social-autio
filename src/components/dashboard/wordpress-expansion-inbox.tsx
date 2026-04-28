@@ -15,6 +15,7 @@ type ExpansionCandidate = {
   amplificationRate: number;
   momentumLabel: string;
   longformScore: number;
+  suggestedTitle: string;
   reason: string;
   recommendation: string;
 };
@@ -127,6 +128,10 @@ export function WordPressExpansionInbox({ candidates }: { candidates: ExpansionC
                   <span className="pill-tag">{item.momentumLabel}</span>
                 </div>
                 <p className="mt-4 text-sm leading-7 text-[var(--muted)]">{item.reason}</p>
+                <div className="mt-3 rounded-[1.2rem] border border-[var(--border)] bg-[rgba(249,245,238,0.82)] px-4 py-3">
+                  <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">建議長文標題</p>
+                  <p className="mt-2 text-sm font-medium leading-7 text-[var(--foreground)]">{item.suggestedTitle}</p>
+                </div>
                 <p className="mt-3 text-sm leading-7 text-[var(--foreground)]">{item.recommendation}</p>
               </div>
               <div className="flex shrink-0 flex-wrap gap-3">

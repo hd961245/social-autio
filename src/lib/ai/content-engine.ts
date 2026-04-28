@@ -23,6 +23,11 @@ type GeneratedDraftSummary = {
   status: "draft";
 };
 
+type CandidateFormat = {
+  label: "快訊" | "觀點" | "教學";
+  topicTag: "news" | "opinion" | "howto";
+};
+
 function stripText(text: string) {
   return text.replace(/\s+/g, " ").trim();
 }
@@ -59,6 +64,39 @@ function buildThreadsDraft(summary: string, personaPrompt: string, tone: string)
   const perspective = personaPrompt ? `\n視角：${personaPrompt.slice(0, 80)}` : "";
   const body = `${intro}\n\n${summary.slice(0, 340)}${perspective}\n\n如果把這件事拆成行動，大概有三步。`;
   return body.slice(0, 500);
+}
+
+function classifyCandidateFormat(title: string, summary: string): CandidateFormat {
+  const text = `${title} ${summary}`.toLowerCase();
+  const hasHowTo = /(如何|怎麼|教學|指南|懶人包|步驟|攻略|guide|checklist)/i.test(text);
+  const hasSignal = /(最新|快訊|公布|升息|降息|財報|盤中|收盤|爆雷|headline|breaking|market)/i.test(text);
+  const hasPerspective = /(為什麼|其實|我認為|觀點|你會發現|重點不是|真正的問題)/i.test(text);
+
+  if (hasHowTo) {
+    return {
+      label: "教學",
+      topicTag: "howto"
+    };
+  }
+
+  if (hasPerspective) {
+    return {
+      label: "觀點",
+      topicTag: "opinion"
+    };
+  }
+
+  if (hasSignal) {
+    return {
+      label: "快訊",
+      topicTag: "news"
+    };
+  }
+
+  return {
+    label: summary.length >= 220 ? "觀點" : "快訊",
+    topicTag: summary.length >= 220 ? "opinion" : "news"
+  };
 }
 
 function buildWordPressDraft(
@@ -193,6 +231,7 @@ export async function ingestAndGenerateDrafts(input: IngestionInput) {
   const safeTitle = input.title?.trim() || extractedTitle || "未命名素材";
   const safeText = input.rawText?.trim() || extractedText || sourceUrl || "沒有附上文字內容";
   const summary = summarizeSource(safeTitle, safeText);
+  const candidateFormat = classifyCandidateFormat(safeTitle, summary);
   let aiProvider = "fallback";
   let aiWarning: string | null = null;
   let generated = {
@@ -250,12 +289,15 @@ export async function ingestAndGenerateDrafts(input: IngestionInput) {
   });
 
   if (threadsAccount && outputMode !== "wordpress") {
+    const threadsTitle = `[${candidateFormat.label}] ${safeTitle}`.slice(0, 120);
     const threadsDraft = await prisma.post.create({
       data: {
         userId: user.id,
         accountId: threadsAccount.id,
         contentType: "text",
+        title: threadsTitle,
         textContent: generated.threadsDraft,
+        topicTag: candidateFormat.topicTag,
         mediaUrls: input.imageUrls?.length ? JSON.stringify(input.imageUrls.slice(0, 1)) : null,
         status: "draft"
       }
@@ -264,7 +306,7 @@ export async function ingestAndGenerateDrafts(input: IngestionInput) {
     generatedDrafts.push({
       id: threadsDraft.id,
       platform: "threads",
-      title: generated.threadsDraft.slice(0, 72),
+      title: threadsTitle,
       status: "draft"
     });
   }
