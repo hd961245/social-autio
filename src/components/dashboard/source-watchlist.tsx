@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { FINANCE_STARTER_PACK } from "@/lib/content/source-starter-packs";
+import { FINANCE_STARTER_PACK, FINANCE_STARTER_PACKS } from "@/lib/content/source-starter-packs";
 
 export type SourceItem = {
   id: string;
@@ -54,53 +54,83 @@ export function SourceWatchlist({ initialItems }: { initialItems: SourceItem[] }
             <p className="text-[11px] uppercase tracking-[0.3em] text-[var(--muted)]">Starter Pack</p>
             <h2 className="mt-2 text-3xl font-semibold">理財新聞一鍵起手包</h2>
             <p className="mt-3 max-w-2xl text-sm leading-7 text-[var(--muted)]">
-              如果你其中一個 Threads 和 WordPress 都是理財題材，先把基礎來源包收進來最省事。這組會先用穩定的 Investing.com RSS，讓系統每天自動挑出更值得寫的 2-3 篇候選稿。
+              如果你其中一個 Threads 和 WordPress 都是理財題材，先把來源包拆成題型來收最省事。你可以只加台股、只加總經，或把四組全加進來。
             </p>
-            <div className="mt-5 flex flex-wrap gap-3">
-              <button
-                disabled={isPending}
-                className="rounded-full bg-[var(--accent)] px-5 py-3 text-sm text-white disabled:opacity-60"
-                onClick={() =>
-                  startTransition(async () => {
-                    setMessage(null);
-                    const response = await fetch("/api/sources/starter-pack", { method: "POST" });
-                    const result = await response.json();
+            <div className="mt-5 grid gap-3 xl:grid-cols-2">
+              {FINANCE_STARTER_PACKS.map((pack) => {
+                const packUrls = new Set(pack.items.map((item) => item.sourceUrl));
+                const includedCount = items.filter((item) => packUrls.has(item.sourceUrl)).length;
 
-                    if (!response.ok) {
-                      setMessage(result.message ?? "加入 starter pack 失敗");
-                      return;
-                    }
+                return (
+                  <article key={pack.id} className="rounded-[1.4rem] border border-[var(--border)] bg-white/76 p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">{pack.shortLabel}</p>
+                        <h3 className="mt-2 text-lg font-semibold">{pack.title}</h3>
+                      </div>
+                      <div className="rounded-full border border-[var(--border)] px-3 py-1 text-xs text-[var(--muted)]">
+                        {includedCount}/{pack.items.length}
+                      </div>
+                    </div>
+                    <p className="mt-3 text-sm leading-7 text-[var(--muted)]">{pack.description}</p>
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      {pack.items.map((item) => (
+                        <span key={item.sourceUrl} className="pill-tag">
+                          {item.label}
+                        </span>
+                      ))}
+                    </div>
+                    <button
+                      disabled={isPending}
+                      className="mt-4 rounded-full bg-[var(--accent)] px-4 py-2 text-sm text-white disabled:opacity-60"
+                      onClick={() =>
+                        startTransition(async () => {
+                          setMessage(null);
+                          const response = await fetch("/api/sources/starter-pack", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ packId: pack.id })
+                          });
+                          const result = await response.json();
 
-                    const createdItems = (result.items ?? []).map((item: SourceItem) => ({
-                      id: item.id,
-                      label: item.label,
-                      sourceType: item.sourceType,
-                      sourceUrl: item.sourceUrl,
-                      isActive: item.isActive,
-                      autoImportEnabled: item.autoImportEnabled,
-                      preferredOutcome: item.preferredOutcome,
-                      lastFetchedAt: "尚未刷新",
-                      lastItemTitle: "",
-                      lastItemUrl: "",
-                      lastExcerpt: "",
-                      lastHandledStatus: "new" as const,
-                      lastError: ""
-                    }));
+                          if (!response.ok) {
+                            setMessage(result.message ?? "加入 starter pack 失敗");
+                            return;
+                          }
 
-                    if (createdItems.length) {
-                      setItems((current) => [...createdItems, ...current]);
-                    }
+                          const createdItems = (result.items ?? []).map((item: SourceItem) => ({
+                            id: item.id,
+                            label: item.label,
+                            sourceType: item.sourceType,
+                            sourceUrl: item.sourceUrl,
+                            isActive: item.isActive,
+                            autoImportEnabled: item.autoImportEnabled,
+                            preferredOutcome: item.preferredOutcome,
+                            lastFetchedAt: "尚未刷新",
+                            lastItemTitle: "",
+                            lastItemUrl: "",
+                            lastExcerpt: "",
+                            lastHandledStatus: "new" as const,
+                            lastError: ""
+                          }));
 
-                    setMessage(
-                      createdItems.length
-                        ? `已加入 ${createdItems.length} 個理財來源，等等就能直接刷新或等每日自動匯入。`
-                        : "這組理財來源已經都在名單裡了。"
-                    );
-                  })
-                }
-              >
-                {isPending ? "加入中..." : "一鍵加入理財來源"}
-              </button>
+                          if (createdItems.length) {
+                            setItems((current) => [...createdItems, ...current]);
+                          }
+
+                          setMessage(
+                            createdItems.length
+                              ? `已加入 ${pack.title} 的 ${createdItems.length} 個來源。`
+                              : `${pack.title} 這組來源已經都在名單裡了。`
+                          );
+                        })
+                      }
+                    >
+                      {isPending ? "加入中..." : `加入${pack.shortLabel}來源`}
+                    </button>
+                  </article>
+                );
+              })}
             </div>
           </div>
           <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-1">
@@ -120,6 +150,56 @@ export function SourceWatchlist({ initialItems }: { initialItems: SourceItem[] }
               </article>
             ))}
           </div>
+        </div>
+        <div className="mt-5 flex flex-wrap gap-3">
+          <button
+            disabled={isPending}
+            className="rounded-full border border-[var(--border)] bg-white px-4 py-2 text-sm disabled:opacity-60"
+            onClick={() =>
+              startTransition(async () => {
+                setMessage(null);
+                const response = await fetch("/api/sources/starter-pack", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ packId: "all" })
+                });
+                const result = await response.json();
+
+                if (!response.ok) {
+                  setMessage(result.message ?? "加入全部 starter packs 失敗");
+                  return;
+                }
+
+                const createdItems = (result.items ?? []).map((item: SourceItem) => ({
+                  id: item.id,
+                  label: item.label,
+                  sourceType: item.sourceType,
+                  sourceUrl: item.sourceUrl,
+                  isActive: item.isActive,
+                  autoImportEnabled: item.autoImportEnabled,
+                  preferredOutcome: item.preferredOutcome,
+                  lastFetchedAt: "尚未刷新",
+                  lastItemTitle: "",
+                  lastItemUrl: "",
+                  lastExcerpt: "",
+                  lastHandledStatus: "new" as const,
+                  lastError: ""
+                }));
+
+                if (createdItems.length) {
+                  setItems((current) => [...createdItems, ...current]);
+                }
+
+                setMessage(
+                  createdItems.length
+                    ? `已一次加入 ${createdItems.length} 個理財來源。`
+                    : "全部理財來源都已經在名單裡了。"
+                );
+              })
+            }
+          >
+            {isPending ? "加入中..." : "全部一起加入"}
+          </button>
         </div>
       </section>
 

@@ -1,9 +1,29 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { FINANCE_STARTER_PACK } from "@/lib/content/source-starter-packs";
+import { FINANCE_STARTER_PACKS, getFinanceStarterPack } from "@/lib/content/source-starter-packs";
 
-export async function POST() {
+const starterPackSchema = z
+  .object({
+    packId: z.string().optional().default("all")
+  })
+  .optional();
+
+export async function POST(request: Request) {
   try {
+    const payload = starterPackSchema.parse(await request.json().catch(() => ({})));
+    const selectedPack = getFinanceStarterPack(payload?.packId);
+
+    if (!selectedPack.length) {
+      return NextResponse.json(
+        {
+          ok: false,
+          message: "找不到這組 starter pack。"
+        },
+        { status: 404 }
+      );
+    }
+
     const user = await prisma.user.upsert({
       where: { id: "seed-admin" },
       update: {},
@@ -17,7 +37,7 @@ export async function POST() {
       where: {
         userId: user.id,
         sourceUrl: {
-          in: FINANCE_STARTER_PACK.map((item) => item.sourceUrl)
+          in: selectedPack.map((item) => item.sourceUrl)
         }
       }
     });
@@ -25,7 +45,7 @@ export async function POST() {
     const existingUrls = new Set(existing.map((item) => item.sourceUrl));
     const created = [];
 
-    for (const preset of FINANCE_STARTER_PACK) {
+    for (const preset of selectedPack) {
       if (existingUrls.has(preset.sourceUrl)) {
         continue;
       }
@@ -47,8 +67,10 @@ export async function POST() {
 
     return NextResponse.json({
       ok: true,
+      packId: payload?.packId ?? "all",
+      availablePacks: FINANCE_STARTER_PACKS.map((pack) => ({ id: pack.id, title: pack.title })),
       createdCount: created.length,
-      skippedCount: FINANCE_STARTER_PACK.length - created.length,
+      skippedCount: selectedPack.length - created.length,
       items: created
     });
   } catch (error) {
