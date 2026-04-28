@@ -49,6 +49,7 @@ export function PostsList({ posts }: { posts: PostSummary[] }) {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("draft");
   const [personaFilter, setPersonaFilter] = useState("all");
   const [topicFilter, setTopicFilter] = useState<TopicFilter>("all");
+  const [todayOnly, setTodayOnly] = useState(true);
   const [query, setQuery] = useState("");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [message, setMessage] = useState<string | null>(null);
@@ -75,12 +76,15 @@ export function PostsList({ posts }: { posts: PostSummary[] }) {
       const matchesTopic =
         topicFilter === "all" ||
         (post.platform === "threads" && post.topicTag === topicFilter);
+      const matchesToday =
+        !todayOnly ||
+        (post.platform === "threads" && ["draft", "awaiting_approval", "approval_rejected"].includes(post.status) && post.isFreshToday);
       const haystack = `${post.account} ${post.personaLabel ?? ""} ${post.platform} ${post.text} ${post.title ?? ""}`.toLowerCase();
       const matchesQuery = !query.trim() || haystack.includes(query.trim().toLowerCase());
 
-      return matchesThreadsOrWp && matchesStatus && matchesPersona && matchesTopic && matchesQuery;
+      return matchesThreadsOrWp && matchesStatus && matchesPersona && matchesTopic && matchesToday && matchesQuery;
     });
-  }, [items, personaFilter, topicFilter, query, statusFilter]);
+  }, [items, personaFilter, topicFilter, todayOnly, query, statusFilter]);
 
   const selectableIds = visibleItems.filter(isConfirmable).map((post) => post.id);
   const selectedCount = selectedIds.length;
@@ -88,17 +92,22 @@ export function PostsList({ posts }: { posts: PostSummary[] }) {
 
   const summary = useMemo(() => {
     const draft = items.filter((post) => post.platform === "threads" && ["draft", "awaiting_approval", "approval_rejected"].includes(post.status)).length;
+    const freshToday = items.filter(
+      (post) => post.platform === "threads" && ["draft", "awaiting_approval", "approval_rejected"].includes(post.status) && post.isFreshToday
+    ).length;
     const scheduled = items.filter((post) => post.platform === "threads" && post.status === "scheduled").length;
     const published = items.filter((post) => post.platform === "threads" && post.status === "published").length;
     const wordpress = items.filter((post) => post.platform === "wordpress").length;
-    const total = Math.max(draft, scheduled, published, wordpress, 1);
+    const total = Math.max(freshToday, draft, scheduled, published, wordpress, 1);
 
     return {
+      freshToday,
       draft,
       scheduled,
       published,
       wordpress,
       bars: [
+        { label: "今日新稿", value: freshToday },
         { label: "待確認", value: draft },
         { label: "已排程", value: scheduled },
         { label: "已發布", value: published },
@@ -143,10 +152,10 @@ export function PostsList({ posts }: { posts: PostSummary[] }) {
       <section className="rounded-[1.8rem] border border-[var(--border)] bg-white/80 p-5">
         <div className="grid gap-3 md:grid-cols-4">
           {[
+            { label: "今日新稿", value: summary.freshToday, hint: "今天 AI 新生成、最值得先看" },
             { label: "待確認", value: summary.draft, hint: "AI 產好，勾選即可發" },
             { label: "已排程", value: summary.scheduled, hint: "等 Inngest 自動送出" },
-            { label: "已發布", value: summary.published, hint: "最近成功發出的 Threads" },
-            { label: "WP 草稿", value: summary.wordpress, hint: "長文工作區中的草稿" }
+            { label: "已發布", value: summary.published, hint: "最近成功發出的 Threads" }
           ].map((card) => (
             <article key={card.label} className="rounded-[1.4rem] border border-[var(--border)] bg-[rgba(255,252,248,0.9)] p-4">
               <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">{card.label}</p>
@@ -201,6 +210,15 @@ export function PostsList({ posts }: { posts: PostSummary[] }) {
               ))}
             </div>
             <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                className={`rounded-full px-4 py-2 text-sm ${
+                  todayOnly ? "bg-[var(--card-dark)] text-white" : "bg-[rgba(255,255,255,0.9)] text-[var(--foreground)]"
+                }`}
+                onClick={() => setTodayOnly((current) => !current)}
+              >
+                {todayOnly ? "只看今天 AI 新稿" : "包含舊稿"}
+              </button>
               {personaOptions.length > 0 ? (
                 <select
                   className="rounded-full border border-[var(--border)] bg-white px-4 py-2 text-sm outline-none"

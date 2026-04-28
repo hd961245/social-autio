@@ -20,6 +20,7 @@ export type PostSummary = {
   platform: string;
   personaLabel?: string;
   topicTag?: string | null;
+  isFreshToday?: boolean;
   status: string;
   requiresApproval?: boolean;
   approvalState?: string | null;
@@ -936,6 +937,13 @@ export async function getPublishOutcomeLogs(): Promise<PublishOutcomeSummary[]> 
 
 export async function getPostSummaries(): Promise<PostSummary[]> {
   try {
+    const dayFormatter = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Taipei",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit"
+    });
+    const todayKey = dayFormatter.format(new Date());
     const posts = await prisma.post.findMany({
       include: {
         account: true
@@ -953,6 +961,7 @@ export async function getPostSummaries(): Promise<PostSummary[]> {
       platform: post.account.platform,
       personaLabel: post.account.personaLabel ?? undefined,
       topicTag: post.topicTag,
+      isFreshToday: dayFormatter.format(post.createdAt) === todayKey,
       status: post.status,
       requiresApproval: post.requiresApproval,
       approvalState: post.approvalState,

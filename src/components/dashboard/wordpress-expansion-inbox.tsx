@@ -161,6 +161,11 @@ export function WordPressExpansionInbox({ candidates }: { candidates: ExpansionC
                       const result = await response.json();
 
                       if (response.ok) {
+                        if (result.postId) {
+                          window.location.assign(`/compose?postId=${result.postId}`);
+                          return;
+                        }
+
                         setItems((current) => current.filter((candidate) => candidate.id !== item.id));
                       }
 
@@ -168,7 +173,7 @@ export function WordPressExpansionInbox({ candidates }: { candidates: ExpansionC
                     })
                   }
                 >
-                  {isPending ? "建立中..." : "轉成 WordPress 草稿"}
+                  {isPending ? "建立中..." : "建立並打開草稿"}
                 </button>
               </div>
             </div>
