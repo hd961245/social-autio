@@ -4,6 +4,7 @@ import { useMemo, useState, useTransition } from "react";
 import type { PostSummary } from "@/lib/dashboard-data";
 
 type StatusFilter = "draft" | "scheduled" | "published" | "failed" | "all";
+type TopicFilter = "all" | "news" | "opinion" | "howto";
 
 function getStatusLabel(status: string, requiresApproval?: boolean, approvalState?: string | null) {
   if (requiresApproval && approvalState === "requested") return "待 Telegram";
@@ -47,6 +48,7 @@ export function PostsList({ posts }: { posts: PostSummary[] }) {
   const [items, setItems] = useState(posts);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("draft");
   const [personaFilter, setPersonaFilter] = useState("all");
+  const [topicFilter, setTopicFilter] = useState<TopicFilter>("all");
   const [query, setQuery] = useState("");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [message, setMessage] = useState<string | null>(null);
@@ -70,12 +72,15 @@ export function PostsList({ posts }: { posts: PostSummary[] }) {
       const matchesPersona =
         personaFilter === "all" ||
         (post.platform === "threads" && (post.personaLabel || post.account) === personaFilter);
+      const matchesTopic =
+        topicFilter === "all" ||
+        (post.platform === "threads" && post.topicTag === topicFilter);
       const haystack = `${post.account} ${post.personaLabel ?? ""} ${post.platform} ${post.text} ${post.title ?? ""}`.toLowerCase();
       const matchesQuery = !query.trim() || haystack.includes(query.trim().toLowerCase());
 
-      return matchesThreadsOrWp && matchesStatus && matchesPersona && matchesQuery;
+      return matchesThreadsOrWp && matchesStatus && matchesPersona && matchesTopic && matchesQuery;
     });
-  }, [items, personaFilter, query, statusFilter]);
+  }, [items, personaFilter, topicFilter, query, statusFilter]);
 
   const selectableIds = visibleItems.filter(isConfirmable).map((post) => post.id);
   const selectedCount = selectedIds.length;
@@ -210,6 +215,16 @@ export function PostsList({ posts }: { posts: PostSummary[] }) {
                   ))}
                 </select>
               ) : null}
+              <select
+                className="rounded-full border border-[var(--border)] bg-white px-4 py-2 text-sm outline-none"
+                value={topicFilter}
+                onChange={(event) => setTopicFilter(event.target.value as TopicFilter)}
+              >
+                <option value="all">全部類型</option>
+                <option value="news">快訊</option>
+                <option value="opinion">觀點</option>
+                <option value="howto">教學</option>
+              </select>
               <input
                 className="w-full rounded-full border border-[var(--border)] bg-white px-4 py-2 text-sm outline-none lg:w-72"
                 placeholder="搜尋帳號、標題或文案"

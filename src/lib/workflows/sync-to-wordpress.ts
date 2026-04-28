@@ -20,6 +20,7 @@ function buildWordPressDraft(
   options: {
     postUrl?: string | null;
     personaPrompt?: string;
+    titleOverride?: string;
     affiliatePolicy?: string;
     affiliateLibrary?: {
       primary: string;
@@ -30,7 +31,10 @@ function buildWordPressDraft(
   }
 ) {
   const cleaned = threadText.trim();
-  const title = cleaned.split("\n").find(Boolean)?.replace(/^#+\s*/, "").slice(0, 80) || "Threads 延伸文章";
+  const title =
+    options.titleOverride?.trim().slice(0, 80) ||
+    cleaned.split("\n").find(Boolean)?.replace(/^#+\s*/, "").slice(0, 80) ||
+    "Threads 延伸文章";
   const tags = extractTags(cleaned);
   const paragraphs = cleaned
     .split("\n")
@@ -69,7 +73,7 @@ function buildWordPressDraft(
   };
 }
 
-export async function syncPostToWordPress(postId: string) {
+export async function syncPostToWordPress(postId: string, options?: { titleOverride?: string }) {
   const sourcePost = await prisma.post.findUnique({
     where: { id: postId },
     include: {
@@ -139,6 +143,7 @@ export async function syncPostToWordPress(postId: string) {
   const draft = buildWordPressDraft(text, {
     postUrl: sourcePost.platformUrl,
     personaPrompt,
+    titleOverride: options?.titleOverride,
     affiliatePolicy: settings?.affiliateLinkPolicy?.trim() || "",
     affiliateLibrary: {
       primary: settings?.affiliateBlockPrimary?.trim() || "",

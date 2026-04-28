@@ -1,10 +1,13 @@
 import { NextResponse } from "next/server";
 import { syncPostToWordPress } from "@/lib/workflows/sync-to-wordpress";
 
-export async function POST(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
-    const result = await syncPostToWordPress(id);
+    const payload = await request.json().catch(() => ({}));
+    const result = await syncPostToWordPress(id, {
+      titleOverride: typeof payload?.titleOverride === "string" ? payload.titleOverride : undefined
+    });
 
     return NextResponse.json({
       ok: true,
