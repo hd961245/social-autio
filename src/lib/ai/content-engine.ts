@@ -12,6 +12,7 @@ type IngestionInput = {
   rawText?: string;
   imageUrls?: string[];
   threadsAccountId?: string;
+  outputMode?: "threads" | "wordpress" | "both";
   wordpressTemplate?: "opinion" | "case-study" | "tool-review" | "weekly-recap";
 };
 
@@ -127,6 +128,7 @@ export async function ingestAndGenerateDrafts(input: IngestionInput) {
     cta: settings?.affiliateCta?.trim() || ""
   };
   const preferredProvider = (settings?.aiProvider?.trim() as "auto" | "gemini" | "claude" | "openai" | undefined) || "auto";
+  const outputMode = input.outputMode ?? "both";
 
   const [threadsAccount, wordpressAccount] = await Promise.all([
     input.threadsAccountId
@@ -247,7 +249,7 @@ export async function ingestAndGenerateDrafts(input: IngestionInput) {
     }
   });
 
-  if (threadsAccount) {
+  if (threadsAccount && outputMode !== "wordpress") {
     const threadsDraft = await prisma.post.create({
       data: {
         userId: user.id,
@@ -267,7 +269,7 @@ export async function ingestAndGenerateDrafts(input: IngestionInput) {
     });
   }
 
-  if (wordpressAccount) {
+  if (wordpressAccount && outputMode !== "threads") {
     const planning = inferWordPressDraftPlanning({
       title: generated.wordpressTitle,
       summary: generated.summary,

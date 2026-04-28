@@ -1,4 +1,4 @@
-import { refreshSourceWatch } from "@/lib/content/source-watch";
+import { refreshSourceCandidates, refreshSourceWatch } from "@/lib/content/source-watch";
 import { ingestAndGenerateDrafts } from "@/lib/ai/content-engine";
 import { prisma } from "@/lib/prisma";
 
@@ -59,26 +59,68 @@ export async function runDailySourceImports() {
 
   for (const watch of watches) {
     try {
-      const preview = await refreshSourceWatch(watch.sourceType, watch.sourceUrl);
-      const sameItem = preview.fingerprint === watch.lastItemFingerprint;
+      const candidates = await refreshSourceCandidates(watch.sourceType, watch.sourceUrl, watch.preferredOutcome === "threads" ? 6 : 3);
+      const preview = candidates[0];
 
-      if (sameItem && watch.lastHandledStatus === "imported") {
-        results.push({ id: watch.id, ok: true, imported: false, reason: "already-imported" });
+      if (!preview) {
+        results.push({ id: watch.id, ok: true, imported: false, reason: "no-candidates" });
         continue;
       }
+
+      const sameItem = preview.fingerprint === watch.lastItemFingerprint;
 
       const preferredOutcome =
         watch.preferredOutcome === "wordpress" || watch.preferredOutcome === "threads"
           ? watch.preferredOutcome
           : "threads";
-
-      const result = await ingestAndGenerateDrafts({
-        sourceType: "url",
-        sourceUrl: preview.url,
-        title: preview.title,
-        rawText: preview.excerpt,
-        wordpressTemplate: preferredOutcome === "wordpress" ? "case-study" : "opinion"
+      const dailyLimit = preferredOutcome === "threads" ? 3 : 1;
+      const recentExisting = await prisma.ingestionRecord.findMany({
+        where: {
+          sourceUrl: {
+            in: candidates.map((item) => item.url)
+          }
+        },
+        select: {
+          sourceUrl: true
+        }
       });
+      const existingUrls = new Set(recentExisting.map((item) => item.sourceUrl).filter(Boolean));
+      const selectedItems = candidates.filter((item) => !existingUrls.has(item.url)).slice(0, dailyLimit);
+
+      if (selectedItems.length === 0) {
+        await prisma.sourceWatch.update({
+          where: { id: watch.id },
+          data: {
+            lastFetchedAt: new Date(),
+            lastItemTitle: preview.title,
+            lastItemUrl: preview.url,
+            lastExcerpt: preview.excerpt,
+            lastItemFingerprint: preview.fingerprint,
+            lastHandledStatus: sameItem ? watch.lastHandledStatus ?? "skipped" : "skipped",
+            lastHandledAt: new Date(),
+            skipCount: {
+              increment: 1
+            },
+            lastError: null
+          }
+        });
+
+        results.push({ id: watch.id, ok: true, imported: false, reason: "already-imported" });
+        continue;
+      }
+
+      let generatedDraftCount = 0;
+      for (const item of selectedItems) {
+        const result = await ingestAndGenerateDrafts({
+          sourceType: "url",
+          sourceUrl: item.url,
+          title: item.title,
+          rawText: item.excerpt,
+          wordpressTemplate: preferredOutcome === "wordpress" ? "case-study" : "opinion",
+          outputMode: preferredOutcome
+        });
+        generatedDraftCount += result.generatedDrafts.length;
+      }
 
       await prisma.sourceWatch.update({
         where: { id: watch.id },
@@ -91,18 +133,18 @@ export async function runDailySourceImports() {
           lastHandledStatus: "imported",
           lastHandledAt: new Date(),
           importCount: {
-            increment: 1
+            increment: selectedItems.length
           },
           threadsPickCount:
             preferredOutcome === "threads"
               ? {
-                  increment: 1
+                  increment: selectedItems.length
                 }
               : undefined,
           wordpressPickCount:
             preferredOutcome === "wordpress"
               ? {
-                  increment: 1
+                  increment: selectedItems.length
                 }
               : undefined,
           lastError: null
@@ -113,7 +155,8 @@ export async function runDailySourceImports() {
         id: watch.id,
         ok: true,
         imported: true,
-        drafts: result.generatedDrafts.length
+        picked: selectedItems.length,
+        drafts: generatedDraftCount
       });
     } catch (error) {
       await prisma.sourceWatch.update({

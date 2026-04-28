@@ -18,7 +18,7 @@ export default async function SourcesPage() {
       <PageIntro
         eyebrow="Sources"
         title="來源觀察清單"
-        description="把你固定會看的 RSS、部落格或文章頁收進來。先刷新、再挑內容改寫，不需要每天重貼同一批來源。"
+        description="把你固定會看的 RSS、部落格或文章頁收進來。現在 RSS 來源會抓最近多篇內容，幫你每天挑出 2-3 篇值得寫的候選稿進總表。"
       />
       <SourceWatchlist
         initialItems={items.map((item) => ({

@@ -47,7 +47,7 @@ export function SourceWatchlist({ initialItems }: { initialItems: SourceItem[] }
           <p className="text-[11px] uppercase tracking-[0.3em] text-[var(--muted)]">Source Watchlist</p>
           <h2 className="mt-2 text-3xl font-semibold">固定追蹤來源</h2>
           <p className="mt-3 max-w-2xl text-sm leading-7 text-[var(--muted)]">
-            先收你常看的 RSS、部落格或公開文章頁。每次手動刷新後，可以直接把最新內容送進 Content Engine，變成 Threads + WordPress 草稿。
+            先收你常看的 RSS、部落格或公開文章頁。RSS 來源現在會抓最近多篇內容，優先挑出更值得評論的理財新聞，直接變成 Threads 候選稿或 WordPress 草稿。
           </p>
         </div>
 
@@ -131,7 +131,7 @@ export function SourceWatchlist({ initialItems }: { initialItems: SourceItem[] }
         </form>
         <label className="mt-4 flex items-center gap-3 text-sm text-[var(--muted)]">
           <input type="checkbox" checked={autoImportEnabled} onChange={(event) => setAutoImportEnabled(event.target.checked)} />
-          每天自動匯入最新內容到站內草稿池
+          每天自動抓最近幾篇，挑值得寫的內容進站內草稿池
         </label>
         {message ? <p className="mt-4 text-sm text-[var(--muted)]">{message}</p> : null}
       </section>
@@ -272,8 +272,8 @@ export function SourceWatchlist({ initialItems }: { initialItems: SourceItem[] }
                         );
                         setMessage(
                           result.duplicated
-                            ? "這篇最新內容之前已經改寫過，這次不重複建草稿。"
-                            : "已從來源建立新草稿，去 Queue 或 Compose 就能接著修。"
+                            ? "最近幾篇都處理過了，這次不重複建草稿。"
+                            : "已從來源挑出值得寫的內容，去總表就能直接看候選稿。"
                         );
                       })
                     }

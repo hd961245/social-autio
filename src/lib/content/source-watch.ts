@@ -1,11 +1,13 @@
 import { extractContentFromUrl } from "@/lib/content/url-ingest";
 
-type SourceWatchPreview = {
+export type SourceWatchPreview = {
   title: string;
   url: string;
   excerpt: string;
   sourceType: "rss" | "url";
   fingerprint: string;
+  publishedAt?: string;
+  score?: number;
 };
 
 function buildFingerprint(title: string, url: string, excerpt: string) {
@@ -32,7 +34,64 @@ function readTag(block: string, tag: string) {
   return match ? stripMarkup(match[1]) : "";
 }
 
-export async function refreshSourceWatch(sourceType: string, sourceUrl: string): Promise<SourceWatchPreview> {
+function readRawTag(block: string, tag: string) {
+  const match = block.match(new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`, "i"));
+  return match ? decodeXml(match[1]).trim() : "";
+}
+
+function scoreFinanceCandidate(item: { title: string; excerpt: string }) {
+  const text = `${item.title} ${item.excerpt}`.toLowerCase();
+  const keywords = [
+    "etf",
+    "fed",
+    "fomc",
+    "inflation",
+    "interest rate",
+    "rates",
+    "yield",
+    "stock",
+    "stocks",
+    "nasdaq",
+    "s&p",
+    "earnings",
+    "crypto",
+    "bitcoin",
+    "taiwan",
+    "台股",
+    "美股",
+    "理財",
+    "投資",
+    "通膨",
+    "利率",
+    "債券",
+    "基金",
+    "券商",
+    "配息",
+    "市場",
+    "財報"
+  ];
+
+  const keywordHits = keywords.reduce((count, keyword) => count + (text.includes(keyword) ? 1 : 0), 0);
+  const titleBonus = item.title.length >= 16 && item.title.length <= 56 ? 2 : 0;
+  return keywordHits * 8 + titleBonus;
+}
+
+function sortCandidates(items: SourceWatchPreview[]) {
+  return [...items].sort((left, right) => {
+    const rightScore = right.score ?? 0;
+    const leftScore = left.score ?? 0;
+
+    if (rightScore !== leftScore) {
+      return rightScore - leftScore;
+    }
+
+    const rightTime = right.publishedAt ? new Date(right.publishedAt).getTime() : 0;
+    const leftTime = left.publishedAt ? new Date(left.publishedAt).getTime() : 0;
+    return rightTime - leftTime;
+  });
+}
+
+export async function refreshSourceCandidates(sourceType: string, sourceUrl: string, limit = 5): Promise<SourceWatchPreview[]> {
   if (sourceType === "rss") {
     const response = await fetch(sourceUrl, {
       headers: {
@@ -45,35 +104,58 @@ export async function refreshSourceWatch(sourceType: string, sourceUrl: string):
     }
 
     const xml = await response.text();
-    const item = xml.match(/<item\b[\s\S]*?<\/item>/i)?.[0] || xml.match(/<entry\b[\s\S]*?<\/entry>/i)?.[0];
+    const itemBlocks = [...xml.matchAll(/<item\b[\s\S]*?<\/item>/gi)].map((match) => match[0]);
+    const entryBlocks = itemBlocks.length > 0 ? itemBlocks : [...xml.matchAll(/<entry\b[\s\S]*?<\/entry>/gi)].map((match) => match[0]);
 
-    if (!item) {
+    if (entryBlocks.length === 0) {
       throw new Error("這個 RSS / Atom 來源目前沒有抓到文章項目。");
     }
 
-    const title = readTag(item, "title") || "未命名來源";
-    const excerpt = readTag(item, "description") || readTag(item, "summary") || readTag(item, "content") || "";
-    const link =
-      item.match(/<link>([\s\S]*?)<\/link>/i)?.[1]?.trim() ||
-      item.match(/<link[^>]+href=["']([^"']+)["']/i)?.[1]?.trim() ||
-      sourceUrl;
+    const candidates = entryBlocks
+      .map((item) => {
+        const title = readTag(item, "title") || "未命名來源";
+        const excerpt = readTag(item, "description") || readTag(item, "summary") || readTag(item, "content") || "";
+        const link =
+          item.match(/<link>([\s\S]*?)<\/link>/i)?.[1]?.trim() ||
+          item.match(/<link[^>]+href=["']([^"']+)["']/i)?.[1]?.trim() ||
+          sourceUrl;
+        const publishedAt = readRawTag(item, "pubDate") || readRawTag(item, "published") || readRawTag(item, "updated");
 
-    return {
-      title,
-      url: decodeXml(link),
-      excerpt: excerpt.slice(0, 300),
-      sourceType: "rss",
-      fingerprint: buildFingerprint(title, decodeXml(link), excerpt)
-    };
+        return {
+          title,
+          url: decodeXml(link),
+          excerpt: excerpt.slice(0, 300),
+          sourceType: "rss" as const,
+          fingerprint: buildFingerprint(title, decodeXml(link), excerpt),
+          publishedAt: publishedAt || undefined,
+          score: scoreFinanceCandidate({ title, excerpt })
+        };
+      })
+      .filter((item) => item.url);
+
+    return sortCandidates(candidates).slice(0, limit);
   }
 
   const extracted = await extractContentFromUrl(sourceUrl);
 
-  return {
-    title: extracted.title,
-    url: extracted.resolvedUrl,
-    excerpt: extracted.excerpt,
-    sourceType: "url",
-    fingerprint: buildFingerprint(extracted.title, extracted.resolvedUrl, extracted.excerpt)
-  };
+  return [
+    {
+      title: extracted.title,
+      url: extracted.resolvedUrl,
+      excerpt: extracted.excerpt,
+      sourceType: "url",
+      fingerprint: buildFingerprint(extracted.title, extracted.resolvedUrl, extracted.excerpt),
+      score: scoreFinanceCandidate({ title: extracted.title, excerpt: extracted.excerpt })
+    }
+  ];
+}
+
+export async function refreshSourceWatch(sourceType: string, sourceUrl: string): Promise<SourceWatchPreview> {
+  const [first] = await refreshSourceCandidates(sourceType, sourceUrl, 1);
+
+  if (!first) {
+    throw new Error("來源目前沒有可用內容。");
+  }
+
+  return first;
 }
