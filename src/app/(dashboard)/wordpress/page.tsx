@@ -2,7 +2,9 @@ import { PageIntro } from "@/components/dashboard/page-intro";
 import { AffiliateSlotLibraryCard } from "@/components/dashboard/affiliate-slot-library-card";
 import { WordPressArchiveRewriteCard } from "@/components/dashboard/wordpress-archive-rewrite-card";
 import { WordPressConnectForm } from "@/components/dashboard/wordpress-connect-form";
+import { WordPressExpansionInbox } from "@/components/dashboard/wordpress-expansion-inbox";
 import { WordPressStyleProfileCard } from "@/components/dashboard/wordpress-style-profile-card";
+import { getWordPressExpansionCandidates } from "@/lib/dashboard-data";
 import { getWordPressDraftStage } from "@/lib/content-inventory";
 import { fetchWordPressPostById, fetchWordPressPosts } from "@/lib/platforms/wordpress/client";
 import { prisma } from "@/lib/prisma";
@@ -36,6 +38,7 @@ export default async function WordPressPage() {
     publishedAt: string;
     link: string;
   }> = [];
+  const expansionCandidates = await getWordPressExpansionCandidates();
 
   try {
     [sites, settings, localDrafts] = await Promise.all([
@@ -149,15 +152,15 @@ export default async function WordPressPage() {
           { label: "Connected Sites", value: String(sites.length), detail: sites.length > 0 ? "目前可接收草稿的站台數量" : "還沒有連接任何站台" },
           { label: "Draft Inbox", value: String(localDrafts.length), detail: localDrafts.length > 0 ? "最近可繼續編修的 WordPress 草稿" : "目前沒有本地草稿" },
           {
+            label: "Expansion Inbox",
+            value: String(expansionCandidates.length),
+            detail: expansionCandidates.length > 0 ? "高表現 Threads 正等著擴寫成長文" : "目前沒有新的 Threads 擴寫待辦"
+          },
+          {
             label: "Style Memory",
             value: settings?.writingStyleProfile ? "Ready" : "Empty",
             detail: settings?.writingStyleProfile ? "生成草稿時會帶入你的舊文寫法" : "建議先分析舊文，讓生成結果更像你"
           },
-          {
-            label: "Affiliate Library",
-            value: settings?.affiliateBlockPrimary || settings?.affiliateCta ? "Ready" : "Empty",
-            detail: settings?.affiliateBlockPrimary || settings?.affiliateCta ? "CTA / Disclosure / 推薦模組已可復用" : "先存好常用推薦模組，後面會順很多"
-          }
         ].map((card) => (
           <article key={card.label} className="metric-card">
             <p className="text-xs uppercase tracking-[0.24em] text-[var(--muted)]">{card.label}</p>
@@ -275,6 +278,8 @@ export default async function WordPressPage() {
           ) : null}
         </div>
       </section>
+
+      <WordPressExpansionInbox candidates={expansionCandidates} />
 
       <section className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
         <WordPressConnectForm />

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { FINANCE_STARTER_PACK } from "@/lib/content/source-starter-packs";
 
 export type SourceItem = {
   id: string;
@@ -27,9 +28,10 @@ export function SourceWatchlist({ initialItems }: { initialItems: SourceItem[] }
   const [preferredOutcome, setPreferredOutcome] = useState<"threads" | "wordpress">("threads");
   const [message, setMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
-  const financeStarterCount = items.filter((item) => item.sourceUrl.includes("api.investing.com")).length;
+  const starterUrls = new Set(FINANCE_STARTER_PACK.map((item) => item.sourceUrl));
+  const financeStarterCount = items.filter((item) => starterUrls.has(item.sourceUrl)).length;
   const financeStarterAutoCount = items.filter(
-    (item) => item.sourceUrl.includes("api.investing.com") && item.autoImportEnabled
+    (item) => starterUrls.has(item.sourceUrl) && item.autoImportEnabled
   ).length;
 
   function getStatusLabel(status: SourceItem["lastHandledStatus"]) {

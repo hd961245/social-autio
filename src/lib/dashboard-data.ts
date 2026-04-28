@@ -184,6 +184,20 @@ export type ThreadPostDeepDive = {
   }>;
 };
 
+export type WordPressExpansionCandidate = {
+  id: string;
+  account: string;
+  text: string;
+  publishedAt: string;
+  platformUrl: string | null;
+  engagementRate: number;
+  conversationRate: number;
+  amplificationRate: number;
+  momentumLabel: string;
+  reason: string;
+  recommendation: string;
+};
+
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
 }
@@ -1063,6 +1077,126 @@ export async function getThreadPostDeepDive(postId: string): Promise<ThreadPostD
     };
   } catch {
     return null;
+  }
+}
+
+export async function getWordPressExpansionCandidates(): Promise<WordPressExpansionCandidate[]> {
+  try {
+    const posts = await prisma.post.findMany({
+      where: {
+        status: "published",
+        account: {
+          platform: "threads"
+        },
+        platformPostId: {
+          not: null
+        }
+      },
+      include: {
+        account: true,
+        metrics: {
+          orderBy: {
+            capturedAt: "asc"
+          }
+        }
+      },
+      orderBy: {
+        publishedAt: "desc"
+      },
+      take: 12
+    });
+
+    const platformPostIds = posts.map((post) => post.platformPostId).filter(Boolean) as string[];
+    const existingDrafts = platformPostIds.length
+      ? await prisma.post.findMany({
+          where: {
+            account: {
+              platform: "wordpress"
+            },
+            replyToPostId: {
+              in: platformPostIds
+            }
+          },
+          select: {
+            replyToPostId: true
+          }
+        })
+      : [];
+    const existingSet = new Set(existingDrafts.map((post) => post.replyToPostId).filter(Boolean));
+
+    return posts
+      .map((post) => {
+        const latest = post.metrics.at(-1);
+        const latestMetrics = {
+          views: latest?.views ?? 0,
+          likes: latest?.likes ?? 0,
+          replies: latest?.replies ?? 0,
+          reposts: latest?.reposts ?? 0,
+          quotes: latest?.quotes ?? 0,
+          shares: latest?.shares ?? 0
+        };
+        const health = summarizePostHealth({
+          text: post.textContent ?? post.title ?? "(無文字內容)",
+          latest: latestMetrics,
+          history: post.metrics.map((metric) => ({
+            views: metric.views,
+            likes: metric.likes,
+            replies: metric.replies,
+            reposts: metric.reposts,
+            quotes: metric.quotes,
+            shares: metric.shares
+          }))
+        });
+        const eligible =
+          health.engagementRate >= 0.06 ||
+          health.conversationRate >= 0.018 ||
+          health.amplificationRate >= 0.012 ||
+          health.momentum === "spiking" ||
+          latestMetrics.replies >= 8;
+
+        return {
+          id: post.id,
+          account: `@${post.account.platformUsername}`,
+          text: post.textContent ?? post.title ?? "(無文字內容)",
+          publishedAt: formatDate(post.publishedAt ?? post.createdAt),
+          platformUrl: post.platformUrl,
+          platformPostId: post.platformPostId,
+          engagementRate: health.engagementRate,
+          conversationRate: health.conversationRate,
+          amplificationRate: health.amplificationRate,
+          momentumLabel: health.momentumLabel,
+          reason: eligible
+            ? `互動率 ${(health.engagementRate * 100).toFixed(1)}%、對話率 ${(health.conversationRate * 100).toFixed(1)}%，已經有足夠訊號支撐成長文。`
+            : `這篇雖然有曝光，但目前更適合先當短內容觀察樣本。`,
+          recommendation:
+            health.momentum === "spiking"
+              ? "趁熱把這篇的核心觀點補成背景、案例和反例，先起一版 WordPress 草稿。"
+              : "把這篇的觀點拆成脈絡、數據與可操作建議，做成比較完整的長文版本。",
+          eligible
+        };
+      })
+      .filter((post) => post.eligible && post.platformPostId && !existingSet.has(post.platformPostId))
+      .sort((left, right) => {
+        const leftScore = left.engagementRate + left.conversationRate * 1.4 + left.amplificationRate * 1.2;
+        const rightScore = right.engagementRate + right.conversationRate * 1.4 + right.amplificationRate * 1.2;
+        return rightScore - leftScore;
+      })
+      .slice(0, 5)
+      .map((post) => ({
+        id: post.id,
+        account: post.account,
+        text: post.text,
+        publishedAt: post.publishedAt,
+        platformUrl: post.platformUrl,
+        engagementRate: post.engagementRate,
+        conversationRate: post.conversationRate,
+        amplificationRate: post.amplificationRate,
+        momentumLabel: post.momentumLabel,
+        reason: post.reason,
+        recommendation: post.recommendation
+      }));
+  } catch {
+    return [];
   }
 }
 
