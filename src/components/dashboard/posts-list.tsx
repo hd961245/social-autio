@@ -33,6 +33,11 @@ function truncate(value: string, length = 82) {
   return normalized.length > length ? `${normalized.slice(0, length - 1)}…` : normalized;
 }
 
+function truncateSoft(value: string, length = 140) {
+  const normalized = value.replace(/\s+/g, " ").trim();
+  return normalized.length > length ? `${normalized.slice(0, length - 1)}…` : normalized;
+}
+
 function getTopicTagLabel(topicTag?: string | null) {
   if (topicTag === "news") return "快訊";
   if (topicTag === "opinion") return "觀點";
@@ -380,6 +385,11 @@ export function PostsList({ posts }: { posts: PostSummary[] }) {
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium">{truncate(post.title ?? post.text, 92)}</p>
                   <p className="mt-1 line-clamp-2 text-xs leading-6 text-[var(--muted)]">{truncate(post.text, 150)}</p>
+                  {post.candidateRationale ? (
+                    <p className="mt-2 line-clamp-2 text-xs leading-6 text-[var(--accent)]/90">
+                      {truncateSoft(post.candidateRationale, 170)}
+                    </p>
+                  ) : null}
                   <div className="mt-2 flex flex-wrap items-center gap-2">
                     {post.personaLabel ? (
                       <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--muted)]">{post.personaLabel}</p>

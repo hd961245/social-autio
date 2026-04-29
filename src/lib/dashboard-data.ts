@@ -20,6 +20,7 @@ export type PostSummary = {
   platform: string;
   personaLabel?: string;
   topicTag?: string | null;
+  candidateRationale?: string | null;
   isFreshToday?: boolean;
   reviewScore?: number;
   status: string;
@@ -483,6 +484,15 @@ function scoreDraftForReview(input: {
 
 function getTokenStatus(tokenExpiresAt: Date) {
   return tokenExpiresAt.getTime() <= Date.now() + 7 * 24 * 60 * 60 * 1000 ? "expiring" : "healthy";
+}
+
+function extractCandidateRationale(notes?: string | null) {
+  if (!notes) {
+    return null;
+  }
+
+  const match = notes.match(/\|\s*Candidate:\s*(.+)$/);
+  return match?.[1]?.trim() || null;
 }
 
 export async function getAccountSummaries(): Promise<AccountSummary[]> {
@@ -982,6 +992,38 @@ export async function getPostSummaries(): Promise<PostSummary[]> {
       },
       take: 20
     });
+    const ingestions = await prisma.ingestionRecord.findMany({
+      where: {
+        generatedPostIds: {
+          not: null
+        }
+      },
+      orderBy: {
+        createdAt: "desc"
+      },
+      take: 80,
+      select: {
+        generatedPostIds: true,
+        notes: true
+      }
+    });
+    const rationaleByPostId = new Map<string, string>();
+
+    for (const ingestion of ingestions) {
+      const rationale = extractCandidateRationale(ingestion.notes);
+      if (!rationale || !ingestion.generatedPostIds) {
+        continue;
+      }
+
+      try {
+        const ids = JSON.parse(ingestion.generatedPostIds) as string[];
+        for (const id of ids) {
+          if (!rationaleByPostId.has(id)) {
+            rationaleByPostId.set(id, rationale);
+          }
+        }
+      } catch {}
+    }
 
     return posts.map((post) => ({
       id: post.id,
@@ -990,6 +1032,7 @@ export async function getPostSummaries(): Promise<PostSummary[]> {
       platform: post.account.platform,
       personaLabel: post.account.personaLabel ?? undefined,
       topicTag: post.topicTag,
+      candidateRationale: rationaleByPostId.get(post.id) ?? null,
       isFreshToday: dayFormatter.format(post.createdAt) === todayKey,
       reviewScore:
         post.account.platform === "threads" &&
