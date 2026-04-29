@@ -5,7 +5,7 @@ import { useMemo, useState, useTransition } from "react";
 type InboxItem = {
   id: string;
   label: string;
-  sourceType: "rss" | "url";
+  sourceType: "rss" | "url" | "site";
   lastFetchedAt: string;
   title: string;
   url: string;

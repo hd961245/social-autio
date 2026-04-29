@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 
 const sourceSchema = z.object({
   label: z.string().trim().min(1).max(120),
-  sourceType: z.enum(["rss", "url"]),
+  sourceType: z.enum(["rss", "url", "site"]),
   sourceUrl: z.string().url(),
   autoImportEnabled: z.boolean().optional().default(false),
   preferredOutcome: z.enum(["threads", "wordpress"]).optional().default("threads")

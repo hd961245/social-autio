@@ -6,7 +6,7 @@ import { FINANCE_STARTER_PACK, FINANCE_STARTER_PACKS } from "@/lib/content/sourc
 export type SourceItem = {
   id: string;
   label: string;
-  sourceType: "rss" | "url";
+  sourceType: "rss" | "url" | "site";
   sourceUrl: string;
   isActive: boolean;
   autoImportEnabled: boolean;
@@ -22,7 +22,7 @@ export type SourceItem = {
 export function SourceWatchlist({ initialItems }: { initialItems: SourceItem[] }) {
   const [items, setItems] = useState(initialItems);
   const [label, setLabel] = useState("");
-  const [sourceType, setSourceType] = useState<"rss" | "url">("rss");
+  const [sourceType, setSourceType] = useState<"rss" | "url" | "site">("rss");
   const [sourceUrl, setSourceUrl] = useState("");
   const [autoImportEnabled, setAutoImportEnabled] = useState(true);
   const [preferredOutcome, setPreferredOutcome] = useState<"threads" | "wordpress">("threads");
@@ -208,7 +208,7 @@ export function SourceWatchlist({ initialItems }: { initialItems: SourceItem[] }
           <p className="text-[11px] uppercase tracking-[0.3em] text-[var(--muted)]">Source Watchlist</p>
           <h2 className="mt-2 text-3xl font-semibold">固定追蹤來源</h2>
           <p className="mt-3 max-w-2xl text-sm leading-7 text-[var(--muted)]">
-            先收你常看的 RSS、部落格或公開文章頁。RSS 來源現在會抓最近多篇內容，優先挑出更值得評論的理財新聞，直接變成 Threads 候選稿或 WordPress 草稿。
+            先收你常看的 RSS、部落格或公開文章頁。現在也支援網站首頁 / 無 RSS 部落格，會先找 feed，再試 sitemap 和文章連結，最後把正文正規化後交給 AI 改寫。
           </p>
         </div>
 
@@ -266,14 +266,21 @@ export function SourceWatchlist({ initialItems }: { initialItems: SourceItem[] }
           <select
             className="rounded-2xl border border-[var(--border)] bg-white/85 px-4 py-3"
             value={sourceType}
-            onChange={(event) => setSourceType(event.target.value as "rss" | "url")}
+            onChange={(event) => setSourceType(event.target.value as "rss" | "url" | "site")}
           >
             <option value="rss">RSS</option>
             <option value="url">文章頁 / Blog</option>
+            <option value="site">網站 / 無 RSS 部落格</option>
           </select>
           <input
             className="rounded-2xl border border-[var(--border)] bg-white/85 px-4 py-3"
-            placeholder={sourceType === "rss" ? "https://site.com/feed.xml" : "https://site.com/article"}
+            placeholder={
+              sourceType === "rss"
+                ? "https://site.com/feed.xml"
+                : sourceType === "site"
+                  ? "https://site.com 或 https://blog.site.com"
+                  : "https://site.com/article"
+            }
             value={sourceUrl}
             onChange={(event) => setSourceUrl(event.target.value)}
             required
@@ -469,6 +476,33 @@ export function SourceWatchlist({ initialItems }: { initialItems: SourceItem[] }
                     }
                   >
                     先略過
+                  </button>
+                  <button
+                    disabled={isPending}
+                    className="rounded-full border border-rose-200 bg-white px-4 py-2 text-sm text-rose-700"
+                    onClick={() => {
+                      if (!window.confirm(`要刪除來源「${item.label}」嗎？`)) {
+                        return;
+                      }
+
+                      startTransition(async () => {
+                        setMessage(null);
+                        const response = await fetch(`/api/sources/${item.id}`, {
+                          method: "DELETE"
+                        });
+                        const result = await response.json();
+
+                        if (!response.ok) {
+                          setMessage(result.message ?? "刪除來源失敗");
+                          return;
+                        }
+
+                        setItems((current) => current.filter((source) => source.id !== item.id));
+                        setMessage(result.message ?? "已刪除來源。");
+                      });
+                    }}
+                  >
+                    刪除來源
                   </button>
                 </div>
               </div>

@@ -1,6 +1,7 @@
 import { ContentEngineForm } from "@/components/dashboard/content-engine-form";
 import { PageIntro } from "@/components/dashboard/page-intro";
 import { PostsList } from "@/components/dashboard/posts-list";
+import { QueueActions } from "@/components/dashboard/queue-actions";
 import { SourceInbox } from "@/components/dashboard/source-inbox";
 import { SourceWatchlist, type SourceItem as SourceWatchItem } from "@/components/dashboard/source-watchlist";
 import { getAnalyticsOverview, getPostSummaries } from "@/lib/dashboard-data";
@@ -10,6 +11,7 @@ import { prisma } from "@/lib/prisma";
 export const dynamic = "force-dynamic";
 
 const DESK_TABS = [
+  { id: "overview", label: "Overview", description: "先看總覽、今日候選與工作焦點" },
   { id: "inbox", label: "Inbox", description: "先看今天值得處理的來源內容" },
   { id: "sources", label: "Sources", description: "管理固定追蹤來源與刷新名單" },
   { id: "engine", label: "Engine", description: "把素材拆成 Threads + WordPress 草稿" },
@@ -57,7 +59,7 @@ export default async function DeskPage({
   searchParams: Promise<{ tab?: string }>;
 }) {
   const params = await searchParams;
-  const activeTab: DeskTab = DESK_TABS.some((tab) => tab.id === params.tab) ? (params.tab as DeskTab) : "inbox";
+  const activeTab: DeskTab = DESK_TABS.some((tab) => tab.id === params.tab) ? (params.tab as DeskTab) : "overview";
 
   let sourceItems: Awaited<ReturnType<typeof prisma.sourceWatch.findMany>> = [];
   let settings: Awaited<ReturnType<typeof prisma.appSettings.findFirst>> = null;
@@ -128,7 +130,7 @@ export default async function DeskPage({
       return {
         id: item.id,
         label: item.label,
-        sourceType: item.sourceType as "rss" | "url",
+        sourceType: item.sourceType as "rss" | "url" | "site",
         lastFetchedAt: item.lastFetchedAt?.toLocaleString("zh-TW", { hour12: false }) ?? "尚未刷新",
         title: item.lastItemTitle ?? "未命名來源內容",
         url: item.lastItemUrl ?? item.sourceUrl,
@@ -147,7 +149,7 @@ export default async function DeskPage({
   const trackedSources: SourceWatchItem[] = sourceItems.map((item) => ({
     id: item.id,
     label: item.label,
-    sourceType: item.sourceType as "rss" | "url",
+    sourceType: item.sourceType as "rss" | "url" | "site",
     sourceUrl: item.sourceUrl,
     isActive: item.isActive,
     autoImportEnabled: item.autoImportEnabled,
@@ -392,6 +394,19 @@ export default async function DeskPage({
         </div>
       </section>
 
+      {activeTab === "overview" ? (
+        <section className="glass-panel rounded-[2rem] border border-[var(--border)] p-6">
+          <div className="mb-6 flex items-center justify-between gap-4">
+            <div>
+              <p className="text-sm text-[var(--muted)]">先從總覽確認今天最值得處理的文章，再決定要不要發、排程，或沉到長文。</p>
+              <p className="mt-1 text-xs text-[var(--muted)]">這裡預設就是你每天打開後第一眼該看的確認台。</p>
+            </div>
+            <QueueActions />
+          </div>
+          <PostsList posts={posts} />
+        </section>
+      ) : null}
+
       {activeTab === "inbox" ? <SourceInbox initialItems={inboxItems} /> : null}
 
       {activeTab === "sources" ? <SourceWatchlist initialItems={trackedSources} /> : null}
@@ -436,16 +451,7 @@ export default async function DeskPage({
               <p className="text-sm text-[var(--muted)]">排程由 Inngest 每分鐘觸發一次 scheduler function。</p>
               <p className="mt-1 text-xs text-[var(--muted)]">WordPress 草稿不會自動發布；Threads 排程若沒接上 `/api/inngest` 才會停在 `scheduled`。</p>
             </div>
-            <div className="flex gap-3">
-              <form action="/api/cron/scheduler" method="post">
-                <button className="rounded-full border border-[var(--border-strong)] bg-white/70 px-4 py-2 text-sm">
-                  立即執行排程
-                </button>
-              </form>
-              <a href="/compose" className="rounded-full border border-[var(--border-strong)] bg-white/70 px-4 py-2 text-sm">
-                建立新貼文
-              </a>
-            </div>
+            <QueueActions />
           </div>
           <PostsList posts={posts} />
         </section>

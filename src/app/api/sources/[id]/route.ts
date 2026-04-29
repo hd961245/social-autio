@@ -37,3 +37,22 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     );
   }
 }
+
+export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const { id } = await params;
+    await prisma.sourceWatch.delete({
+      where: { id }
+    });
+
+    return NextResponse.json({
+      ok: true,
+      message: "已刪除這個來源。"
+    });
+  } catch (error) {
+    return NextResponse.json(
+      { ok: false, message: error instanceof Error ? error.message : "Delete source failed" },
+      { status: 400 }
+    );
+  }
+}
