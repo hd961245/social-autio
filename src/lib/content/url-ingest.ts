@@ -1,3 +1,6 @@
+import { Readability, isProbablyReaderable } from "@mozilla/readability";
+import { JSDOM } from "jsdom";
+
 const DEFAULT_USER_AGENT =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36";
 
@@ -20,14 +23,24 @@ function decodeHtml(value: string) {
     .replace(/&nbsp;/g, " ");
 }
 
-function stripHtml(value: string) {
+function normalizeText(value: string) {
   return decodeHtml(value)
-    .replace(/<script[\s\S]*?<\/script>/gi, " ")
-    .replace(/<style[\s\S]*?<\/style>/gi, " ")
-    .replace(/<!--[\s\S]*?-->/g, " ")
-    .replace(/<[^>]+>/g, " ")
-    .replace(/\s+/g, " ")
+    .replace(/\r/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n[ \t]+/g, "\n")
+    .replace(/[ \t]{2,}/g, " ")
     .trim();
+}
+
+function stripHtml(value: string) {
+  return normalizeText(
+    decodeHtml(value)
+      .replace(/<script[\s\S]*?<\/script>/gi, " ")
+      .replace(/<style[\s\S]*?<\/style>/gi, " ")
+      .replace(/<!--[\s\S]*?-->/g, " ")
+      .replace(/<[^>]+>/g, " ")
+  );
 }
 
 function extractMeta(html: string, property: string) {
@@ -58,11 +71,33 @@ function inferSourceLabel(url: URL): UrlExtractionResult["sourceLabel"] {
     return "wordpress";
   }
 
-  return "blog";
+  return host ? "blog" : "generic";
 }
 
 function trimExcerpt(value: string, maxLength: number) {
   return value.slice(0, maxLength).trim();
+}
+
+function extractReadableArticle(html: string, resolvedUrl: string) {
+  try {
+    const dom = new JSDOM(html, {
+      url: resolvedUrl
+    });
+    const document = dom.window.document;
+
+    if (!isProbablyReaderable(document)) {
+      return null;
+    }
+
+    const reader = new Readability(document, {
+      keepClasses: false,
+      maxElemsToParse: 0
+    });
+
+    return reader.parse();
+  } catch {
+    return null;
+  }
 }
 
 export async function extractContentFromUrl(inputUrl: string): Promise<UrlExtractionResult> {
@@ -85,15 +120,19 @@ export async function extractContentFromUrl(inputUrl: string): Promise<UrlExtrac
   const ogTitle = extractMeta(html, "og:title");
   const ogDescription = extractMeta(html, "og:description");
   const description = extractMeta(html, "description");
-  const articleBody = stripHtml(html);
-  const text = [ogTitle, ogDescription, description, articleBody]
+  const readable = extractReadableArticle(html, resolvedUrl);
+  const readableTitle = normalizeText(readable?.title ?? "");
+  const readableText = normalizeText(readable?.textContent ?? "");
+  const readableExcerpt = normalizeText(readable?.excerpt ?? "");
+  const fallbackBody = stripHtml(html);
+  const text = [readableText, ogDescription, description, fallbackBody]
     .filter(Boolean)
     .join("\n\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 
-  const title = ogTitle || extractTitle(html) || resolved.hostname;
-  const excerpt = trimExcerpt(ogDescription || description || articleBody, 280);
+  const title = readableTitle || ogTitle || extractTitle(html) || resolved.hostname;
+  const excerpt = trimExcerpt(readableExcerpt || ogDescription || description || fallbackBody, 280);
 
   if (!text) {
     throw new Error("這個網址沒有抓到可用內容，可能需要登入、JavaScript 渲染或平台限制。");

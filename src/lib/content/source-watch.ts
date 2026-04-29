@@ -1,3 +1,4 @@
+import Parser from "rss-parser";
 import { extractContentFromUrl } from "@/lib/content/url-ingest";
 
 export type SourceWatchPreview = {
@@ -9,6 +10,8 @@ export type SourceWatchPreview = {
   publishedAt?: string;
   score?: number;
 };
+
+const rssParser = new Parser();
 
 function buildFingerprint(title: string, url: string, excerpt: string) {
   return Buffer.from(`${title}::${url}::${excerpt.slice(0, 160)}`).toString("base64").slice(0, 120);
@@ -91,49 +94,81 @@ function sortCandidates(items: SourceWatchPreview[]) {
   });
 }
 
+function parseFallbackXmlCandidates(xml: string, sourceUrl: string) {
+  const itemBlocks = [...xml.matchAll(/<item\b[\s\S]*?<\/item>/gi)].map((match) => match[0]);
+  const entryBlocks = itemBlocks.length > 0 ? itemBlocks : [...xml.matchAll(/<entry\b[\s\S]*?<\/entry>/gi)].map((match) => match[0]);
+
+  if (entryBlocks.length === 0) {
+    throw new Error("這個 RSS / Atom 來源目前沒有抓到文章項目。");
+  }
+
+  return entryBlocks
+    .map((item) => {
+      const title = readTag(item, "title") || "未命名來源";
+      const excerpt = readTag(item, "description") || readTag(item, "summary") || readTag(item, "content") || "";
+      const link =
+        item.match(/<link>([\s\S]*?)<\/link>/i)?.[1]?.trim() ||
+        item.match(/<link[^>]+href=["']([^"']+)["']/i)?.[1]?.trim() ||
+        sourceUrl;
+      const publishedAt = readRawTag(item, "pubDate") || readRawTag(item, "published") || readRawTag(item, "updated");
+
+      return {
+        title,
+        url: decodeXml(link),
+        excerpt: excerpt.slice(0, 300),
+        sourceType: "rss" as const,
+        fingerprint: buildFingerprint(title, decodeXml(link), excerpt),
+        publishedAt: publishedAt || undefined,
+        score: scoreFinanceCandidate({ title, excerpt })
+      };
+    })
+    .filter((item) => item.url);
+}
+
 export async function refreshSourceCandidates(sourceType: string, sourceUrl: string, limit = 5): Promise<SourceWatchPreview[]> {
   if (sourceType === "rss") {
-    const response = await fetch(sourceUrl, {
-      headers: {
-        Accept: "application/rss+xml, application/xml, text/xml;q=0.9, */*;q=0.8"
+    try {
+      const feed = await rssParser.parseURL(sourceUrl);
+      const candidates = (feed.items ?? [])
+        .map((item) => {
+          const title = stripMarkup(item.title ?? "") || feed.title || "未命名來源";
+          const excerpt = stripMarkup(
+            item.contentSnippet ?? item.content ?? item.summary ?? item["content:encoded"] ?? feed.description ?? ""
+          );
+          const link = item.link?.trim() || item.guid?.trim() || sourceUrl;
+          const publishedAt = item.isoDate || item.pubDate || undefined;
+
+          return {
+            title,
+            url: decodeXml(link),
+            excerpt: excerpt.slice(0, 300),
+            sourceType: "rss" as const,
+            fingerprint: buildFingerprint(title, decodeXml(link), excerpt),
+            publishedAt,
+            score: scoreFinanceCandidate({ title, excerpt })
+          };
+        })
+        .filter((item) => item.url);
+
+      if (candidates.length === 0) {
+        throw new Error("這個 RSS / Atom 來源目前沒有抓到文章項目。");
       }
-    });
 
-    if (!response.ok) {
-      throw new Error(`RSS 抓取失敗（${response.status}）`);
+      return sortCandidates(candidates).slice(0, limit);
+    } catch {
+      const response = await fetch(sourceUrl, {
+        headers: {
+          Accept: "application/rss+xml, application/xml, text/xml;q=0.9, */*;q=0.8"
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`RSS 抓取失敗（${response.status}）`);
+      }
+
+      const xml = await response.text();
+      return sortCandidates(parseFallbackXmlCandidates(xml, sourceUrl)).slice(0, limit);
     }
-
-    const xml = await response.text();
-    const itemBlocks = [...xml.matchAll(/<item\b[\s\S]*?<\/item>/gi)].map((match) => match[0]);
-    const entryBlocks = itemBlocks.length > 0 ? itemBlocks : [...xml.matchAll(/<entry\b[\s\S]*?<\/entry>/gi)].map((match) => match[0]);
-
-    if (entryBlocks.length === 0) {
-      throw new Error("這個 RSS / Atom 來源目前沒有抓到文章項目。");
-    }
-
-    const candidates = entryBlocks
-      .map((item) => {
-        const title = readTag(item, "title") || "未命名來源";
-        const excerpt = readTag(item, "description") || readTag(item, "summary") || readTag(item, "content") || "";
-        const link =
-          item.match(/<link>([\s\S]*?)<\/link>/i)?.[1]?.trim() ||
-          item.match(/<link[^>]+href=["']([^"']+)["']/i)?.[1]?.trim() ||
-          sourceUrl;
-        const publishedAt = readRawTag(item, "pubDate") || readRawTag(item, "published") || readRawTag(item, "updated");
-
-        return {
-          title,
-          url: decodeXml(link),
-          excerpt: excerpt.slice(0, 300),
-          sourceType: "rss" as const,
-          fingerprint: buildFingerprint(title, decodeXml(link), excerpt),
-          publishedAt: publishedAt || undefined,
-          score: scoreFinanceCandidate({ title, excerpt })
-        };
-      })
-      .filter((item) => item.url);
-
-    return sortCandidates(candidates).slice(0, limit);
   }
 
   const extracted = await extractContentFromUrl(sourceUrl);
