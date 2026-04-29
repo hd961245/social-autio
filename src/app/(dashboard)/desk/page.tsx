@@ -68,6 +68,10 @@ export default async function DeskPage({
   > = [];
   const posts = await getPostSummaries();
   const analytics = await getAnalyticsOverview({ window: "30d", accountId: "all" });
+  const todayDraftPicks = posts
+    .filter((post) => post.platform === "threads" && post.status === "draft" && post.isFreshToday)
+    .sort((left, right) => (right.reviewScore ?? 0) - (left.reviewScore ?? 0))
+    .slice(0, 3);
 
   try {
     [sourceItems, settings, ingestions, drafts, threadsAccounts] = await Promise.all([
@@ -293,6 +297,75 @@ export default async function DeskPage({
             <a href="/desk?tab=queue" className="rounded-full border border-white/15 px-4 py-2 text-white">
               去 Queue
             </a>
+          </div>
+        </article>
+      </section>
+
+      <section className="grid gap-4 xl:grid-cols-[1.02fr_0.98fr]">
+        <article className="glass-panel rounded-[2rem] border border-[var(--border)] p-5">
+          <div className="flex items-end justify-between gap-4">
+            <div>
+              <p className="text-[11px] uppercase tracking-[0.3em] text-[var(--muted)]">Today Draft Picks</p>
+              <h2 className="mt-2 text-3xl font-semibold">今天為什麼是這幾篇</h2>
+            </div>
+            <a href="/desk?tab=queue" className="text-sm font-medium text-[var(--accent)]">
+              去 Queue
+            </a>
+          </div>
+          <div className="mt-5 space-y-3">
+            {todayDraftPicks.map((post) => (
+              <article key={post.id} className="rounded-[1.5rem] border border-[var(--border)] bg-white/72 p-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">
+                    {post.personaLabel || post.account}
+                  </p>
+                  {post.reviewScore ? (
+                    <span className="rounded-full bg-[var(--accent-soft)] px-3 py-1 text-xs text-[var(--foreground)]">
+                      精選分數 {post.reviewScore}
+                    </span>
+                  ) : null}
+                </div>
+                <p className="mt-3 text-sm font-medium leading-7">{post.title ?? post.text}</p>
+                {post.candidateRationale ? (
+                  <p className="mt-3 rounded-[1.1rem] border border-[var(--border)] bg-[rgba(255,252,248,0.9)] px-4 py-3 text-sm leading-7 text-[var(--accent-strong)]">
+                    {post.candidateRationale}
+                  </p>
+                ) : (
+                  <p className="mt-3 text-sm leading-7 text-[var(--muted)]">
+                    這篇目前沒有來源理由摘要，但因為分數和新鮮度較高，仍被排在今日候選前段。
+                  </p>
+                )}
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <a href={`/compose?postId=${post.id}`} className="rounded-full border border-[var(--border)] bg-white px-4 py-2 text-sm">
+                    打開草稿
+                  </a>
+                  <a href="/desk?tab=queue" className="rounded-full bg-[var(--card-dark)] px-4 py-2 text-sm text-white">
+                    去 Queue 決定
+                  </a>
+                </div>
+              </article>
+            ))}
+            {todayDraftPicks.length === 0 ? (
+              <article className="rounded-[1.5rem] border border-dashed border-[var(--border)] p-4 text-sm text-[var(--muted)]">
+                今天還沒有新的 Threads 候選稿。可以先去 `Sources` 刷一輪，或手動跑 persona autopilot。
+              </article>
+            ) : null}
+          </div>
+        </article>
+
+        <article className="rounded-[2rem] bg-[var(--card-dark)] p-5 text-white shadow-[0_24px_60px_rgba(15,10,7,0.22)]">
+          <p className="text-[11px] uppercase tracking-[0.3em] text-white/55">Reading Rule</p>
+          <h2 className="mt-2 text-3xl font-semibold">先看理由，再決定要不要發</h2>
+          <div className="mt-5 space-y-3 text-sm text-white/78">
+            <p className="rounded-[1.2rem] border border-white/10 bg-white/5 px-4 py-3">
+              如果來源理由很清楚，代表這篇草稿是承接最近文章或市場訊號，不只是 AI 空寫。
+            </p>
+            <p className="rounded-[1.2rem] border border-white/10 bg-white/5 px-4 py-3">
+              如果你一看就覺得理由不成立，先不要發，回 Sources 或 Inbox 再挑一題。
+            </p>
+            <p className="rounded-[1.2rem] border border-white/10 bg-white/5 px-4 py-3">
+              目標不是每天發最多，而是每天先挑出最有根據的 2 到 3 篇。
+            </p>
           </div>
         </article>
       </section>
