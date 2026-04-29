@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { ingestAndGenerateDrafts } from "@/lib/ai/content-engine";
-import { refreshSourceCandidates, refreshSourceWatch } from "@/lib/content/source-watch";
+import { hydrateSourceCandidate, refreshSourceCandidates, refreshSourceWatch } from "@/lib/content/source-watch";
 import { prisma } from "@/lib/prisma";
 
 export async function POST(_request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -102,15 +102,17 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     }
 
     let generatedDraftCount = 0;
-    for (const item of selectedItems) {
+    const hydratedItems = await Promise.all(selectedItems.map((item) => hydrateSourceCandidate(item)));
+    for (const item of hydratedItems) {
       const result = await ingestAndGenerateDrafts({
         sourceType: "url",
         sourceUrl: item.url,
-        title: item.title,
-        rawText: item.excerpt,
+        title: item.normalizedTitle || item.title,
+        rawText: item.normalizedText || item.normalizedExcerpt || item.excerpt,
         threadsAccountId: preferredOutcome === "threads" ? targetThreadsAccountId : undefined,
         wordpressTemplate: preferredOutcome === "wordpress" ? "case-study" : "opinion",
-        outputMode: preferredOutcome
+        outputMode: preferredOutcome,
+        sourceNote: item.rationale
       });
       generatedDraftCount += result.generatedDrafts.length;
     }
@@ -152,7 +154,12 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
           : `已從來源建立 ${selectedItems.length} 篇 WordPress 草稿。`,
       generatedDraftCount,
       picked: selectedItems.length,
-      preview
+      preview,
+      selectedItems: hydratedItems.map((item) => ({
+        title: item.normalizedTitle || item.title,
+        excerpt: item.normalizedExcerpt || item.excerpt,
+        rationale: item.rationale ?? null
+      }))
     });
   } catch (error) {
     return NextResponse.json(

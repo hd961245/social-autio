@@ -10,6 +10,7 @@ type IngestionInput = {
   sourceUrl?: string;
   title?: string;
   rawText?: string;
+  sourceNote?: string;
   imageUrls?: string[];
   threadsAccountId?: string;
   outputMode?: "threads" | "wordpress" | "both";
@@ -229,7 +230,10 @@ export async function ingestAndGenerateDrafts(input: IngestionInput) {
   }
 
   const safeTitle = input.title?.trim() || extractedTitle || "未命名素材";
-  const safeText = input.rawText?.trim() || extractedText || sourceUrl || "沒有附上文字內容";
+  const safeText =
+    input.sourceType === "url"
+      ? extractedText || input.rawText?.trim() || sourceUrl || "沒有附上文字內容"
+      : input.rawText?.trim() || extractedText || sourceUrl || "沒有附上文字內容";
   const summary = summarizeSource(safeTitle, safeText);
   const candidateFormat = classifyCandidateFormat(safeTitle, summary);
   let aiProvider = "fallback";
@@ -284,7 +288,7 @@ export async function ingestAndGenerateDrafts(input: IngestionInput) {
       rawText: safeText,
       imageUrls: input.imageUrls?.length ? JSON.stringify(input.imageUrls) : null,
       status: "processed",
-      notes: `Persona: ${personaPrompt.slice(0, 120)} | Provider: ${aiProvider}${aiWarning ? ` | AI warning: ${aiWarning}` : ""}${sourceNote ? ` | ${sourceNote}` : ""}`
+      notes: `Persona: ${personaPrompt.slice(0, 120)} | Provider: ${aiProvider}${aiWarning ? ` | AI warning: ${aiWarning}` : ""}${sourceNote ? ` | ${sourceNote}` : ""}${input.sourceNote ? ` | Candidate: ${input.sourceNote}` : ""}`
     }
   });
 

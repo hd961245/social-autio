@@ -197,6 +197,47 @@ async function buildAutopilotFeedbackMemory(input: {
     .join("\n\n");
 }
 
+async function buildRecentSourceMemory(userId: string) {
+  const ingestions = await prisma.ingestionRecord.findMany({
+    where: {
+      userId,
+      sourceUrl: {
+        not: null
+      }
+    },
+    orderBy: {
+      createdAt: "desc"
+    },
+    take: 3
+  });
+
+  if (!ingestions.length) {
+    return "";
+  }
+
+  const lines = ingestions
+    .map((item, index) => {
+      const title = item.title?.trim() || "未命名來源";
+      const snippet = squeezeText(item.rawText || "", 140);
+      if (!snippet) {
+        return "";
+      }
+
+      return `${index + 1}. ${title}\n來源訊號：${snippet}`;
+    })
+    .filter(Boolean);
+
+  if (!lines.length) {
+    return "";
+  }
+
+  return [
+    "最近來源題目庫：",
+    ...lines,
+    "如果今天要自動生一篇，優先承接這些來源裡最值得延伸的角度，不要像跟來源無關的空泛日更。"
+  ].join("\n");
+}
+
 export async function runDailyPersonaAutopilot(now = new Date()) {
   const settings = await prisma.appSettings.findFirst();
 
@@ -357,6 +398,7 @@ async function generateDailyPersonaPost(params: {
   const styleMemory = await buildAccountStyleMemory(account.id, {
     concise: true
   });
+  const sourceMemory = await buildRecentSourceMemory(account.userId);
   const feedbackMemory = await buildAutopilotFeedbackMemory({
     accountId: account.id,
     accountUsername: account.platformUsername,
@@ -386,6 +428,7 @@ async function generateDailyPersonaPost(params: {
     buildPersonaPlaybook(account),
     editorialMemory || settings?.globalPersonaPrompt?.trim() || "用冷靜、有觀點、像內容策略師一樣的語氣，幫我拆解重點。",
     styleMemory,
+    sourceMemory,
     feedbackMemory
   ]
     .filter(Boolean)

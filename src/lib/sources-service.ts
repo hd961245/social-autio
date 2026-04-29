@@ -1,4 +1,4 @@
-import { refreshSourceCandidates, refreshSourceWatch } from "@/lib/content/source-watch";
+import { hydrateSourceCandidate, refreshSourceCandidates, refreshSourceWatch } from "@/lib/content/source-watch";
 import { ingestAndGenerateDrafts } from "@/lib/ai/content-engine";
 import { prisma } from "@/lib/prisma";
 
@@ -109,15 +109,17 @@ export async function runDailySourceImports() {
         continue;
       }
 
+      const hydratedItems = await Promise.all(selectedItems.map((item) => hydrateSourceCandidate(item)));
       let generatedDraftCount = 0;
-      for (const item of selectedItems) {
+      for (const item of hydratedItems) {
         const result = await ingestAndGenerateDrafts({
           sourceType: "url",
           sourceUrl: item.url,
-          title: item.title,
-          rawText: item.excerpt,
+          title: item.normalizedTitle || item.title,
+          rawText: item.normalizedText || item.normalizedExcerpt || item.excerpt,
           wordpressTemplate: preferredOutcome === "wordpress" ? "case-study" : "opinion",
-          outputMode: preferredOutcome
+          outputMode: preferredOutcome,
+          sourceNote: item.rationale
         });
         generatedDraftCount += result.generatedDrafts.length;
       }

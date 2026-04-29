@@ -9,6 +9,10 @@ export type SourceWatchPreview = {
   fingerprint: string;
   publishedAt?: string;
   score?: number;
+  normalizedTitle?: string;
+  normalizedExcerpt?: string;
+  normalizedText?: string;
+  rationale?: string;
 };
 
 const rssParser = new Parser();
@@ -92,6 +96,23 @@ function sortCandidates(items: SourceWatchPreview[]) {
     const leftTime = left.publishedAt ? new Date(left.publishedAt).getTime() : 0;
     return rightTime - leftTime;
   });
+}
+
+function buildCandidateRationale(candidate: {
+  title: string;
+  excerpt: string;
+  normalizedExcerpt?: string;
+  score?: number;
+  sourceType: "rss" | "url";
+}) {
+  const summary = candidate.normalizedExcerpt?.trim() || candidate.excerpt.trim();
+  const reasons = [
+    candidate.score ? `候選分數 ${candidate.score}` : "",
+    candidate.sourceType === "rss" ? "來自 RSS 候選池" : "來自單篇文章頁",
+    summary ? `摘要重點：${summary.slice(0, 110)}${summary.length > 110 ? "…" : ""}` : ""
+  ].filter(Boolean);
+
+  return reasons.join(" · ");
 }
 
 function parseFallbackXmlCandidates(xml: string, sourceUrl: string) {
@@ -180,9 +201,70 @@ export async function refreshSourceCandidates(sourceType: string, sourceUrl: str
       excerpt: extracted.excerpt,
       sourceType: "url",
       fingerprint: buildFingerprint(extracted.title, extracted.resolvedUrl, extracted.excerpt),
-      score: scoreFinanceCandidate({ title: extracted.title, excerpt: extracted.excerpt })
+      score: scoreFinanceCandidate({ title: extracted.title, excerpt: extracted.excerpt }),
+      normalizedTitle: extracted.title,
+      normalizedExcerpt: extracted.excerpt,
+      normalizedText: extracted.text,
+      rationale: buildCandidateRationale({
+        title: extracted.title,
+        excerpt: extracted.excerpt,
+        normalizedExcerpt: extracted.excerpt,
+        score: scoreFinanceCandidate({ title: extracted.title, excerpt: extracted.excerpt }),
+        sourceType: "url"
+      })
     }
   ];
+}
+
+export async function hydrateSourceCandidate(candidate: SourceWatchPreview): Promise<SourceWatchPreview> {
+  if (candidate.normalizedText?.trim()) {
+    return {
+      ...candidate,
+      rationale:
+        candidate.rationale ||
+        buildCandidateRationale({
+          title: candidate.title,
+          excerpt: candidate.excerpt,
+          normalizedExcerpt: candidate.normalizedExcerpt,
+          score: candidate.score,
+          sourceType: candidate.sourceType
+        })
+    };
+  }
+
+  try {
+    const extracted = await extractContentFromUrl(candidate.url);
+    return {
+      ...candidate,
+      title: extracted.title || candidate.title,
+      url: extracted.resolvedUrl || candidate.url,
+      excerpt: extracted.excerpt || candidate.excerpt,
+      fingerprint: buildFingerprint(extracted.title || candidate.title, extracted.resolvedUrl || candidate.url, extracted.excerpt || candidate.excerpt),
+      normalizedTitle: extracted.title,
+      normalizedExcerpt: extracted.excerpt,
+      normalizedText: extracted.text,
+      rationale: buildCandidateRationale({
+        title: extracted.title || candidate.title,
+        excerpt: candidate.excerpt,
+        normalizedExcerpt: extracted.excerpt,
+        score: candidate.score,
+        sourceType: candidate.sourceType
+      })
+    };
+  } catch {
+    return {
+      ...candidate,
+      rationale:
+        candidate.rationale ||
+        buildCandidateRationale({
+          title: candidate.title,
+          excerpt: candidate.excerpt,
+          normalizedExcerpt: candidate.normalizedExcerpt,
+          score: candidate.score,
+          sourceType: candidate.sourceType
+        })
+    };
+  }
 }
 
 export async function refreshSourceWatch(sourceType: string, sourceUrl: string): Promise<SourceWatchPreview> {
