@@ -107,6 +107,23 @@ export function AccountPersonaManager({ accounts }: { accounts: AccountPersona[]
   const [message, setMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
+  function buildPersonaPayload(account: AccountPersona) {
+    return {
+      personaLabel: account.personaLabel ?? "",
+      personaPrompt: account.personaPrompt ?? "",
+      defaultTone: account.defaultTone ?? "",
+      topicFocus: account.topicFocus ?? "",
+      hookStyle: account.hookStyle ?? "",
+      ctaStyle: account.ctaStyle ?? "",
+      voiceGuardrails: account.voiceGuardrails ?? "",
+      autoGenerateEnabled: account.autoGenerateEnabled ?? false,
+      autoGenerateTime: account.autoGenerateTime ?? "09:00",
+      autoGenerateMode: account.autoGenerateMode ?? "scheduled",
+      autoGeneratePrompt: account.autoGeneratePrompt ?? "",
+      autoGenerateGoal: account.autoGenerateGoal ?? ""
+    };
+  }
+
   return (
     <section className="glass-panel rounded-[2rem] border border-[var(--border)] p-6">
       <div className="flex items-end justify-between gap-4">
@@ -115,6 +132,9 @@ export function AccountPersonaManager({ accounts }: { accounts: AccountPersona[]
           <h2 className="mt-2 text-3xl font-semibold">把人設收成每日出稿控制台</h2>
           <p className="mt-3 max-w-3xl text-sm leading-7 text-[var(--muted)]">
             第一層只留下你每天真的會碰的東西：開關、時間、是否先進總表，以及最近狀態。人設細節收進進階設定，不再讓整頁像表單牆。
+          </p>
+          <p className="mt-2 max-w-3xl text-xs leading-6 text-[var(--muted)]">
+            `儲存並立即生一篇` 會先把目前畫面上的 persona / autopilot 設定存進資料庫，再真的跑一次 AI 自動產文。
           </p>
         </div>
       </div>
@@ -420,20 +440,7 @@ export function AccountPersonaManager({ accounts }: { accounts: AccountPersona[]
                         const response = await fetch(`/api/accounts/${account.id}/persona`, {
                           method: "PATCH",
                           headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({
-                            personaLabel: localAccounts[index]?.personaLabel ?? "",
-                            personaPrompt: localAccounts[index]?.personaPrompt ?? "",
-                            defaultTone: localAccounts[index]?.defaultTone ?? "",
-                            topicFocus: localAccounts[index]?.topicFocus ?? "",
-                            hookStyle: localAccounts[index]?.hookStyle ?? "",
-                            ctaStyle: localAccounts[index]?.ctaStyle ?? "",
-                            voiceGuardrails: localAccounts[index]?.voiceGuardrails ?? "",
-                            autoGenerateEnabled: localAccounts[index]?.autoGenerateEnabled ?? false,
-                            autoGenerateTime: localAccounts[index]?.autoGenerateTime ?? "09:00",
-                            autoGenerateMode: localAccounts[index]?.autoGenerateMode ?? "scheduled",
-                            autoGeneratePrompt: localAccounts[index]?.autoGeneratePrompt ?? "",
-                            autoGenerateGoal: localAccounts[index]?.autoGenerateGoal ?? ""
-                          })
+                          body: JSON.stringify(buildPersonaPayload(localAccounts[index] ?? account))
                         });
                         const result = await response.json();
                         setMessage(response.ok ? `已更新 ${account.username} 的設定。` : result.message ?? "更新失敗");
@@ -449,6 +456,19 @@ export function AccountPersonaManager({ accounts }: { accounts: AccountPersona[]
                     onClick={() => {
                       startTransition(async () => {
                         setMessage(null);
+                        const currentAccount = localAccounts[index] ?? account;
+                        const saveResponse = await fetch(`/api/accounts/${account.id}/persona`, {
+                          method: "PATCH",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify(buildPersonaPayload(currentAccount))
+                        });
+                        const saveResult = await saveResponse.json();
+
+                        if (!saveResponse.ok) {
+                          setMessage(saveResult.message ?? "儲存 autopilot 設定失敗");
+                          return;
+                        }
+
                         const response = await fetch(`/api/accounts/${account.id}/autopilot`, {
                           method: "POST"
                         });
@@ -484,7 +504,7 @@ export function AccountPersonaManager({ accounts }: { accounts: AccountPersona[]
                       });
                     }}
                   >
-                    立即生一篇
+                    儲存並立即生一篇
                   </button>
                   <a href={`/compose?accountId=${account.id}`} className="rounded-full border border-[var(--border)] bg-white px-4 py-2 text-sm">
                     用這個帳號開稿
