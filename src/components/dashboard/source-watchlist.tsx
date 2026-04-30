@@ -27,6 +27,12 @@ export function SourceWatchlist({ initialItems }: { initialItems: SourceItem[] }
   const [autoImportEnabled, setAutoImportEnabled] = useState(true);
   const [preferredOutcome, setPreferredOutcome] = useState<"threads" | "wordpress">("threads");
   const [message, setMessage] = useState<string | null>(null);
+  const [discovery, setDiscovery] = useState<{
+    recommendedType: "rss" | "site" | "url";
+    message: string;
+    feedLinks: string[];
+    sampleArticleUrls: string[];
+  } | null>(null);
   const [isPending, startTransition] = useTransition();
   const starterUrls = new Set(FINANCE_STARTER_PACK.map((item) => item.sourceUrl));
   const financeStarterCount = items.filter((item) => starterUrls.has(item.sourceUrl)).length;
@@ -214,10 +220,11 @@ export function SourceWatchlist({ initialItems }: { initialItems: SourceItem[] }
 
         <form
           className="mt-6 grid gap-4 lg:grid-cols-[1fr_160px_1.1fr_180px_auto]"
-          onSubmit={(event) => {
+            onSubmit={(event) => {
             event.preventDefault();
             startTransition(async () => {
               setMessage(null);
+              setDiscovery(null);
               const response = await fetch("/api/sources", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -301,6 +308,61 @@ export function SourceWatchlist({ initialItems }: { initialItems: SourceItem[] }
           <input type="checkbox" checked={autoImportEnabled} onChange={(event) => setAutoImportEnabled(event.target.checked)} />
           每天自動抓最近幾篇，挑值得寫的內容進站內草稿池
         </label>
+        <div className="mt-4 flex flex-wrap gap-3">
+          <button
+            type="button"
+            disabled={isPending || !sourceUrl.trim()}
+            className="rounded-full border border-[var(--border)] bg-white px-4 py-2 text-sm disabled:opacity-50"
+            onClick={() =>
+              startTransition(async () => {
+                setMessage(null);
+                const response = await fetch("/api/sources/discover", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ sourceUrl })
+                });
+                const result = await response.json();
+
+                if (!response.ok) {
+                  setMessage(result.message ?? "來源判斷失敗");
+                  return;
+                }
+
+                setDiscovery(result.result);
+                setSourceType(result.result.recommendedType);
+                setMessage(`已幫你判斷：建議用 ${result.result.recommendedType.toUpperCase()} 模式。`);
+              })
+            }
+          >
+            幫我判斷來源模式
+          </button>
+        </div>
+        {discovery ? (
+          <article className="mt-4 rounded-[1.4rem] border border-[var(--border)] bg-white/78 p-4 text-sm">
+            <p className="font-medium">建議模式：{discovery.recommendedType.toUpperCase()}</p>
+            <p className="mt-2 text-[var(--muted)]">{discovery.message}</p>
+            {discovery.feedLinks.length ? (
+              <div className="mt-3">
+                <p className="text-xs uppercase tracking-[0.16em] text-[var(--muted)]">找到的 Feed</p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {discovery.feedLinks.map((item) => (
+                    <span key={item} className="pill-tag">{item}</span>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+            {discovery.sampleArticleUrls.length ? (
+              <div className="mt-3">
+                <p className="text-xs uppercase tracking-[0.16em] text-[var(--muted)]">文章樣本</p>
+                <div className="mt-2 space-y-2">
+                  {discovery.sampleArticleUrls.map((item) => (
+                    <p key={item} className="truncate text-[var(--muted)]">{item}</p>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+          </article>
+        ) : null}
         {message ? <p className="mt-4 text-sm text-[var(--muted)]">{message}</p> : null}
       </section>
 

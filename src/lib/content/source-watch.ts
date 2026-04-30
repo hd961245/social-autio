@@ -15,6 +15,13 @@ export type SourceWatchPreview = {
   rationale?: string;
 };
 
+export type SourceModeDiscovery = {
+  recommendedType: "rss" | "site" | "url";
+  message: string;
+  feedLinks: string[];
+  sampleArticleUrls: string[];
+};
+
 const rssParser = new Parser();
 const DEFAULT_USER_AGENT =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36";
@@ -186,6 +193,91 @@ function parseSitemapLastmod(xml: string, targetUrl: string) {
   const escaped = targetUrl.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const match = xml.match(new RegExp(`<url>[\\s\\S]*?<loc>${escaped}<\\/loc>[\\s\\S]*?<lastmod>([\\s\\S]*?)<\\/lastmod>[\\s\\S]*?<\\/url>`, "i"));
   return match ? decodeXml(match[1]).trim() : undefined;
+}
+
+export async function discoverSourceMode(sourceUrl: string): Promise<SourceModeDiscovery> {
+  const home = await fetchText(sourceUrl);
+  const homeUrl = home.url;
+  const host = new URL(homeUrl).hostname;
+  const feedLinks = extractFeedLinks(home.text, homeUrl);
+
+  for (const feedUrl of feedLinks.slice(0, 5)) {
+    try {
+      const feedCandidates = await refreshSourceCandidates("rss", feedUrl, 2);
+      if (feedCandidates.length > 0) {
+        return {
+          recommendedType: "rss",
+          message: `找到可用 feed，最適合直接用 RSS。建議來源：${feedUrl}`,
+          feedLinks: uniq([feedUrl, ...feedLinks]).slice(0, 5),
+          sampleArticleUrls: feedCandidates.map((item) => item.url).slice(0, 3)
+        };
+      }
+    } catch {}
+  }
+
+  const sitemapCandidates = uniq(
+    [
+      "/sitemap.xml",
+      "/sitemap_index.xml",
+      "/post-sitemap.xml",
+      "/post-sitemap1.xml",
+      "/news-sitemap.xml"
+    ]
+      .map((path) => absoluteUrl(homeUrl, path))
+      .filter(Boolean) as string[]
+  );
+
+  const discoveredUrls: string[] = [];
+
+  for (const sitemapUrl of sitemapCandidates) {
+    try {
+      const sitemap = await fetchText(sitemapUrl, "application/xml,text/xml;q=0.9,*/*;q=0.8");
+      const locs = parseSitemapUrls(sitemap.text);
+      const nested = locs.filter((item) => /sitemap/i.test(item)).slice(0, 4);
+
+      if (nested.length > 0) {
+        for (const child of nested) {
+          try {
+            const childMap = await fetchText(child, "application/xml,text/xml;q=0.9,*/*;q=0.8");
+            const childLocs = parseSitemapUrls(childMap.text).filter((item) => isLikelyArticleUrl(item, host));
+            discoveredUrls.push(...childLocs.slice(0, 8));
+          } catch {}
+        }
+      } else {
+        discoveredUrls.push(...locs.filter((item) => isLikelyArticleUrl(item, host)).slice(0, 8));
+      }
+    } catch {}
+  }
+
+  if (discoveredUrls.length > 0) {
+    return {
+      recommendedType: "site",
+      message: "沒有穩定 feed，但 sitemap 裡找到可用文章，建議用網站 / 無 RSS 部落格模式。",
+      feedLinks: feedLinks.slice(0, 5),
+      sampleArticleUrls: uniq(discoveredUrls).slice(0, 5)
+    };
+  }
+
+  const homepageLinks = [...home.text.matchAll(/<a[^>]+href=["']([^"']+)["'][^>]*>/gi)]
+    .map((match) => absoluteUrl(homeUrl, match[1]))
+    .filter((item): item is string => Boolean(item))
+    .filter((item) => isLikelyArticleUrl(item, host));
+
+  if (homepageLinks.length > 0) {
+    return {
+      recommendedType: "site",
+      message: "沒找到 feed 或 sitemap，但首頁有可抓的文章連結，建議先用網站模式。",
+      feedLinks: feedLinks.slice(0, 5),
+      sampleArticleUrls: uniq(homepageLinks).slice(0, 5)
+    };
+  }
+
+  return {
+    recommendedType: "url",
+    message: "這個站看起來不太像可日更追蹤來源，若只是單篇文章，建議先用文章頁 / Blog 模式。",
+    feedLinks: feedLinks.slice(0, 5),
+    sampleArticleUrls: []
+  };
 }
 
 async function discoverSiteCandidates(sourceUrl: string, limit: number): Promise<SourceWatchPreview[]> {
