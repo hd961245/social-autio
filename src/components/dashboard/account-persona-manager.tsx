@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 
 type AccountPersona = {
   id: string;
@@ -105,7 +105,8 @@ function MiniLineChart({ items }: { items: Array<{ label: string; value: number 
 export function AccountPersonaManager({ accounts }: { accounts: AccountPersona[] }) {
   const [localAccounts, setLocalAccounts] = useState(accounts);
   const [message, setMessage] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
+  const [busyKey, setBusyKey] = useState<string | null>(null);
+  const [openAdvancedIds, setOpenAdvancedIds] = useState<Record<string, boolean>>({});
 
   function buildPersonaPayload(account: AccountPersona) {
     return {
@@ -122,6 +123,16 @@ export function AccountPersonaManager({ accounts }: { accounts: AccountPersona[]
       autoGeneratePrompt: account.autoGeneratePrompt ?? "",
       autoGenerateGoal: account.autoGenerateGoal ?? ""
     };
+  }
+
+  async function savePersonaSettings(account: AccountPersona) {
+    const response = await fetch(`/api/accounts/${account.id}/persona`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(buildPersonaPayload(account))
+    });
+
+    return response.json().then((result) => ({ ok: response.ok, result }));
   }
 
   return (
@@ -279,7 +290,17 @@ export function AccountPersonaManager({ accounts }: { accounts: AccountPersona[]
                   </div>
                 </div>
 
-                <details className="mt-5 rounded-[1.4rem] border border-[var(--border)] bg-[var(--surface)]/70 p-4">
+                <details
+                  open={openAdvancedIds[account.id] ?? false}
+                  onToggle={(event) => {
+                    const nextOpen = (event.currentTarget as HTMLDetailsElement).open;
+                    setOpenAdvancedIds((current) => ({
+                      ...current,
+                      [account.id]: nextOpen
+                    }));
+                  }}
+                  className="mt-5 rounded-[1.4rem] border border-[var(--border)] bg-[var(--surface)]/70 p-4"
+                >
                   <summary className="cursor-pointer list-none text-base font-medium">
                     進階 persona 設定
                     <span className="ml-3 text-sm text-[var(--muted)]">只有這個 persona 要偏離站台方向時，再打開調整</span>
@@ -432,40 +453,38 @@ export function AccountPersonaManager({ accounts }: { accounts: AccountPersona[]
                 <div className="mt-5 flex flex-wrap items-center gap-3">
                   <button
                     type="button"
-                    disabled={isPending}
+                    disabled={Boolean(busyKey)}
                     className="rounded-full bg-[var(--accent)] px-4 py-2 text-sm text-white disabled:opacity-60"
-                    onClick={() => {
-                      startTransition(async () => {
-                        setMessage(null);
-                        const response = await fetch(`/api/accounts/${account.id}/persona`, {
-                          method: "PATCH",
-                          headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify(buildPersonaPayload(localAccounts[index] ?? account))
-                        });
-                        const result = await response.json();
-                        setMessage(response.ok ? `已更新 ${account.username} 的設定。` : result.message ?? "更新失敗");
-                      });
+                    onClick={async () => {
+                      setBusyKey(`save:${account.id}`);
+                      setMessage(null);
+
+                      try {
+                        const { ok, result } = await savePersonaSettings(localAccounts[index] ?? account);
+                        setMessage(ok ? `已更新 ${account.username} 的設定。` : result.message ?? "更新失敗");
+                      } catch (error) {
+                        setMessage(error instanceof Error ? error.message : "更新失敗");
+                      } finally {
+                        setBusyKey(null);
+                      }
                     }}
                   >
-                    {isPending ? "儲存中..." : "儲存設定"}
+                    {busyKey === `save:${account.id}` ? "儲存中..." : "儲存設定"}
                   </button>
                   <button
                     type="button"
-                    disabled={isPending}
+                    disabled={Boolean(busyKey)}
                     className="rounded-full border border-[var(--border)] bg-white px-4 py-2 text-sm disabled:opacity-60"
-                    onClick={() => {
-                      startTransition(async () => {
-                        setMessage(null);
-                        const currentAccount = localAccounts[index] ?? account;
-                        const saveResponse = await fetch(`/api/accounts/${account.id}/persona`, {
-                          method: "PATCH",
-                          headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify(buildPersonaPayload(currentAccount))
-                        });
-                        const saveResult = await saveResponse.json();
+                    onClick={async () => {
+                      setBusyKey(`run:${account.id}`);
+                      setMessage(null);
 
-                        if (!saveResponse.ok) {
-                          setMessage(saveResult.message ?? "儲存 autopilot 設定失敗");
+                      try {
+                        const currentAccount = localAccounts[index] ?? account;
+                        const saved = await savePersonaSettings(currentAccount);
+
+                        if (!saved.ok) {
+                          setMessage(saved.result.message ?? "儲存 autopilot 設定失敗");
                           return;
                         }
 
@@ -485,10 +504,10 @@ export function AccountPersonaManager({ accounts }: { accounts: AccountPersona[]
                             item.id === account.id
                               ? {
                                   ...item,
-                                lastAutopilotStatus: result.result?.postStatus ?? "draft",
-                                lastAutopilotDetail:
-                                  result.result?.postStatus === "scheduled"
-                                    ? `已立即試跑 AI 自動生文，並排進 ${result.result?.scheduledForLabel ?? "即刻"} 的發文佇列。Provider: ${result.result?.provider ?? "auto"}`
+                                  lastAutopilotStatus: result.result?.postStatus ?? "draft",
+                                  lastAutopilotDetail:
+                                    result.result?.postStatus === "scheduled"
+                                      ? `已立即試跑 AI 自動生文，並排進 ${result.result?.scheduledForLabel ?? "即刻"} 的發文佇列。Provider: ${result.result?.provider ?? "auto"}`
                                       : `已立即試跑 AI 自動生文，並補了 ${result.result?.createdCount ?? 1} 篇候選稿到總表。Provider: ${result.result?.provider ?? "auto"}`,
                                   lastAutopilotAt: nowLabel,
                                   autopilotRunCount: item.autopilotRunCount + (result.result?.createdCount ?? 1)
@@ -501,10 +520,14 @@ export function AccountPersonaManager({ accounts }: { accounts: AccountPersona[]
                             ? `已替 ${account.username} 產出一篇文，並排進 ${result.result?.scheduledForLabel ?? "即刻"} 的佇列。`
                             : `已替 ${account.username} 補了 ${result.result?.createdCount ?? 1} 篇候選稿到總表。`
                         );
-                      });
+                      } catch (error) {
+                        setMessage(error instanceof Error ? error.message : "立即試跑失敗");
+                      } finally {
+                        setBusyKey(null);
+                      }
                     }}
                   >
-                    儲存並立即生一篇
+                    {busyKey === `run:${account.id}` ? "AI 產文中..." : "儲存並立即生一篇"}
                   </button>
                   <a href={`/compose?accountId=${account.id}`} className="rounded-full border border-[var(--border)] bg-white px-4 py-2 text-sm">
                     用這個帳號開稿
