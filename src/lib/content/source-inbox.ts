@@ -2,6 +2,8 @@ export type SourceInboxScore = {
   threadsScore: number;
   wordpressScore: number;
   commercialScore: number;
+  qualityTier: "high" | "watch" | "low";
+  qualityLabel: string;
   recommendation: "threads-first" | "wordpress-first" | "dual";
   reasons: string[];
   memoryNote?: string;
@@ -160,10 +162,22 @@ export function scoreSourceItem(input: {
         ? "threads-first"
         : "wordpress-first";
 
+  const strongestSignal = Math.max(threadsScore, wordpressScore, commercialScore);
+  const qualityTier =
+    strongestSignal >= 74 || (recommendation !== "dual" && strongestSignal >= 68)
+      ? "high"
+      : strongestSignal >= 56
+        ? "watch"
+        : "low";
+  const qualityLabel =
+    qualityTier === "high" ? "高可寫" : qualityTier === "watch" ? "可觀察" : "低訊號";
+
   return {
     threadsScore,
     wordpressScore,
     commercialScore,
+    qualityTier,
+    qualityLabel,
     recommendation,
     reasons: reasons.slice(0, 3),
     memoryNote: memory.note

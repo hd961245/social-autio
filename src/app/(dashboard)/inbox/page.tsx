@@ -64,7 +64,7 @@ export default async function InboxPage() {
           return {
             id: item.id,
             label: item.label,
-            sourceType: item.sourceType as "rss" | "url",
+            sourceType: item.sourceType as "rss" | "url" | "site",
             lastFetchedAt: item.lastFetchedAt?.toLocaleString("zh-TW", { hour12: false }) ?? "尚未刷新",
             title: item.lastItemTitle ?? "未命名來源內容",
             url: item.lastItemUrl ?? item.sourceUrl,
@@ -73,6 +73,8 @@ export default async function InboxPage() {
             threadsScore: score.threadsScore,
             wordpressScore: score.wordpressScore,
             commercialScore: score.commercialScore,
+            qualityTier: score.qualityTier,
+            qualityLabel: score.qualityLabel,
             recommendation: score.recommendation,
             reasons: score.reasons,
             memoryNote: score.memoryNote,

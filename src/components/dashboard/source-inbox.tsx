@@ -14,6 +14,8 @@ type InboxItem = {
   threadsScore: number;
   wordpressScore: number;
   commercialScore: number;
+  qualityTier: "high" | "watch" | "low";
+  qualityLabel: string;
   recommendation: "threads-first" | "wordpress-first" | "dual";
   reasons: string[];
   memoryNote?: string;
@@ -53,6 +55,12 @@ export function SourceInbox({ initialItems }: { initialItems: InboxItem[] }) {
     if (recommendation === "threads-first") return "先做 Threads";
     if (recommendation === "wordpress-first") return "先做長文";
     return "雙向都值得";
+  }
+
+  function qualityClasses(tier: InboxItem["qualityTier"]) {
+    if (tier === "high") return "bg-emerald-100 text-emerald-700";
+    if (tier === "watch") return "bg-[var(--accent-soft)] text-[var(--accent-strong)]";
+    return "bg-stone-200 text-stone-700";
   }
 
   return (
@@ -108,6 +116,7 @@ export function SourceInbox({ initialItems }: { initialItems: InboxItem[] }) {
                 </div>
                 <p className="mt-3 max-w-3xl text-sm leading-7 text-[var(--muted)]">{item.excerpt}</p>
                 <div className="mt-4 flex flex-wrap gap-3 text-sm">
+                  <span className={`rounded-full px-4 py-2 ${qualityClasses(item.qualityTier)}`}>{item.qualityLabel}</span>
                   <span className="rounded-full bg-white px-4 py-2">Threads {item.threadsScore}</span>
                   <span className="rounded-full bg-white px-4 py-2">WordPress {item.wordpressScore}</span>
                   <span className="rounded-full bg-white px-4 py-2">商業潛力 {item.commercialScore}</span>

@@ -139,12 +139,22 @@ export default async function DeskPage({
         threadsScore: score.threadsScore,
         wordpressScore: score.wordpressScore,
         commercialScore: score.commercialScore,
+        qualityTier: score.qualityTier,
+        qualityLabel: score.qualityLabel,
         recommendation: score.recommendation,
         reasons: score.reasons,
         memoryNote: score.memoryNote,
         routedPersona
       };
     });
+  const topInboxSignals = inboxItems
+    .filter((item) => item.status === "new")
+    .sort((left, right) => {
+      const leftStrength = Math.max(left.threadsScore, left.wordpressScore, left.commercialScore);
+      const rightStrength = Math.max(right.threadsScore, right.wordpressScore, right.commercialScore);
+      return rightStrength - leftStrength;
+    })
+    .slice(0, 3);
 
   const trackedSources: SourceWatchItem[] = sourceItems.map((item) => ({
     id: item.id,
@@ -299,6 +309,83 @@ export default async function DeskPage({
             <a href="/desk?tab=queue" className="rounded-full border border-white/15 px-4 py-2 text-white">
               去 Queue
             </a>
+          </div>
+        </article>
+      </section>
+
+      <section className="grid gap-4 xl:grid-cols-[1.02fr_0.98fr]">
+        <article className="glass-panel rounded-[2rem] border border-[var(--border)] p-5">
+          <div className="flex items-end justify-between gap-4">
+            <div>
+              <p className="text-[11px] uppercase tracking-[0.3em] text-[var(--muted)]">Inbox Signals</p>
+              <h2 className="mt-2 text-3xl font-semibold">今天先確認的文章來源</h2>
+            </div>
+            <a href="/desk?tab=inbox" className="text-sm font-medium text-[var(--accent)]">
+              去 Inbox
+            </a>
+          </div>
+          <div className="mt-5 space-y-3">
+            {topInboxSignals.map((item) => (
+              <article key={item.id} className="rounded-[1.5rem] border border-[var(--border)] bg-white/72 p-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">
+                    {item.label} · {item.sourceType}
+                  </p>
+                  <span
+                    className={`rounded-full px-3 py-1 text-xs ${
+                      item.qualityTier === "high"
+                        ? "bg-emerald-100 text-emerald-700"
+                        : item.qualityTier === "watch"
+                          ? "bg-[var(--accent-soft)] text-[var(--accent-strong)]"
+                          : "bg-stone-200 text-stone-700"
+                    }`}
+                  >
+                    {item.qualityLabel}
+                  </span>
+                </div>
+                <p className="mt-3 text-sm font-medium leading-7">{item.title}</p>
+                <p className="mt-3 text-sm leading-7 text-[var(--muted)]">{item.excerpt}</p>
+                <div className="mt-4 flex flex-wrap gap-2 text-sm">
+                  <span className="rounded-full bg-white px-4 py-2">Threads {item.threadsScore}</span>
+                  <span className="rounded-full bg-white px-4 py-2">WordPress {item.wordpressScore}</span>
+                  <span className="rounded-full bg-white px-4 py-2">商業潛力 {item.commercialScore}</span>
+                </div>
+                {item.reasons.length ? (
+                  <p className="mt-3 rounded-[1.1rem] border border-[var(--border)] bg-[rgba(255,252,248,0.9)] px-4 py-3 text-sm leading-7 text-[var(--accent-strong)]">
+                    {item.reasons[0]}
+                  </p>
+                ) : null}
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <a href="/desk?tab=inbox" className="rounded-full border border-[var(--border)] bg-white px-4 py-2 text-sm">
+                    去確認
+                  </a>
+                  <a href={item.url} target="_blank" rel="noreferrer" className="rounded-full bg-[var(--card-dark)] px-4 py-2 text-sm text-white">
+                    看原文
+                  </a>
+                </div>
+              </article>
+            ))}
+            {topInboxSignals.length === 0 ? (
+              <article className="rounded-[1.5rem] border border-dashed border-[var(--border)] p-4 text-sm text-[var(--muted)]">
+                今天還沒有新的高訊號來源。可以先去 `Sources` 刷來源，或等自動刷新下一輪。
+              </article>
+            ) : null}
+          </div>
+        </article>
+
+        <article className="rounded-[2rem] bg-[var(--card-dark)] p-5 text-white shadow-[0_24px_60px_rgba(15,10,7,0.22)]">
+          <p className="text-[11px] uppercase tracking-[0.3em] text-white/55">Signal Rule</p>
+          <h2 className="mt-2 text-3xl font-semibold">先看品質，再決定先寫哪篇</h2>
+          <div className="mt-5 space-y-3 text-sm text-white/78">
+            <p className="rounded-[1.2rem] border border-white/10 bg-white/5 px-4 py-3">
+              `高可寫` 代表這篇來源很適合直接拆成 Threads 或長文，不要拖。
+            </p>
+            <p className="rounded-[1.2rem] border border-white/10 bg-white/5 px-4 py-3">
+              `可觀察` 代表還有訊號，但值得先看來源理由，再決定是不是今天的主題。
+            </p>
+            <p className="rounded-[1.2rem] border border-white/10 bg-white/5 px-4 py-3">
+              `低訊號` 不一定沒價值，只是先別佔掉今天的主要發文位置。
+            </p>
           </div>
         </article>
       </section>
