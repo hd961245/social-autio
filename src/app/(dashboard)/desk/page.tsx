@@ -1,4 +1,5 @@
 import { ContentEngineForm } from "@/components/dashboard/content-engine-form";
+import { AutopilotHeartbeat } from "@/components/dashboard/autopilot-heartbeat";
 import { PageIntro } from "@/components/dashboard/page-intro";
 import { PostsList } from "@/components/dashboard/posts-list";
 import { QueueActions } from "@/components/dashboard/queue-actions";
@@ -227,6 +228,9 @@ export default async function DeskPage({
       </section>
 
       <section className="glass-panel rounded-[2rem] border border-[var(--border)] p-5">
+        <div className="mb-4 flex justify-end">
+          <AutopilotHeartbeat compact />
+        </div>
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {summaryCards.map((card) => (
             <article key={card.label} className="metric-card">

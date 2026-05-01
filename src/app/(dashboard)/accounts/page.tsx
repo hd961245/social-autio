@@ -1,4 +1,5 @@
 import { AccountCardItem } from "@/components/dashboard/account-card";
+import { AutopilotHeartbeat } from "@/components/dashboard/autopilot-heartbeat";
 import { AccountPersonaManager } from "@/components/dashboard/account-persona-manager";
 import { AutopilotEditorialControl } from "@/components/dashboard/autopilot-editorial-control";
 import { PageIntro } from "@/components/dashboard/page-intro";
@@ -207,6 +208,9 @@ export default async function AccountsPage() {
             initialDirection={settings?.editorialDirection ?? ""}
             initialGoal={settings?.editorialGoal ?? ""}
           />
+        </div>
+        <div className="mt-4">
+          <AutopilotHeartbeat />
         </div>
       </section>
 
