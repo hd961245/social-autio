@@ -19,6 +19,35 @@ export type SourceItem = {
   lastError: string;
 };
 
+function getSourceLaneMeta(item: Pick<SourceItem, "label" | "sourceType" | "sourceUrl" | "preferredOutcome">) {
+  const text = `${item.label} ${item.sourceUrl}`.toLowerCase();
+
+  if (
+    /(twse|sec\.gov|federalreserve|bls\.gov|bea\.gov|treasury)/i.test(text) ||
+    item.label.includes("官方")
+  ) {
+    return {
+      label: "官方一手訊號",
+      classes: "border-sky-200 bg-sky-50 text-sky-700",
+      detail: "偏政策、監管、官方數據與一手公告。"
+    };
+  }
+
+  if (item.sourceType === "site" || item.preferredOutcome === "wordpress") {
+    return {
+      label: "深度文章 / 研究站",
+      classes: "border-violet-200 bg-violet-50 text-violet-700",
+      detail: "偏文章本體、研究內容與長文沉澱。"
+    };
+  }
+
+  return {
+    label: "媒體快訊 / Feed",
+    classes: "border-amber-200 bg-amber-50 text-amber-700",
+    detail: "偏 headline、快訊與每日 Threads 候選稿。"
+  };
+}
+
 export function SourceWatchlist({ initialItems }: { initialItems: SourceItem[] }) {
   const [items, setItems] = useState(initialItems);
   const [label, setLabel] = useState("");
@@ -418,6 +447,16 @@ export function SourceWatchlist({ initialItems }: { initialItems: SourceItem[] }
         <div className="mt-6 grid gap-4">
           {items.map((item) => (
             <article key={item.id} className="rounded-[1.6rem] border border-[var(--border)] bg-white/75 p-5">
+              {(() => {
+                const lane = getSourceLaneMeta(item);
+
+                return (
+                  <div className="mb-4 flex flex-wrap items-center gap-2">
+                    <span className={`rounded-full border px-3 py-1 text-xs ${lane.classes}`}>{lane.label}</span>
+                    <span className="text-xs text-[var(--muted)]">{lane.detail}</span>
+                  </div>
+                );
+              })()}
               <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                 <div className="min-w-0">
                   <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">
