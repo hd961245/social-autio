@@ -19,6 +19,8 @@ export type SourceItem = {
   lastError: string;
 };
 
+type SourceLaneFilter = "all" | "official" | "deep" | "feed";
+
 function getSourceLaneMeta(item: Pick<SourceItem, "label" | "sourceType" | "sourceUrl" | "preferredOutcome">) {
   const text = `${item.label} ${item.sourceUrl}`.toLowerCase();
 
@@ -50,6 +52,7 @@ function getSourceLaneMeta(item: Pick<SourceItem, "label" | "sourceType" | "sour
 
 export function SourceWatchlist({ initialItems }: { initialItems: SourceItem[] }) {
   const [items, setItems] = useState(initialItems);
+  const [laneFilter, setLaneFilter] = useState<SourceLaneFilter>("all");
   const [label, setLabel] = useState("");
   const [sourceType, setSourceType] = useState<"rss" | "url" | "site">("rss");
   const [sourceUrl, setSourceUrl] = useState("");
@@ -68,6 +71,13 @@ export function SourceWatchlist({ initialItems }: { initialItems: SourceItem[] }
   const financeStarterAutoCount = items.filter(
     (item) => starterUrls.has(item.sourceUrl) && item.autoImportEnabled
   ).length;
+  const filteredItems = items.filter((item) => {
+    if (laneFilter === "all") return true;
+    const laneLabel = getSourceLaneMeta(item).label;
+    if (laneFilter === "official") return laneLabel === "官方一手訊號";
+    if (laneFilter === "deep") return laneLabel === "深度文章 / 研究站";
+    return laneLabel === "媒體快訊 / Feed";
+  });
 
   function getStatusLabel(status: SourceItem["lastHandledStatus"]) {
     if (status === "imported") return "已改寫";
@@ -444,8 +454,33 @@ export function SourceWatchlist({ initialItems }: { initialItems: SourceItem[] }
           </div>
         </div>
 
+        <div className="mt-5 flex flex-wrap gap-2">
+          {[
+            { id: "all", label: "全部來源" },
+            { id: "official", label: "官方一手訊號" },
+            { id: "deep", label: "深度文章 / 研究站" },
+            { id: "feed", label: "媒體快訊 / Feed" }
+          ].map((option) => {
+            const active = laneFilter === option.id;
+            return (
+              <button
+                key={option.id}
+                type="button"
+                onClick={() => setLaneFilter(option.id as SourceLaneFilter)}
+                className={`rounded-full border px-4 py-2 text-sm ${
+                  active
+                    ? "border-[var(--card-dark)] bg-[var(--card-dark)] text-white"
+                    : "border-[var(--border)] bg-white text-[var(--foreground)]"
+                }`}
+              >
+                {option.label}
+              </button>
+            );
+          })}
+        </div>
+
         <div className="mt-6 grid gap-4">
-          {items.map((item) => (
+          {filteredItems.map((item) => (
             <article key={item.id} className="rounded-[1.6rem] border border-[var(--border)] bg-white/75 p-5">
               {(() => {
                 const lane = getSourceLaneMeta(item);
@@ -653,6 +688,10 @@ export function SourceWatchlist({ initialItems }: { initialItems: SourceItem[] }
           {items.length === 0 ? (
             <article className="rounded-[1.6rem] border border-dashed border-[var(--border)] p-5 text-sm text-[var(--muted)]">
               目前還沒有來源名單。先加一個 RSS 或公開文章頁。
+            </article>
+          ) : filteredItems.length === 0 ? (
+            <article className="rounded-[1.6rem] border border-dashed border-[var(--border)] p-5 text-sm text-[var(--muted)]">
+              目前這個分類下還沒有來源。你可以切回其他分類，或先從 starter packs 加入。
             </article>
           ) : null}
         </div>
