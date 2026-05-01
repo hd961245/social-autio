@@ -1,508 +1,627 @@
 # Social Audio PRD
 
-> Version: v3.1  
-> Updated: 2026-04-21  
+> Version: v4.0  
+> Updated: 2026-05-01  
 > Status: Active Build  
 > Repo: https://github.com/hd961245/social-autio
 
-## 1. Product Direction
+## 1. 產品定位
 
-### 1.1 New Positioning
+### 1.1 一句話定位
 
-Social Audio is moving from a `Threads-first personal publishing OS`
+Social Audio 是一個給 `自媒體創業者` 使用的 `AI 內容經營中台`。
 
-to a
+它的目標不是單純幫你「多發幾篇文」，而是把：
 
-`self-media entrepreneur management console`.
+- 外部訊號蒐集
+- 內部知識沉澱
+- AI 起稿與改寫
+- Threads 發文與排程
+- WordPress 長文草稿
+- 成效回看與下一輪優化
 
-It should help one operator manage four connected layers in one place:
+收成一條可持續、自動化、可經營的內容生產鏈。
 
-- content sourcing
-- editorial production
-- distribution and repurposing
-- monetization and operating review
+### 1.2 核心命題
 
-The current product is still Threads-first, but the long-term shape is no longer just “write a post faster.”
-It is a control layer for running a small creator business.
+一個自媒體創業者真正缺的不是更多 AI 工具，而是：
 
-### 1.2 Core Thesis
+- 一套可以每天穩定運轉的內容系統
+- 一個能把「靈感、來源、知識、平台、變現」串起來的中台
+- 一條從 `看到訊號` 到 `發出內容` 再到 `變成資產` 的閉環
 
-A self-media entrepreneur does not need ten disconnected tools.
+### 1.3 產品承諾
 
-They need one operating surface where they can:
+只要使用者給系統以下任一種輸入：
 
-- see what to write next
-- turn short-form into long-form
-- preserve their own voice
-- keep affiliate / CTA logic consistent
-- understand which content deserves another push
-- run their content business with less switching cost
+- 一篇 Threads 貼文
+- 一個新聞 / 部落格 / 文章網址
+- 一個 RSS 或網站來源
+- 一份自己的筆記 / 想法 / 素材
+- 一篇自己過去的 WordPress 舊文
 
-### 1.3 Product Promise
+系統應該能幫他產出：
 
-If the user gives the system:
+- 一篇可用的 Threads 草稿
+- 一篇可編輯的 WordPress 草稿
+- 一個清楚的下一步編輯決策
+- 一個保留 CTA / 聯盟連結 / 商業位的內容包
 
-- a Threads post
-- a source URL
-- an RSS item
-- raw notes
-- a past WordPress article
+而且這整條線要能夠：
 
-the system should turn it into:
+- 保留個人聲音
+- 持續累積知識
+- 逐步自動化
+- 維持人工最終決策權
 
-- a usable Threads draft
-- a usable WordPress draft
-- a clearer editorial next step
-- a monetization-aware content package
+## 2. 目標使用者
 
-with WordPress staying draft-first and the user retaining final editorial control.
+### 2.1 核心使用者
 
-## 2. Target User
+本產品主要服務：
 
-This product is for:
+`單人經營的自媒體創業者 / 個人品牌經營者 / 內容型創作者`
 
-`a self-media entrepreneur or solo content operator`
+典型特徵：
 
-Typical traits:
+- 有固定在經營 Threads
+- 有自己的 WordPress 或長文內容基地
+- 會把一個題目重寫成短文、長文、觀點文、導購文
+- 想把內容當成品牌與商業資產，而不是只追求一次性曝光
+- 想用 AI 提升效率，但不想失去自己的寫作聲音
 
-- publishes on Threads often
-- keeps a WordPress site as long-form home base
-- repackages the same idea across formats
-- wants repeatable workflow, not one-off AI tricks
-- uses CTA, affiliate links, product recommendations, or service offers
-- treats content as both brand-building and revenue-generating
+### 2.2 非目標用戶
 
-Non-target users for now:
+目前不優先服務：
 
-- agencies
-- content teams
-- enterprise marketing orgs
-- multi-user approval chains
-- generic social media managers
+- 代理商
+- 大型內容團隊
+- 多人審批協作組織
+- 泛用多租戶 SaaS 客戶
+- 單純想自動洗稿的大量內容農場
 
-## 3. Product Shape
+## 3. 問題定義
 
-### 3.1 Current Product Shape
+### 3.1 使用者今天的真實問題
 
-Today the system already supports:
+自媒體創業者日常常見的痛點是：
 
-- Threads publishing and scheduling
-- account-level Threads personas and tone presets
-- Threads analytics and post review
-- Content Desk for workflow-first daily operations
-- Content Inventory for stage-based content management
-- Content Engine for source rewrite
-- Source Watchlist and Inbox
-- WordPress draft creation and update
-- WordPress draft status memory
-- WordPress style learning from archive
-- WordPress archive rewrite
-- affiliate slot library
-- Threads to WordPress sync
+- 有很多來源可看，但不知道今天先寫哪一題
+- 有很多想法，但很難穩定輸出
+- 短文和長文常常是兩套分離流程
+- 看過很多文章，但沒有被整理成自己的知識系統
+- 用 AI 雖然快，但常常產出不像自己
+- 發了內容之後，不知道該怎麼延伸、重寫、放大
+- 想做自動化，但怕一自動化就失控或內容品質崩掉
 
-### 3.2 Future Product Shape
+### 3.2 本產品要解的核心問題
 
-The future shape should look like a creator management console with these modules:
+本產品不是在解「怎麼生一篇文」而已。
 
-- `Desk`
-  daily command center
-- `Inventory`
-  stage view across source, draft, published, expandable, and monetizable content
-- `Compose`
-  short-form and long-form draft editor
-- `Distribution`
-  Threads-first publishing lane, later selective downstream distribution
-- `WordPress Studio`
-  long-form draft inbox, site sync, archive mining
-- `Revenue Layer`
-  affiliate blocks, CTA modules, offer slots, conversion-aware article structure
-- `Review Layer`
-  post outcomes, rewrite radar, follow-up opportunities
-- `Ops Layer`
-  env, token, queue, and health diagnostics
-
-## 4. Product Jobs To Be Done
-
-The system should help the user do these jobs:
-
-### 4.1 Find What To Work On
-
-- collect repeat sources
-- score incoming material
-- identify what is worth turning into Threads
-- identify what is worth becoming a long-form article
-
-### 4.2 Produce Faster Without Losing Voice
-
-- generate first drafts
-- preserve writing rhythm
-- preserve title and opening habits
-- preserve monetization structure
-
-### 4.3 Turn Short-Form Into Long-Form
-
-- sync high-performing Threads into WordPress draft
-- add article scaffold, context, and CTA structure
-- keep original post context visible
-
-### 4.4 Reuse Existing Assets
-
-- mine old WordPress posts
-- rewrite archive into fresh drafts
-- turn existing ideas into new angles
-
-### 4.5 Operate Like A Business
-
-- know what is ready to publish
-- know what deserves another push
-- know what content pattern performs
-- keep affiliate / promo structure reusable
-
-## 5. Primary Workflows
-
-### 5.1 Daily Operator Workflow
-
-1. Open `Desk`
-2. Check `Rewrite Radar`
-3. Check `Inbox`
-4. Pick one content direction for today
-5. Open `Engine` or `Compose`
-6. Build Threads + WordPress draft
-7. Send Threads now or schedule it
-8. Leave WordPress in draft for later refinement
-9. Return to `Inventory` or `Analytics` to see if the post deserves expansion
-
-### 5.2 Threads To WordPress Workflow
+它真正要解的是：
 
-1. Publish or review a Threads post
-2. Identify that it deserves long-form expansion
-3. Click sync to WordPress
-4. System creates a richer WordPress draft, not a thin copy
-5. Draft includes:
-   - context block
-   - article scaffold
-   - extension prompts
-   - affiliate / CTA slot
-   - source Threads reference
-6. User refines draft before WordPress backend publishing
+`如何讓一位自媒體創業者，透過 AI、爬文、知識沉澱與自動化流程，穩定經營一個會持續累積價值的內容事業。`
 
-### 5.3 Archive Expansion Workflow
+## 4. 產品願景
 
-1. Open `WordPress`
-2. Browse archive rewrite candidates
-3. Choose an older article
-4. Create a fresh draft with a new angle
-5. Use writing style memory + affiliate planning automatically
-6. Edit and ship later
+### 4.1 短期願景
 
-### 5.4 Source To Draft Workflow
+先把 `Threads-first + WordPress draft-first` 跑順：
 
-1. Track sources in `Source Watchlist`
-2. Review latest items in `Inbox`
-3. See rewrite scores and recommendation
-4. Choose:
-   - Threads first
-   - WordPress first
-   - dual route
-5. Generate draft package
-6. Move to `Queue` or `Compose`
+- Threads 當作市場驗證與即時分發主戰場
+- WordPress 當作長文沉澱與商業結構後台
+- AI 當作起稿、重寫、總結與排程助手
 
-## 6. Functional Requirements
+### 4.2 中期願景
 
-### F1. Desk As Daily Command Center
+讓系統具備：
 
-Priority: P0
+- 自動蒐集外部訊號
+- 自動整理可寫題目
+- 自動產出草稿候選
+- 根據表現與留言回饋優化下一輪
 
-- make `Desk` the default daily entry
-- show today’s rewrite opportunities
-- show source triage status
-- show draft workload
-- connect directly into Compose, Queue, and Analytics
+也就是從 `AI 寫文工具` 升級成 `AI 內容營運系統`
 
-### F2. Threads Publishing Lane
+### 4.3 長期願景
 
-Priority: P0
+成為一個真正的：
 
-- create draft
-- publish now
-- schedule post
-- show publish health before submission
-- show success / failure feedback clearly
-- preserve a clean Threads-first default path
+`自媒體創業者管理中台`
 
-### F3. WordPress Draft Studio
+讓使用者可以從同一個系統管理：
 
-Priority: P0
+- 題材來源
+- 內容生產
+- 平台發佈
+- 長文沉澱
+- 商業位設計
+- 內容資產複用
+- 成效回看與策略優化
 
-- create WordPress draft
-- update WordPress draft
-- keep WordPress draft-only
-- show local draft inbox before settings
-- support opening draft in app and in WordPress backend
+## 5. 產品核心原則
 
-### F4. Threads To WordPress Expansion
+### 5.1 先工作流，後功能
 
-Priority: P0
+產品不應該看起來像很多工具拼在一起。
 
-- sync high-performing Threads into WordPress draft
-- do not produce a shallow mirror
-- generate a long-form-ready structure
-- preserve source link
-- carry writing style memory forward
-- carry affiliate library forward
+它應該像一條自然的經營流程：
 
-### F5. Content Engine
+`找訊號 -> 判斷題目 -> 起稿 -> 發文 -> 復盤 -> 沉澱 -> 變現`
 
-Priority: P0
+### 5.2 先 Draft，後 Publish
 
-- accept URL, raw text, and image-led input
-- preview extraction before rewrite
-- produce Threads + WordPress together
-- let user choose provider
-- let user choose WordPress template
+WordPress 一律以 `draft-first` 為原則。
 
-### F6. Source Watchlist And Inbox
+系統可以幫忙起草、擴寫、規劃商業位，但不應替代使用者的最終編輯決策。
 
-Priority: P1
+### 5.3 自動化必須可控
 
-- save repeat sources
-- refresh manually and automatically
-- avoid duplicate latest imports
-- score candidates for Threads / WordPress / business potential
-- support skip / import / prioritize actions
+AI 自動產文、自動排程、自動建議可以做，
+但都必須：
 
-### F7. Writing Style Memory
+- 有明確開關
+- 有可觀測結果
+- 有失敗回報
+- 有人工確認的替代模式
 
-Priority: P1
+### 5.4 內容要能變成資產
 
-- learn from own WordPress archive
-- infer style instruction set
-- infer monetization placement rules
-- reuse those instructions across generated drafts
+每篇內容不該只是一則貼文。
 
-### F8. Affiliate And Offer Layer
+它應該被視為：
 
-Priority: P1
+- 可重寫
+- 可延伸
+- 可沉澱
+- 可商業化
+- 可回收再利用
 
-- save reusable affiliate modules
-- save CTA modules
-- save disclosure text
-- inject these into WordPress drafts
-- make them available in Compose
+的內容資產。
 
-### F9. Archive Rewrite
+### 5.5 AI 應該學你，而不是取代你
 
-Priority: P1
+AI 的角色是：
 
-- list old WordPress posts
-- create fresh draft from archive
-- do not overwrite source article
-- bias toward new angle, not shallow paraphrase
+- 吃你的舊文
+- 吃你的人設
+- 吃你的題材邏輯
+- 吃你的表現與留言訊號
 
-### F10. Analytics And Rewrite Radar
+然後幫你產出更像你的東西。
 
-Priority: P1
+## 6. 核心工作流
 
-- show raw counts and benchmark-style rates
-- identify top posts
-- identify rewrite candidates
-- support account and time-window filtering
-- support per-post review with next-step recommendation
+## 6.1 日常營運主線
 
-### F11. Ops And Recovery
+理想日常工作流：
 
-Priority: P1
+1. 打開 `Desk`
+2. 先看今日總覽與高訊號來源
+3. 確認今天最值得寫的題目
+4. 判斷由哪個 persona / Threads 帳號承接
+5. 讓 AI 起 Threads 草稿
+6. 決定立即發、加入排程，或先進 review queue
+7. 看表現與留言
+8. 把有效內容沉到 WordPress 草稿
+9. 在長文裡補 CTA、聯盟位、延伸內容
+10. 累積成自己的內容資產庫
 
-- show DB readiness
-- show env health
-- show token health
-- show account counts
-- show likely recovery hints when cloud state looks wrong
+### 6.2 來源驅動工作流
 
-## 7. UX Principles
+當使用者是從外部內容開始時：
 
-### 7.1 Workflow Over Feature Listing
+`Source Watchlist -> Inbox -> AI 改寫 -> Threads/WordPress 草稿`
 
-The UI should not feel like a pile of tools.
-It should feel like one operator moving through a continuous content business workflow.
+支援來源類型：
 
-### 7.2 Draft Before Publish
+- RSS
+- 網站 / 無 RSS 部落格
+- 單篇文章 URL
+- 自己手動貼的網址或素材
 
-WordPress stays draft-first.
-The system helps prepare long-form output, not auto-publish it.
+流程要求：
 
-### 7.3 Revenue Without Sloppiness
+- 自動判斷來源模式
+- 優先抓 RSS
+- 退而求其次用 sitemap
+- 再退用首頁文章發現
+- 用 Readability 正規化正文
+- 再交給 AI 改寫
 
-Affiliate blocks and CTA logic should feel intentional and editable, not spammy or auto-inserted in a careless way.
+### 6.3 知識沉澱工作流
 
-### 7.4 Review Must Lead To Action
+當使用者要把自己長期內容資產化時：
 
-Analytics is not for passive dashboard watching.
-Every review surface should point toward:
+`舊文 / 舊貼文 / 筆記 -> 風格學習 -> 模板化 -> 新稿生成`
 
-- rewrite
-- expansion
-- series follow-up
-- archive reuse
+這條線要能做到：
 
-### 7.5 Daily Entry Must Be Short
+- 從 WordPress 舊文學寫法
+- 從過去貼文學 hook / CTA / 結尾習慣
+- 形成 persona memory 與 writing style memory
+- 讓下一篇草稿越來越像使用者自己
 
-The operator should be able to open the app and know:
+### 6.4 自動化工作流
 
-- what to work on
-- what can publish
-- what deserves long-form treatment
+當使用者開始想讓系統自動運轉時：
 
-within one or two screens.
+`editorial direction -> persona autopilot -> draft candidate -> review/schedule -> publish`
 
-## 8. Product Boundaries
+自動化分三層：
 
-### 8.1 What This Product Is
+- Level 1：自動產文進草稿池
+- Level 2：自動產文並自動排程
+- Level 3：根據回饋持續優化下一輪內容
 
-- a solo creator operating console
-- a Threads-first publishing and review system
-- a WordPress draft studio
-- a repurposing engine
-- a monetization-aware content workspace
+## 7. 產品模組
 
-### 8.2 What This Product Is Not
+### 7.1 Desk
 
-- a generalized social media SaaS
-- a team collaboration suite
-- a paid subscriber platform
-- a CRM
-- an email marketing tool
-- a universal publishing bus
+Desk 是每日主入口。
 
-## 9. Next PRD Roadmap
+要回答三個問題：
 
-### Phase 1. Already Built
+- 今天該先看什麼
+- 今天該先寫什麼
+- 今天哪幾篇最值得發
 
-- Threads publish / schedule
-- Content Desk
-- Source Watchlist + Inbox
-- Content Engine
-- WordPress draft flow
+它應顯示：
+
+- 今日總覽
+- 高訊號來源
+- Today Draft Picks
+- Rewrite Radar
+- Queue 快捷入口
+
+### 7.2 Sources
+
+Sources 是外部訊號收集器。
+
+它負責：
+
+- 管理固定追蹤來源
+- 自動刷新來源
+- 自動找出候選文章
+- 自動判斷來源模式
+- 刪除不再值得追蹤的來源
+
+### 7.3 Inbox
+
+Inbox 是來源決策台。
+
+它要幫助使用者快速判斷：
+
+- 這篇值得不值得寫
+- 比較適合 Threads 還是 WordPress
+- 商業潛力高不高
+- 該交給哪個 persona 承接
+
+Inbox 目前應維持：
+
+- `高可寫 / 可觀察 / 低訊號`
+- `Threads 分數 / WordPress 分數 / 商業分數`
+- persona routing 建議
+
+### 7.4 Compose
+
+Compose 是真正的發文與編輯主線。
+
+它應整合：
+
+- AI 起草
+- Threads 發文
+- Threads 排程
+- WordPress draft 補稿
+- 草稿刪除
+- 即時預覽
+
+而不是讓使用者在很多分頁來回切。
+
+### 7.5 Queue / Review Queue
+
+Queue 是編輯決策區，不只是稿件列表。
+
+它要讓使用者做：
+
+- 勾選今天要發的稿
+- 看候選理由
+- 看哪篇是 autopilot 產出的
+- 看哪篇適合轉長文
+- 快速進入 Compose 修稿
+
+### 7.6 Accounts / Persona Studio
+
+每個 Threads 帳號要能擁有自己的：
+
+- persona label
+- persona prompt
+- default tone
+- topic focus
+- hook style
+- CTA style
+- voice guardrails
+- autopilot 設定
+
+這讓多帳號不是只是多個登入，而是多套內容策略。
+
+### 7.7 Analytics
+
+Analytics 的目標不是看熱鬧，而是回到下一輪決策。
+
+它應回答：
+
+- 哪個 persona 在贏
+- 哪篇值得重寫
+- 哪篇值得沉長文
+- 哪個 CTA / hook 更有效
+- 哪種內容型態更值得延續
+
+### 7.8 WordPress Studio
+
+WordPress 角色是：
+
+`長文草稿工作台`
+
+不是第二個即時發佈器。
+
+它負責：
+
+- 接收從 Threads 延伸過來的草稿
+- 讀取既有 WordPress 舊文
+- 生成新草稿
+- 學習既有寫作風格
+- 保留聯盟位、Disclosure、CTA 模組
+
+### 7.9 Inventory
+
+Inventory 是內容資產視角。
+
+內容不應只以平台分類，而應以階段分類：
+
+- source
+- draft
+- published
+- expandable
+- monetizable
+
+### 7.10 Ops
+
+Ops 是部署與穩定性保險。
+
+它應該協助排查：
+
+- DB 是否可用
+- schema 是否落後
+- AI provider 是否健康
+- Threads 帳號是否正常
+- Inngest / scheduler 是否活著
+
+## 8. AI 在產品裡的角色
+
+### 8.1 AI 不只是起稿
+
+AI 在產品中的角色至少有六種：
+
+- 來源改寫器
+- Threads 起稿器
+- WordPress 長文起稿器
+- 留言洞察摘要器
+- follow-up 草稿建議器
+- autopilot 產文引擎
+
+### 8.2 AI 需要吃哪些上下文
+
+每次 AI 生成不該只吃單一 prompt。
+
+它應盡量吃到：
+
+- persona prompt
+- persona playbook
+- style memory
+- WordPress 寫作風格記憶
+- 最近高表現貼文
+- 最近留言洞察
+- 近期來源題目庫
+- editorial direction
+- 目標 CTA / 商業位規劃
+
+### 8.3 AI 產文的可接受標準
+
+AI 產出的 Threads 草稿應具備：
+
+- 第一行有停留感
+- 一個清楚主題
+- 有觀點或情境
+- 結尾有自然 CTA
+- 像該 persona 會說的話
+
+AI 產出的 WordPress 草稿應具備：
+
+- 可編輯的長文骨架
+- 不只是摘要
+- 有標題 / 前言 / 小標段落 / 條列
+- 有 CTA 與聯盟位插槽
+- 能直接進 WordPress 後台繼續修
+
+## 9. 爬文與內容正規化策略
+
+### 9.1 來源處理原則
+
+來源蒐集不應只抓標題。
+
+它應盡量把文章正規化成：
+
+- title
+- excerpt
+- normalized body
+- source url
+- candidate rationale
+
+### 9.2 正規化策略
+
+目前產品方向應優先採用：
+
+- `rss-parser` 處理 feed
+- `Readability + jsdom` 處理正文
+- fallback 處理沒有 RSS 或結構較亂的網站
+
+### 9.3 未來可擴充方向
+
+後續可接：
+
+- RSSHub：把更多站點轉成 feed
+- 更強的 sitemap / homepage discovery
+- 重型 crawler for 無 RSS 部落格
+- 更好的 article extraction 與 structured metadata
+
+## 10. 知識沉澱策略
+
+### 10.1 知識不應只存在 AI prompt
+
+產品要逐步讓知識沉澱成可重用結構：
+
+- 舊文風格記憶
+- 內容模板
+- persona playbook
+- affiliate block library
+- editorial direction
+- high-performing content memory
+
+### 10.2 內容沉澱的最終目標
+
+系統不只應幫使用者「多寫」，
+而應幫他：
+
+- 建立自己的知識地基
+- 形成可持續的內容支柱
+- 讓內容產出越來越像自己的商業系統
+
+## 11. 自動化策略
+
+### 11.1 自動化分級
+
+#### Level 1：安全自動化
+
+- 自動刷新來源
+- 自動抓候選稿
+- 自動產文進草稿池
+- 人工 review 後再發
+
+#### Level 2：受控自動化
+
+- 自動產文
+- 自動排程
+- 自動挑最佳時段
+- 使用者仍可取消或改稿
+
+#### Level 3：回饋式自動化
+
+- 根據留言訊號優化下一篇
+- 根據高表現內容調整下一輪題材
+- 根據 persona 表現調整內容角度
+
+### 11.2 自動化邊界
+
+目前不應優先做：
+
+- 無限制全自動發布
+- 全自動留言回覆
+- 完全黑盒式內容產線
+
+原因是這些會：
+
+- 增加風險
+- 降低內容品質
+- 讓品牌聲音失真
+
+## 12. 功能需求
+
+### P0：必須穩定可用
+
+- Threads 授權與多帳號管理
+- Threads 立即發文與排程
+- WordPress draft-only workflow
+- Source Watchlist / Inbox
+- Compose 內整合 AI 起稿
+- Review Queue
+- Desk daily overview
+- Ops diagnostics
+
+### P1：建立內容飛輪
+
+- persona routing
+- candidate rationale
+- rewrite radar
+- Threads -> WordPress expansion
 - archive rewrite
 - writing style memory
 - affiliate slot library
-- publish health
-- post review and rewrite mode
+- autopilot draft generation
 
-### Phase 2. Reliability And Closed Loop
+### P2：建立自動優化
 
-This is the highest-value next step.
+- comment insight summarization
+- reply-based follow-up generation
+- autopilot feedback loop
+- source quality grading
+- source mode auto-discovery
+- best-time scheduling inference
 
-The product already has enough surface area.
-What it needs now is tighter operational reliability.
+### P3：建立經營中台感
 
-Focus:
+- 更強的內容資產 metadata
+- 變現層的回饋指標
+- 題材支柱管理
+- 更完整的 campaign / launch grouping
 
-- publish outcome log
-- clearer publish failure reasons
-- token expiry warnings before failure
-- scheduler retry visibility
-- WordPress backend status sync
-- WordPress draft edited / scheduled / published awareness
+## 13. 成功指標
 
-Success looks like:
+產品成功，不是因為它 AI 功能很多，
+而是因為使用者能真的這樣經營：
 
-- the user trusts the publishing lane
-- the user can immediately tell why something failed
-- the user can see whether a WordPress draft is still alive in backend workflow
+- 每天打開 Desk 就知道先做什麼
+- 每天穩定發出 Threads
+- 有效內容能快速沉到 WordPress 草稿
+- 舊文、舊知識、舊表現能被重用
+- AI 產出越來越像自己
+- 自動化開始真的省時間，而不是製造更多雜訊
 
-### Phase 3. Content Asset System
+### 13.1 產品層成功指標
 
-After reliability is stable, the next layer is asset intelligence.
+- 使用者每週固定使用 `Desk / Inbox / Compose`
+- autopilot 產文有實際進入 review queue
+- 被發出的內容有相當比例來自 AI-assisted flow
+- 高表現 Threads 被成功沉成 WordPress 草稿
+- 使用者能說出「這系統真的有在幫我經營，而不是只幫我寫字」
 
-Focus:
+## 14. 非目標
 
-- richer content inventory metadata
-- topic / pillar tagging
-- commercial intent tagging
-- expandable vs monetizable classification
-- better reuse mapping across Threads, WordPress, and future formats
+這個產品目前不是：
 
-Success looks like:
+- 通用 AI 寫稿玩具
+- 泛用社群排程 SaaS
+- 純爬蟲平台
+- 全自動內容農場系統
+- 多人協作內容管理工具
 
-- content is managed as assets, not just posts
-- the user can see what is still reusable
-- the user can find the next best expansion candidate quickly
+## 15. 最終產品原則
 
-### Phase 4. Persona Learning And Revenue Layer
+這個產品要持續往這個方向走：
 
-After content inventory is stronger, the system should become more adaptive.
+`自媒體創業者 AI 經營中台`
 
-Focus:
+具體來說就是：
 
-- persona-level hook effectiveness learning
-- persona-level CTA adoption learning
-- smarter source-to-persona routing from actual outcomes
-- revenue-aware recommendations
-- affiliate / offer performance feedback
+- 用爬文找訊號
+- 用 AI 幫你整理與起稿
+- 用知識沉澱保留你的聲音
+- 用 Threads 驗證市場
+- 用 WordPress 沉澱資產
+- 用自動化讓整條線越跑越穩
 
-Success looks like:
+而不是往這個方向走：
 
-- each Threads persona develops its own playbook from real use
-- the system gets better at deciding which account should publish what
-- monetization modules become more intentional instead of static placeholders
-
-### Phase 4.5 AI Operator Layer
-
-After persona learning becomes more stable, the next operating layer is controlled automation.
-
-Focus:
-
-- AI auto-schedule recommendations
-- per-persona auto-publish opt-in
-- publish preflight before autonomous send
-- reply and quote sentiment clustering
-- comment-aware rewrite and follow-up suggestions
-
-Success looks like:
-
-- the system can prepare and schedule posts with minimal user friction
-- autonomous actions remain bounded by diagnostics and persona guardrails
-- comments and replies become optimization input, not just passive metrics
-
-### Phase 5. Management Console Direction
-
-Once the operating loop is reliable, the product can become a fuller creator business console.
-
-Focus:
-
-- campaign or launch-mode content grouping
-- offer-aware content planning
-- editorial planning by goal
-- revenue-aware operating review
-- light business dashboarding for solo operators
-
-Success looks like:
-
-- the user can run content, distribution, and monetization from one surface
-- the product feels like a creator operating console, not a pile of AI features
-
-## 10. Success Criteria
-
-The product is successful when the user can operate like this:
-
-- run daily content triage from one desk
-- publish Threads without friction
-- turn strong Threads into long-form drafts fast
-- preserve voice and monetization structure
-- keep WordPress as a controlled editorial back office
-- feel like the system is helping run a creator business, not just generating text
-
-## 11. Final Rule
-
-The product should continue moving toward:
-
-`self-media entrepreneur management console`
-
-and away from:
-
-`generic AI content toy`
-
-and away from:
-
-`generic multi-platform scheduler`.
+- 通用 AI 內容玩具
+- 無差別多平台排程器
+- 只會多生幾篇文，但不會幫你經營事業的工具
