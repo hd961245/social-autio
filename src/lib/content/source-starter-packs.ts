@@ -7,7 +7,14 @@ export type SourceStarterPreset = {
 };
 
 export type SourceStarterPack = {
-  id: "taiwan-market" | "us-market" | "macro" | "etf-income" | "taiwan-research" | "us-research";
+  id:
+    | "taiwan-market"
+    | "us-market"
+    | "macro"
+    | "etf-income"
+    | "taiwan-research"
+    | "us-research"
+    | "official-signals";
   title: string;
   shortLabel: string;
   description: string;
@@ -142,6 +149,66 @@ export const FINANCE_STARTER_PACKS: SourceStarterPack[] = [
         sourceType: "site",
         sourceUrl: "https://www.etftrends.com/",
         preferredOutcome: "wordpress",
+        autoImportEnabled: true
+      }
+    ]
+  },
+  {
+    id: "official-signals",
+    title: "官方 / 一手訊號來源",
+    shortLabel: "官方",
+    description: "偏官方公告、監管與總經釋出，不一定每天都有，但每次都比較值得當成市場脈絡或觀點起點。",
+    focus: "監管 / 官方數據 / 政策訊號 / 一手公告",
+    ingestHint: "官方 feed 或官方頁面優先，適合做宏觀解釋、政策快評與事件影響拆解。",
+    bestFor: "想把內容建立在更權威的一手來源上的 persona",
+    items: [
+      {
+        label: "TWSE 官方 RSS 入口",
+        sourceType: "site",
+        sourceUrl: "https://www.twse.com.tw/zh/terms/rss.html",
+        preferredOutcome: "threads",
+        autoImportEnabled: true
+      },
+      {
+        label: "SEC Press Releases RSS",
+        sourceType: "rss",
+        sourceUrl: "https://www.sec.gov/news/pressreleases.rss",
+        preferredOutcome: "threads",
+        autoImportEnabled: true
+      },
+      {
+        label: "Federal Reserve Press Releases RSS",
+        sourceType: "rss",
+        sourceUrl: "https://www.federalreserve.gov/feeds/press_all.xml",
+        preferredOutcome: "threads",
+        autoImportEnabled: true
+      },
+      {
+        label: "Federal Reserve Monetary Policy RSS",
+        sourceType: "rss",
+        sourceUrl: "https://www.federalreserve.gov/feeds/press_monetary.xml",
+        preferredOutcome: "threads",
+        autoImportEnabled: true
+      },
+      {
+        label: "BLS Newsroom",
+        sourceType: "site",
+        sourceUrl: "https://www.bls.gov/newsroom/",
+        preferredOutcome: "threads",
+        autoImportEnabled: true
+      },
+      {
+        label: "BEA News Release RSS",
+        sourceType: "rss",
+        sourceUrl: "https://apps.bea.gov/rss/rss.xml",
+        preferredOutcome: "wordpress",
+        autoImportEnabled: true
+      },
+      {
+        label: "U.S. Treasury Press Releases",
+        sourceType: "site",
+        sourceUrl: "https://home.treasury.gov/news/press-releases/",
+        preferredOutcome: "threads",
         autoImportEnabled: true
       }
     ]

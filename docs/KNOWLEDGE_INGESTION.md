@@ -154,6 +154,29 @@
 - 候選題能分成快評 / 深度 / 沉澱
 - AI 會優先吃高可寫來源
 
+## 4.5 Authoritative / First-Party Sources
+
+如果你想讓內容不只建立在媒體轉述，而是更靠近原始訊號，優先層應該放這些官方來源：
+
+- [TWSE RSS / 官方新聞入口](https://www.twse.com.tw/zh/terms/rss.html)
+  - 台股官方市場訊息、公告入口
+- [SEC RSS Feeds](https://www.sec.gov/about/rss-feeds)
+  - 美國監管公告與 EDGAR 相關更新
+- [Federal Reserve RSS Feeds](https://www.federalreserve.gov/feeds)
+  - 聯準會新聞、貨幣政策、利率資料 feed
+- [BLS RSS Feeds](https://www.bls.gov/feed/)
+  - 就業、通膨、勞動市場等官方釋出
+- [BEA News Feed](https://apps.bea.gov/rss/rss.xml)
+  - 美國 GDP、消費、國際收支等官方經濟數據釋出
+- [U.S. Treasury Press Releases](https://home.treasury.gov/news/press-releases/)
+  - 財政部政策與公債 / 宏觀相關公告
+
+這些來源的角色不是每天都拿來直接改寫，而是：
+
+- 幫你建立可信的市場脈絡
+- 當媒體 headline 很吵時回頭找一手訊號
+- 在需要做政策 / 宏觀 / 監管拆解時，提供更穩的原始輸入
+
 ## 5. YouTube / Podcast Transcript Architecture
 
 ### 5.1 Product Goal
@@ -178,6 +201,11 @@
 2. 把 transcript 正規化
 3. 先做章節、重點、可改寫片段
 4. 沒字幕時，再進語音轉文字
+
+官方能力參考：
+
+- [YouTube Data API captions docs](https://developers.google.com/youtube/v3/docs/captions)
+  - 官方 captions 資源與限制說明
 
 ### 5.3 Proposed Data Flow
 
