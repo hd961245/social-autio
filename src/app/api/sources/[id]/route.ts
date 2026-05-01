@@ -41,9 +41,19 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
-    await prisma.sourceWatch.delete({
+    const result = await prisma.sourceWatch.deleteMany({
       where: { id }
     });
+
+    if (result.count === 0) {
+      return NextResponse.json(
+        {
+          ok: false,
+          message: "找不到這個來源，可能已經被刪掉了。"
+        },
+        { status: 404 }
+      );
+    }
 
     return NextResponse.json({
       ok: true,

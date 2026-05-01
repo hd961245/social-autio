@@ -59,6 +59,7 @@ export function SourceWatchlist({ initialItems }: { initialItems: SourceItem[] }
   const [autoImportEnabled, setAutoImportEnabled] = useState(true);
   const [preferredOutcome, setPreferredOutcome] = useState<"threads" | "wordpress">("threads");
   const [message, setMessage] = useState<string | null>(null);
+  const [busySourceId, setBusySourceId] = useState<string | null>(null);
   const [discovery, setDiscovery] = useState<{
     recommendedType: "rss" | "site" | "url";
     message: string;
@@ -202,10 +203,12 @@ export function SourceWatchlist({ initialItems }: { initialItems: SourceItem[] }
                 detail: "每日預期先挑 2-3 篇 Threads 候選稿"
               }
             ].map((card) => (
-              <article key={card.label} className="metric-card">
-                <p className="text-xs uppercase tracking-[0.24em] text-[var(--muted)]">{card.label}</p>
-                <p className="mt-3 text-3xl font-semibold">{card.value}</p>
-                <p className="mt-2 text-sm leading-6 text-[var(--muted)]">{card.detail}</p>
+              <article key={card.label} className="rounded-[1.2rem] border border-[var(--border)] bg-white/74 px-4 py-4">
+                <div className="flex items-baseline justify-between gap-4">
+                  <p className="text-sm text-[var(--foreground)]">{card.label}</p>
+                  <p className="text-2xl font-semibold">{card.value}</p>
+                </div>
+                <p className="mt-2 text-xs leading-6 text-[var(--muted)]">{card.detail}</p>
               </article>
             ))}
           </div>
@@ -655,14 +658,15 @@ export function SourceWatchlist({ initialItems }: { initialItems: SourceItem[] }
                     先略過
                   </button>
                   <button
-                    disabled={isPending}
+                    disabled={isPending || busySourceId === item.id}
                     className="rounded-full border border-rose-200 bg-white px-4 py-2 text-sm text-rose-700"
-                    onClick={() => {
+                    onClick={async () => {
                       if (!window.confirm(`要刪除來源「${item.label}」嗎？`)) {
                         return;
                       }
 
-                      startTransition(async () => {
+                      setBusySourceId(item.id);
+                      try {
                         setMessage(null);
                         const response = await fetch(`/api/sources/${item.id}`, {
                           method: "DELETE"
@@ -676,10 +680,12 @@ export function SourceWatchlist({ initialItems }: { initialItems: SourceItem[] }
 
                         setItems((current) => current.filter((source) => source.id !== item.id));
                         setMessage(result.message ?? "已刪除來源。");
-                      });
+                      } finally {
+                        setBusySourceId(null);
+                      }
                     }}
                   >
-                    刪除來源
+                    {busySourceId === item.id ? "刪除中..." : "刪除來源"}
                   </button>
                 </div>
               </div>

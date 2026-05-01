@@ -24,7 +24,7 @@ export default async function SourcesPage() {
         initialItems={items.map((item) => ({
           id: item.id,
           label: item.label,
-          sourceType: item.sourceType as "rss" | "url",
+          sourceType: item.sourceType as "rss" | "url" | "site",
           sourceUrl: item.sourceUrl,
           isActive: item.isActive,
           autoImportEnabled: item.autoImportEnabled,
