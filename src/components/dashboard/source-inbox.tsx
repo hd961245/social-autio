@@ -6,6 +6,7 @@ type InboxItem = {
   id: string;
   label: string;
   sourceType: "rss" | "url" | "site";
+  laneLabel: "官方一手訊號" | "深度拆解" | "快節奏快評" | "長期沉澱";
   lastFetchedAt: string;
   title: string;
   url: string;
@@ -29,6 +30,7 @@ type InboxItem = {
 export function SourceInbox({ initialItems }: { initialItems: InboxItem[] }) {
   const [items, setItems] = useState(initialItems);
   const [statusFilter, setStatusFilter] = useState<"all" | "new" | "imported" | "skipped">("new");
+  const [laneFilter, setLaneFilter] = useState<"all" | "official" | "deep" | "fast" | "knowledge">("all");
   const [query, setQuery] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -40,10 +42,16 @@ export function SourceInbox({ initialItems }: { initialItems: InboxItem[] }) {
       const matchesStatus = statusFilter === "all" || item.status === statusFilter;
       const matchesQuery =
         !normalized || `${item.label} ${item.title} ${item.excerpt}`.toLowerCase().includes(normalized);
+      const matchesLane =
+        laneFilter === "all" ||
+        (laneFilter === "official" && item.laneLabel === "官方一手訊號") ||
+        (laneFilter === "deep" && item.laneLabel === "深度拆解") ||
+        (laneFilter === "fast" && item.laneLabel === "快節奏快評") ||
+        (laneFilter === "knowledge" && item.laneLabel === "長期沉澱");
 
-      return matchesStatus && matchesQuery;
+      return matchesStatus && matchesQuery && matchesLane;
     });
-  }, [items, query, statusFilter]);
+  }, [items, laneFilter, query, statusFilter]);
 
   function statusClasses(status: InboxItem["status"]) {
     if (status === "imported") return "border-emerald-200 bg-emerald-50 text-emerald-700";
@@ -98,6 +106,27 @@ export function SourceInbox({ initialItems }: { initialItems: InboxItem[] }) {
             </button>
           ))}
         </div>
+
+        <div className="mt-3 flex flex-wrap gap-2">
+          {[
+            { value: "all", label: "全部路徑" },
+            { value: "official", label: "官方一手訊號" },
+            { value: "deep", label: "深度拆解" },
+            { value: "fast", label: "快節奏快評" },
+            { value: "knowledge", label: "長期沉澱" }
+          ].map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              className={`rounded-full px-4 py-2 text-sm ${
+                laneFilter === option.value ? "bg-[var(--card-dark)] text-white" : "bg-white text-[var(--foreground)]"
+              }`}
+              onClick={() => setLaneFilter(option.value as "all" | "official" | "deep" | "fast" | "knowledge")}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
       </section>
 
       <section className="grid gap-4">
@@ -110,6 +139,9 @@ export function SourceInbox({ initialItems }: { initialItems: InboxItem[] }) {
                 </p>
                 <div className="mt-2 flex flex-wrap items-center gap-3">
                   <h3 className="text-2xl font-semibold">{item.title}</h3>
+                  <span className="rounded-full border border-[var(--border)] bg-white px-3 py-1 text-xs">
+                    {item.laneLabel}
+                  </span>
                   <span className={`rounded-full border px-3 py-1 text-xs ${statusClasses(item.status)}`}>
                     {item.status === "new" ? "待處理" : item.status === "imported" ? "已改寫" : "已跳過"}
                   </span>

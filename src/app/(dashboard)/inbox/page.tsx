@@ -1,6 +1,6 @@
 import { PageIntro } from "@/components/dashboard/page-intro";
 import { SourceInbox } from "@/components/dashboard/source-inbox";
-import { routeSourceToPersona, scoreSourceItem } from "@/lib/content/source-inbox";
+import { classifySourceKnowledgeLane, routeSourceToPersona, scoreSourceItem } from "@/lib/content/source-inbox";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -60,11 +60,21 @@ export default async function InboxPage() {
               voiceGuardrails: account.voiceGuardrails ?? ""
             }))
           });
+          const lane = classifySourceKnowledgeLane({
+            title: item.lastItemTitle ?? "",
+            excerpt: item.lastExcerpt ?? "",
+            sourceType: item.sourceType,
+            preferredOutcome: item.preferredOutcome
+          });
+          const laneLabel: "官方一手訊號" | "深度拆解" | "快節奏快評" | "長期沉澱" = item.label.includes("官方")
+            ? "官方一手訊號"
+            : lane.label;
 
           return {
             id: item.id,
             label: item.label,
             sourceType: item.sourceType as "rss" | "url" | "site",
+            laneLabel,
             lastFetchedAt: item.lastFetchedAt?.toLocaleString("zh-TW", { hour12: false }) ?? "尚未刷新",
             title: item.lastItemTitle ?? "未命名來源內容",
             url: item.lastItemUrl ?? item.sourceUrl,

@@ -11,7 +11,7 @@ export type SourceInboxScore = {
 
 export type SourceKnowledgeLane = {
   lane: "news-fast" | "deep-dive" | "knowledge-bank";
-  label: string;
+  label: "快節奏快評" | "深度拆解" | "長期沉澱";
   instruction: string;
 };
 
