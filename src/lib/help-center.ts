@@ -88,6 +88,7 @@ export const helpTopics: Record<HelpTopic, HelpTopicContent> = {
         description: "把外部內容先轉成你的工作底稿。",
         bullets: [
           "網址：文章、Threads 貼文、可公開讀取的頁面。",
+          "也可以直接貼 YouTube 影片網址，第一版會先嘗試抓字幕 / transcript 再進改寫。",
           "純文字：訪談、會議筆記、研究摘要、觀察清單。",
           "圖片 / 截圖：搭配說明文字一起丟，保留畫面脈絡。"
         ]

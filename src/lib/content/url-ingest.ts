@@ -10,7 +10,7 @@ type UrlExtractionResult = {
   title: string;
   text: string;
   excerpt: string;
-  sourceLabel: "threads" | "facebook" | "wordpress" | "blog" | "generic";
+  sourceLabel: "threads" | "facebook" | "wordpress" | "blog" | "youtube" | "generic";
 };
 
 function decodeHtml(value: string) {
@@ -59,6 +59,10 @@ function extractTitle(html: string) {
 function inferSourceLabel(url: URL): UrlExtractionResult["sourceLabel"] {
   const host = url.hostname.toLowerCase();
 
+  if (host.includes("youtube.com") || host.includes("youtu.be")) {
+    return "youtube";
+  }
+
   if (host.includes("threads.net")) {
     return "threads";
   }
@@ -72,6 +76,125 @@ function inferSourceLabel(url: URL): UrlExtractionResult["sourceLabel"] {
   }
 
   return host ? "blog" : "generic";
+}
+
+function isYouTubeUrl(url: URL) {
+  const host = url.hostname.toLowerCase();
+  return host.includes("youtube.com") || host.includes("youtu.be");
+}
+
+function extractYouTubeVideoId(url: URL) {
+  const host = url.hostname.toLowerCase();
+  if (host.includes("youtu.be")) {
+    return url.pathname.replace(/^\//, "").trim();
+  }
+
+  if (url.searchParams.get("v")) {
+    return url.searchParams.get("v")?.trim() || "";
+  }
+
+  const parts = url.pathname.split("/").filter(Boolean);
+  const embedIndex = parts.findIndex((part) => part === "embed" || part === "shorts" || part === "live");
+  if (embedIndex >= 0) {
+    return parts[embedIndex + 1] ?? "";
+  }
+
+  return "";
+}
+
+function decodeEscapedJson(value: string) {
+  return value
+    .replace(/\\u0026/g, "&")
+    .replace(/\\u003d/g, "=")
+    .replace(/\\u0025/g, "%")
+    .replace(/\\\//g, "/");
+}
+
+async function extractYouTubeTranscript(inputUrl: string, resolvedUrl: string) {
+  const url = new URL(resolvedUrl);
+  const videoId = extractYouTubeVideoId(url);
+
+  if (!videoId) {
+    throw new Error("這個 YouTube 網址沒有解析出有效的影片 ID。");
+  }
+
+  const watchUrl = `https://www.youtube.com/watch?v=${videoId}`;
+  const watchResponse = await fetch(watchUrl, {
+    headers: {
+      "User-Agent": DEFAULT_USER_AGENT,
+      Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+    },
+    redirect: "follow"
+  });
+
+  if (!watchResponse.ok) {
+    throw new Error(`抓取 YouTube 影片頁失敗（${watchResponse.status}）`);
+  }
+
+  const html = await watchResponse.text();
+  const title = extractMeta(html, "og:title") || extractTitle(html) || "YouTube 影片";
+  const description = extractMeta(html, "og:description");
+  const captionTracksMatch = html.match(/"captionTracks":(\[[\s\S]*?\])/);
+
+  if (!captionTracksMatch) {
+    throw new Error("這支 YouTube 影片目前抓不到可用字幕，可能尚未提供 captions。");
+  }
+
+  let captionTracks: Array<{ baseUrl?: string; languageCode?: string; name?: { simpleText?: string } }> = [];
+  try {
+    captionTracks = JSON.parse(decodeEscapedJson(captionTracksMatch[1]));
+  } catch {
+    throw new Error("這支 YouTube 影片的字幕資料解析失敗。");
+  }
+
+  const preferredTrack =
+    captionTracks.find((track) => (track.languageCode || "").toLowerCase().startsWith("zh")) ||
+    captionTracks.find((track) => (track.languageCode || "").toLowerCase().startsWith("en")) ||
+    captionTracks[0];
+
+  if (!preferredTrack?.baseUrl) {
+    throw new Error("這支 YouTube 影片沒有可讀取的字幕軌。");
+  }
+
+  const transcriptUrl = preferredTrack.baseUrl.includes("&fmt=")
+    ? preferredTrack.baseUrl
+    : `${preferredTrack.baseUrl}&fmt=vtt`;
+  const transcriptResponse = await fetch(transcriptUrl, {
+    headers: {
+      "User-Agent": DEFAULT_USER_AGENT,
+      Accept: "text/vtt,text/plain,application/xml;q=0.9,*/*;q=0.8"
+    },
+    redirect: "follow"
+  });
+
+  if (!transcriptResponse.ok) {
+    throw new Error(`抓取 YouTube 字幕失敗（${transcriptResponse.status}）`);
+  }
+
+  const transcriptRaw = await transcriptResponse.text();
+  const transcriptText = normalizeText(
+    transcriptRaw
+      .replace(/^WEBVTT[\s\S]*?\n\n/, "")
+      .replace(/^\d+\s*$/gm, "")
+      .replace(/\d{2}:\d{2}:\d{2}\.\d{3}\s*-->\s*\d{2}:\d{2}:\d{2}\.\d{3}.*/g, "")
+      .replace(/\d{2}:\d{2}\.\d{3}\s*-->\s*\d{2}:\d{2}\.\d{3}.*/g, "")
+      .replace(/<[^>]+>/g, " ")
+  );
+
+  if (!transcriptText.trim()) {
+    throw new Error("這支 YouTube 影片的字幕內容是空的。");
+  }
+
+  const normalizedTranscript = `YouTube transcript\n影片標題：${title}\n\n${transcriptText}`;
+
+  return {
+    url: inputUrl,
+    resolvedUrl: watchUrl,
+    title,
+    text: trimExcerpt(normalizedTranscript, 12000),
+    excerpt: trimExcerpt(description || transcriptText, 280),
+    sourceLabel: "youtube" as const
+  };
 }
 
 function trimExcerpt(value: string, maxLength: number) {
@@ -101,6 +224,12 @@ function extractReadableArticle(html: string, resolvedUrl: string) {
 }
 
 export async function extractContentFromUrl(inputUrl: string): Promise<UrlExtractionResult> {
+  const initialUrl = new URL(inputUrl);
+
+  if (isYouTubeUrl(initialUrl)) {
+    return extractYouTubeTranscript(inputUrl, inputUrl);
+  }
+
   const response = await fetch(inputUrl, {
     headers: {
       "User-Agent": DEFAULT_USER_AGENT,
@@ -116,6 +245,11 @@ export async function extractContentFromUrl(inputUrl: string): Promise<UrlExtrac
   const html = await response.text();
   const resolvedUrl = response.url || inputUrl;
   const resolved = new URL(resolvedUrl);
+
+  if (isYouTubeUrl(resolved)) {
+    return extractYouTubeTranscript(inputUrl, resolvedUrl);
+  }
+
   const sourceLabel = inferSourceLabel(resolved);
   const ogTitle = extractMeta(html, "og:title");
   const ogDescription = extractMeta(html, "og:description");

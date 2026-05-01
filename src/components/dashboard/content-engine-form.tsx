@@ -245,7 +245,7 @@ export function ContentEngineForm({
               <label className="mb-2 block text-sm text-[var(--muted)]">來源網址</label>
               <input
                 className="w-full rounded-2xl border border-[var(--border)] bg-transparent px-4 py-3 outline-none"
-                placeholder="https://www.threads.net/... 或文章網址"
+                placeholder="https://www.threads.net/...、YouTube 影片或文章網址"
                 value={sourceUrl}
                 onChange={(event) => setSourceUrl(event.target.value)}
                 required
@@ -278,8 +278,8 @@ export function ContentEngineForm({
                     });
                   }}
                 >
-                  {isPreviewPending ? "抓取中..." : "先看抓取預覽"}
-                </button>
+                {isPreviewPending ? "抓取中..." : "先看抓取預覽"}
+              </button>
                 {preview ? (
                   <button
                     type="button"
@@ -290,6 +290,9 @@ export function ContentEngineForm({
                   </button>
                 ) : null}
               </div>
+              <p className="mt-3 text-sm text-[var(--muted)]">
+                現在第一版也支援 YouTube URL，會先嘗試抓影片字幕 / transcript，再交給 AI 改寫。
+              </p>
             </div>
           ) : null}
 
