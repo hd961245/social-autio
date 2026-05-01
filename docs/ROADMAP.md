@@ -87,6 +87,8 @@
 - Readability-based normalization
 - candidate rationale
 - Desk 首屏的高訊號來源顯示
+- 財經新聞來源分層（台股 / 美股）
+- article-body-first extraction
 
 ### 4.3 完成定義
 
@@ -196,6 +198,8 @@
 - WordPress style learning
 - site-level editorial direction
 - campaign / pillar / offer-aware planning
+- 外部知識輸入平台評估與接入
+- YouTube / Podcast transcript ingestion
 
 ### 7.3 完成定義
 
@@ -257,6 +261,8 @@ WordPress、affiliate library、inventory 已經在這條路上，但還沒有�
 - 強化 WordPress archive reuse
 - 強化內容模板與知識沉澱
 - 把來源、舊文、Threads 勝利內容收成更清楚的題材資產
+- 評估 YouTube / Podcast transcript-first ingestion
+- 評估外部知識平台作為內容輸入源
 
 ### Week 4
 
