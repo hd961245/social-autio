@@ -10,9 +10,9 @@ export function Sidebar() {
     <aside className="glass-panel fade-in-up sticky top-6 overflow-hidden rounded-[2rem] border border-[var(--border)] p-5">
       <div className="mb-6">
         <p className="text-[11px] uppercase tracking-[0.35em] text-[var(--muted)]">Social Audio</p>
-        <h1 className="mt-3 text-3xl font-semibold leading-none">Sharp Control</h1>
+        <h1 className="mt-3 text-3xl font-semibold leading-none">Creator Console</h1>
         <p className="mt-3 max-w-xs text-sm leading-6 text-[var(--muted)]">
-          把日常最常走的四件事留在眼前：看盤、選題、發文、復盤。其他系統頁收進上方分組。
+          把你每天真的會做的事留在眼前：看今天題目、AI 起稿、發 Threads、回看表現。
         </p>
       </div>
 
@@ -21,18 +21,18 @@ export function Sidebar() {
           href="/compose"
           className="rounded-[1.15rem] bg-[var(--accent)] px-4 py-3 text-sm font-semibold text-white shadow-[0_18px_40px_rgba(187,90,54,0.22)]"
         >
-          新增 Threads 草稿
+          開始今天的內容
         </a>
         <a
-          href="/desk?tab=engine"
+          href="/desk"
           className="rounded-[1.15rem] border border-[var(--border)] bg-white/72 px-4 py-3 text-sm font-semibold text-[var(--foreground)]"
         >
-          打開 Content Desk
+          打開今日總覽
         </a>
       </div>
 
       <div className="mb-3">
-        <p className="text-[11px] uppercase tracking-[0.3em] text-[var(--muted)]">Core Lane</p>
+        <p className="text-[11px] uppercase tracking-[0.3em] text-[var(--muted)]">Daily Lane</p>
       </div>
 
       <nav className="space-y-2">
