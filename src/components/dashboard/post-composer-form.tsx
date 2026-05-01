@@ -520,8 +520,8 @@ export function PostComposerForm({
                       value={aiSourceType}
                       onChange={(event) => setAiSourceType(event.target.value as "text" | "url")}
                     >
-                      <option value="text">貼文字素材</option>
-                      <option value="url">貼網址</option>
+                      <option value="text">貼文字 / 筆記</option>
+                      <option value="url">貼文章 / YouTube / Podcast 連結</option>
                     </select>
                   </label>
                   <label className="rounded-3xl bg-white/88 p-4 md:col-span-1">
@@ -555,7 +555,7 @@ export function PostComposerForm({
                   ) : null}
                 </div>
                 <label className="rounded-3xl bg-white/88 p-4">
-                  <span className="mb-2 block text-sm text-[var(--muted)]">你想讓 AI 寫什麼</span>
+                  <span className="mb-2 block text-sm text-[var(--muted)]">你想讓 AI 幫你產哪一篇</span>
                   <input
                     className="w-full rounded-2xl border border-[var(--border)] bg-transparent px-4 py-3 outline-none"
                     placeholder={isWordPress ? "例如：把這則 Threads 延伸成一篇教學長文" : "例如：幫我寫一篇有觀點的 Threads 首發"}
@@ -567,7 +567,7 @@ export function PostComposerForm({
                   <span className="mb-2 block text-sm text-[var(--muted)]">方向 / 重點</span>
                   <textarea
                     className="min-h-28 w-full resize-none rounded-2xl border border-[var(--border)] bg-transparent p-4 outline-none"
-                    placeholder="例如：主題是 AI 工作流，不要太工具導向，要像創作者在分享自己的做法。"
+                    placeholder="例如：主題是 AI 工作流，不要太工具導向，要像創作者在分享自己的做法；如果是 YouTube / Podcast，請幫我抓重點並改成適合 Threads 的語氣。"
                     value={aiBrief}
                     onChange={(event) => setAiBrief(event.target.value)}
                   />
@@ -597,17 +597,20 @@ export function PostComposerForm({
                     <span className="mb-2 block text-sm text-[var(--muted)]">公開連結</span>
                     <input
                       className="w-full rounded-2xl border border-[var(--border)] bg-transparent px-4 py-3 outline-none"
-                      placeholder="https://www.threads.net/... 或文章網址"
+                      placeholder="貼文章、Threads、YouTube，或可抓 transcript 的 Podcast 連結"
                       value={aiSourceUrl}
                       onChange={(event) => setAiSourceUrl(event.target.value)}
                     />
+                    <p className="mt-2 text-xs text-[var(--muted)]">
+                      現在主入口就在這裡。想用影片或音頻內容起稿時，直接把公開連結貼進來就好。
+                    </p>
                   </label>
                 ) : (
                   <label className="rounded-3xl bg-white/88 p-4">
                     <span className="mb-2 block text-sm text-[var(--muted)]">原始素材</span>
                     <textarea
                       className="min-h-32 w-full resize-none rounded-2xl border border-[var(--border)] bg-transparent p-4 outline-none"
-                      placeholder="貼你要改寫的段落、筆記、想法或外部素材摘要"
+                      placeholder="貼你要改寫的段落、筆記、想法、逐字稿片段，或外部素材摘要"
                       value={aiRawText}
                       onChange={(event) => setAiRawText(event.target.value)}
                     />
@@ -618,6 +621,8 @@ export function PostComposerForm({
                 <p className="text-xs uppercase tracking-[0.2em] text-white/55">AI 起稿</p>
                 <div className="mt-4 space-y-3 text-sm leading-7 text-white/80">
                   <p>{isWordPress ? "會直接填入標題、摘要與長文草稿。" : "會直接把 Threads 草稿灌進貼文內容。"} 不會另外再開一份稿。</p>
+                  <p>支援來源：文章網址、Threads 連結、YouTube 影片，以及可抓 transcript 的 Podcast 頁面。</p>
+                  <p>最簡單的用法就是：選好帳號，貼一個連結，按下面這顆按鈕。</p>
                 </div>
                 <button
                   type="button"
