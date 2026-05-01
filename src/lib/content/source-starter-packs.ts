@@ -1,13 +1,13 @@
 export type SourceStarterPreset = {
   label: string;
-  sourceType: "rss" | "url";
+  sourceType: "rss" | "url" | "site";
   sourceUrl: string;
   preferredOutcome: "threads" | "wordpress";
   autoImportEnabled: boolean;
 };
 
 export type SourceStarterPack = {
-  id: "taiwan-market" | "us-market" | "macro" | "etf-income";
+  id: "taiwan-market" | "us-market" | "macro" | "etf-income" | "taiwan-research" | "us-research";
   title: string;
   shortLabel: string;
   description: string;
@@ -40,6 +40,13 @@ export const FINANCE_STARTER_PACKS: SourceStarterPack[] = [
         sourceUrl: "http://money.udn.com/rssfeed/news/1001/5597/5735?ch=money",
         preferredOutcome: "threads",
         autoImportEnabled: true
+      },
+      {
+        label: "StockFeel 股感",
+        sourceType: "site",
+        sourceUrl: "https://www.stockfeel.com.tw/",
+        preferredOutcome: "wordpress",
+        autoImportEnabled: true
       }
     ]
   },
@@ -57,6 +64,20 @@ export const FINANCE_STARTER_PACKS: SourceStarterPack[] = [
         sourceType: "rss",
         sourceUrl: "https://api.investing.com/api/financialdata/news/stock-market-news.rss",
         preferredOutcome: "threads",
+        autoImportEnabled: true
+      },
+      {
+        label: "CNBC Markets",
+        sourceType: "site",
+        sourceUrl: "https://www.cnbc.com/markets/",
+        preferredOutcome: "threads",
+        autoImportEnabled: true
+      },
+      {
+        label: "MarketWatch Markets",
+        sourceType: "site",
+        sourceUrl: "https://www.marketwatch.com/markets",
+        preferredOutcome: "wordpress",
         autoImportEnabled: true
       }
     ]
@@ -83,6 +104,13 @@ export const FINANCE_STARTER_PACKS: SourceStarterPack[] = [
         sourceUrl: "https://api.investing.com/api/financialdata/news/economy.rss",
         preferredOutcome: "threads",
         autoImportEnabled: true
+      },
+      {
+        label: "財經 M平方",
+        sourceType: "site",
+        sourceUrl: "https://www.macromicro.me/",
+        preferredOutcome: "wordpress",
+        autoImportEnabled: true
       }
     ]
   },
@@ -106,6 +134,63 @@ export const FINANCE_STARTER_PACKS: SourceStarterPack[] = [
         label: "鉅亨網 基金評論",
         sourceType: "url",
         sourceUrl: "https://news.cnyes.com/news/cat/fund_comment",
+        preferredOutcome: "wordpress",
+        autoImportEnabled: true
+      },
+      {
+        label: "ETF Trends",
+        sourceType: "site",
+        sourceUrl: "https://www.etftrends.com/",
+        preferredOutcome: "wordpress",
+        autoImportEnabled: true
+      }
+    ]
+  },
+  {
+    id: "taiwan-research",
+    title: "台灣研究與理財深度站",
+    shortLabel: "台灣深度",
+    description: "偏研究、觀點和教學型內容，不一定每天都寫，但很適合沉成可複用的知識庫與長文草稿。",
+    focus: "台灣理財教育 / 長文觀點 / 深度拆解",
+    ingestHint: "優先用網站模式抓文章本體，再轉成觀點 Threads 或 WordPress 草稿。",
+    bestFor: "想建立自己的投資 / 理財知識底稿與教學型 persona",
+    items: [
+      {
+        label: "市場先生",
+        sourceType: "site",
+        sourceUrl: "https://rich01.com/",
+        preferredOutcome: "wordpress",
+        autoImportEnabled: true
+      },
+      {
+        label: "StockFeel 深度文章",
+        sourceType: "site",
+        sourceUrl: "https://www.stockfeel.com.tw/",
+        preferredOutcome: "wordpress",
+        autoImportEnabled: true
+      }
+    ]
+  },
+  {
+    id: "us-research",
+    title: "美股研究與全球市場深度站",
+    shortLabel: "美股深度",
+    description: "偏美股研究、產業拆解與長文分析，適合拿來做觀點型 Threads 和 WordPress 延伸稿。",
+    focus: "美股研究 / 產業拆解 / 長文分析",
+    ingestHint: "以網站模式或可抓 feed 的研究站為主，重點是正文，不是首頁雜訊。",
+    bestFor: "想從新聞快評再往產業 / 公司深度拆解延伸的 persona",
+    items: [
+      {
+        label: "Seeking Alpha News",
+        sourceType: "site",
+        sourceUrl: "https://seekingalpha.com/market-news",
+        preferredOutcome: "threads",
+        autoImportEnabled: true
+      },
+      {
+        label: "Barron's Markets",
+        sourceType: "site",
+        sourceUrl: "https://www.barrons.com/market-data",
         preferredOutcome: "wordpress",
         autoImportEnabled: true
       }

@@ -89,6 +89,8 @@
 - Desk 首屏的高訊號來源顯示
 - 財經新聞來源分層（台股 / 美股）
 - article-body-first extraction
+- finance starter packs by market / depth lane
+- transcript-first knowledge ingestion plan
 
 ### 4.3 完成定義
 
