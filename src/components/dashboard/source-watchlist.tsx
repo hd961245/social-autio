@@ -79,6 +79,20 @@ export function SourceWatchlist({ initialItems }: { initialItems: SourceItem[] }
                       </div>
                     </div>
                     <p className="mt-3 text-sm leading-7 text-[var(--muted)]">{pack.description}</p>
+                    <div className="mt-4 grid gap-2 sm:grid-cols-3">
+                      <div className="rounded-[1rem] border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-2">
+                        <p className="text-[10px] uppercase tracking-[0.22em] text-[var(--muted)]">Focus</p>
+                        <p className="mt-2 text-sm">{pack.focus}</p>
+                      </div>
+                      <div className="rounded-[1rem] border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-2">
+                        <p className="text-[10px] uppercase tracking-[0.22em] text-[var(--muted)]">Ingest</p>
+                        <p className="mt-2 text-sm">{pack.ingestHint}</p>
+                      </div>
+                      <div className="rounded-[1rem] border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-2">
+                        <p className="text-[10px] uppercase tracking-[0.22em] text-[var(--muted)]">Best For</p>
+                        <p className="mt-2 text-sm">{pack.bestFor}</p>
+                      </div>
+                    </div>
                     <div className="mt-4 flex flex-wrap gap-2">
                       {pack.items.map((item) => (
                         <span key={item.sourceUrl} className="pill-tag">
@@ -206,6 +220,12 @@ export function SourceWatchlist({ initialItems }: { initialItems: SourceItem[] }
           >
             {isPending ? "加入中..." : "全部一起加入"}
           </button>
+          <a
+            href="/help?topic=knowledge-inputs"
+            className="rounded-full border border-[var(--border)] bg-white px-4 py-2 text-sm"
+          >
+            看知識輸入策略
+          </a>
         </div>
       </section>
 
@@ -336,6 +356,27 @@ export function SourceWatchlist({ initialItems }: { initialItems: SourceItem[] }
           >
             幫我判斷來源模式
           </button>
+        </div>
+        <div className="mt-4 grid gap-3 xl:grid-cols-3">
+          {[
+            {
+              label: "財經新聞 / Feed",
+              detail: "適合台美股即時訊號、每日快評與 Threads 候選稿。先用 starter packs 起手最快。"
+            },
+            {
+              label: "無 RSS 部落格 / 研究站",
+              detail: "改用網站模式。系統會先找 feed，再試 sitemap，最後抽文章本體給 AI 改寫。"
+            },
+            {
+              label: "YouTube / podcast / 自有筆記",
+              detail: "這條更偏長期知識沉澱。現階段先當策略層，之後會進 transcript ingestion。"
+            }
+          ].map((lane) => (
+            <article key={lane.label} className="rounded-[1.2rem] border border-[var(--border)] bg-white/74 p-4">
+              <p className="text-xs uppercase tracking-[0.22em] text-[var(--muted)]">{lane.label}</p>
+              <p className="mt-3 text-sm leading-7 text-[var(--foreground)]">{lane.detail}</p>
+            </article>
+          ))}
         </div>
         {discovery ? (
           <article className="mt-4 rounded-[1.4rem] border border-[var(--border)] bg-white/78 p-4 text-sm">

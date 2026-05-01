@@ -228,6 +228,38 @@ export default async function DeskPage({
         </div>
       </section>
 
+      <section className="grid gap-4 xl:grid-cols-3">
+        {[
+          {
+            label: "快節奏新聞題",
+            title: "台股 / 美股 / 宏觀快評",
+            detail: "先從高可寫來源挑一篇正文訊號強的新聞，讓 AI 起一版 Threads，再決定要不要延伸成長文。",
+            href: "/desk?tab=inbox"
+          },
+          {
+            label: "深度文章題",
+            title: "部落格 / 研究站正文拆解",
+            detail: "遇到沒有 RSS 的站，就交給網站模式先抓文章本體，再把它正規化後改寫成你的觀點。",
+            href: "/desk?tab=sources"
+          },
+          {
+            label: "長期知識題",
+            title: "YouTube / podcast / 自有筆記",
+            detail: "這條比較像知識沉澱，不急著日更。後面會接 transcript ingestion，先把方向收在 Help 裡。",
+            href: "/help?topic=knowledge-inputs"
+          }
+        ].map((lane) => (
+          <article key={lane.title} className="glass-panel rounded-[2rem] border border-[var(--border)] p-5">
+            <p className="text-[11px] uppercase tracking-[0.3em] text-[var(--muted)]">{lane.label}</p>
+            <h2 className="mt-2 text-2xl font-semibold">{lane.title}</h2>
+            <p className="mt-3 text-sm leading-7 text-[var(--muted)]">{lane.detail}</p>
+            <a href={lane.href} className="mt-4 inline-flex text-sm font-medium text-[var(--accent)]">
+              打開這條輸入路徑
+            </a>
+          </article>
+        ))}
+      </section>
+
       <section className="grid gap-4 xl:grid-cols-[1.08fr_0.92fr]">
         <article className="glass-panel rounded-[2rem] border border-[var(--border)] p-5">
           <div className="flex items-end justify-between gap-4">

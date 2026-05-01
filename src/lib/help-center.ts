@@ -1,4 +1,4 @@
-export type HelpTopic = "compose" | "content-engine" | "ai-workflow";
+export type HelpTopic = "compose" | "content-engine" | "ai-workflow" | "knowledge-inputs";
 
 export type HelpSection = {
   title: string;
@@ -108,6 +108,49 @@ export const helpTopics: Record<HelpTopic, HelpTopicContent> = {
           "先選對 Threads 帳號，這會決定人格、語氣與 hook 方向。",
           "素材標題不要留空，AI 比較容易抓到主題。",
           "如果網址抓不到全文，系統會退回以連結脈絡重寫，不會整個失敗。"
+        ]
+      }
+    ]
+  },
+  "knowledge-inputs": {
+    title: "知識輸入策略",
+    summary:
+      "這個平台的知識輸入不是只有 RSS。長期應該分成財經新聞、無 RSS 部落格、YouTube / podcast transcript，以及你自己的筆記來源。",
+    sections: [
+      {
+        title: "1. 財經新聞怎麼接才穩",
+        description: "先以文章 / 新聞本體為主，不要把側欄、推薦閱讀和頁腳一起吃進來。",
+        bullets: [
+          "台股 / 美股 / 宏觀 / ETF 先用 Starter Pack 起手，再慢慢加自己的固定來源。",
+          "優先順序是 RSS -> sitemap / 網站模式 -> 單篇文章 URL，不需要一開始就做重爬蟲。",
+          "來源進來後先做正文正規化，再交給 AI 起稿，這樣 Threads 候選稿才比較像真的有讀過文章。"
+        ]
+      },
+      {
+        title: "2. 沒有 RSS 的部落格怎麼處理",
+        description: "不是沒有 RSS 就不能接，而是要換成網站模式處理。",
+        bullets: [
+          "現在網站模式會先找 feed，再試 sitemap，最後才抓首頁文章連結。",
+          "抓下來的重點不是整站內容，而是文章本體；正文抽取會盡量排除導覽、邊欄與推薦區塊。",
+          "如果你只想拆某一篇文章，不必先建來源，直接丟單篇 URL 給 AI 起稿也可以。"
+        ]
+      },
+      {
+        title: "3. YouTube / podcast 為什麼值得做",
+        description: "這條不是即時新聞，而是長期知識沉澱與觀點資料庫。",
+        bullets: [
+          "策略上建議先吃 transcript / captions，再考慮語音轉文字 fallback。",
+          "適合拿來沉澱成：觀點筆記、系列題庫、WordPress 長文底稿、Threads follow-up 素材。",
+          "這會是長期輸入層，不一定每天都用，但非常適合做你的自有知識飛輪。"
+        ]
+      },
+      {
+        title: "4. 什麼時候該接其他內容平台",
+        description: "只有當某個平台真的能穩定提供高品質輸入時才值得接。",
+        bullets: [
+          "優先評估：Notion、Google Docs、Obsidian / Markdown、newsletter archive。",
+          "判斷標準是：能不能穩定輸入原始觀點、研究摘要或可再加工素材。",
+          "不要為了 integration 而 integration，重點是讓 AI 有更好的內容可轉成 Threads 和 WordPress 草稿。"
         ]
       }
     ]
