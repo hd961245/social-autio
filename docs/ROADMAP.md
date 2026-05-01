@@ -1,152 +1,280 @@
-# Social Audio Next-Stage Roadmap
+# Social Audio Roadmap
 
-> Version: v1.0  
-> Updated: 2026-04-16  
-> Scope: next-stage optimization plan for evolving into a self-media entrepreneur management console
+> Version: v2.0  
+> Updated: 2026-05-01  
+> Scope: milestone roadmap for evolving Social Audio into an AI operating console for self-media entrepreneurs
 
 ## 1. Roadmap Goal
 
-The next stage is not about adding more platforms.
+這份 roadmap 的目標不是再加更多零散功能。
 
-It is about making the current system:
+它要回答的是：
 
-- more reliable
-- more state-aware
-- more asset-oriented
-- more persona-aware
-- more monetization-aware
+`接下來要怎麼把 Social Audio 從「能用的內容工具」推成「可持續經營的自媒體創業中台」`
 
-The product already has strong breadth.
-The roadmap now focuses on depth and operational trust.
+接下來的優先順序應該圍繞四件事：
 
-## 2. Phase Order
+- 讓日常流程更穩
+- 讓來源與知識沉澱更強
+- 讓 AI 真的能持續幫你工作
+- 讓內容逐步變成可複用、可變現的資產
 
-### Phase A. Reliability First
+## 2. Milestone Map
 
-Priority: P0
+整體里程碑分成 5 段：
 
-This phase should land first.
+1. `M1 穩定營運底座`
+2. `M2 來源與知識飛輪`
+3. `M3 AI 寫作與排程引擎`
+4. `M4 回饋式內容優化`
+5. `M5 自媒體創業者經營中台`
 
-Core work:
+## 3. M1 穩定營運底座
 
-- Threads publish outcome log
-- clearer publish error messages
-- token expiry warning and preflight state
-- scheduler failure visibility and retry hints
-- WordPress draft backend status sync
-- WordPress draft last-edited / scheduled / published visibility
+### 3.1 目標
 
-Why this comes first:
+讓使用者每天真的敢打開系統來發文、排程、看結果，而不是擔心：
 
-- if publishing feels unreliable, the rest of the console loses trust
-- if WordPress state is blind, long-form workflow always feels half-connected
+- Threads 綁定突然失效
+- 排程到底有沒有跑
+- AI provider 到底有沒有通
+- DB / schema 一換電腦就出事
 
-Definition of done:
+### 3.2 核心能力
 
-- the user can tell what happened to a post without guessing
-- the user can tell whether a WordPress draft still needs work
-- failure states point to the next action clearly
+- Threads OAuth / callback diagnostics
+- Ops health / deploy checklist
+- Publish health / outcome log
+- Queue 手動立即執行排程
+- WordPress draft-only workflow 穩定化
+- Schema / env 錯誤人話化
 
-## 3. Phase B. Content Asset Layer
+### 3.3 完成定義
 
-Priority: P1
+做到這些才算 M1 完成：
 
-Core work:
+- 使用者可以穩定綁定 Threads 帳號
+- 發文與排程失敗時，能立刻知道原因
+- 換電腦或重部署時，有明確檢查入口
+- WordPress draft 狀態不再是黑盒
 
-- content inventory filtering
-- topic / pillar tags
-- business intent tags
-- reusable asset status
-- better source-to-draft lineage
-- stronger “expandable” and “monetizable” signals
+### 3.4 當前狀態
 
-Why it matters:
+`大致已完成`
 
-- content should stop being treated as isolated posts
-- this phase turns the system into a reusable content asset library
+這一階段已經有相當多成果，但仍需持續維護穩定性。
 
-Definition of done:
+## 4. M2 來源與知識飛輪
 
-- the user can find reusable ideas quickly
-- the user can identify what deserves long-form treatment
-- the user can see what content is close to revenue use
+### 4.1 目標
 
-## 4. Phase C. Persona Learning
+讓系統不只是收來源，而是能穩定把外部訊號轉成你的內容候選池。
 
-Priority: P1
+核心要解的是：
 
-Core work:
+- 今天有哪些來源值得寫
+- 哪些來源是高訊號，哪些只是噪音
+- 沒有 RSS 的部落格要怎麼抓
+- 抓下來的文章如何正規化
+- 如何讓來源不只是「資訊」，而是「可再利用的題目資產」
 
-- track which hook types perform best per persona
-- track which CTA types are actually retained by the user
-- learn which source types fit which persona
-- improve routing from real outcomes, not just prompt overlap
+### 4.2 核心能力
 
-Why it matters:
+- Source Watchlist
+- Inbox / Source Quality Grading
+- RSS / site / URL mode auto-discovery
+- Feed discovery / sitemap / homepage article discovery
+- Readability-based normalization
+- candidate rationale
+- Desk 首屏的高訊號來源顯示
 
-- multiple Threads accounts only become powerful when each one gets smarter over time
+### 4.3 完成定義
 
-Definition of done:
+做到這些才算 M2 完成：
 
-- each persona has a clearer winning pattern
-- system recommendations feel less generic
-- routing becomes more accurate after repeated use
+- 使用者新增一個站點時，不用自己猜要用 RSS 還是 site mode
+- 沒有 RSS 的站也能抓到相對穩定的文章候選
+- 來源會被分成 `高可寫 / 可觀察 / 低訊號`
+- 每篇候選草稿都能說出「為什麼是這篇」
 
-## 5. Phase D. Revenue Layer
+### 4.4 當前狀態
 
-Priority: P2
+`已接近完成`
 
-Core work:
+這一段目前已經很強，下一步是把來源訊號更深地餵回 autopilot 與 review queue。
 
-- affiliate module performance notes
-- CTA usage memory
-- offer-aware content suggestions
-- monetization readiness scoring
-- stronger WordPress draft monetization scaffolds
+## 5. M3 AI 寫作與排程引擎
 
-Why it matters:
+### 5.1 目標
 
-- this product is moving toward creator-business operations, not just content drafting
+讓 AI 不只是「按一下幫你寫一篇」，而是能在可控條件下持續出稿。
 
-Definition of done:
+這段要把 AI 從單次工具，推成 `可持續的內容引擎`。
 
-- monetization blocks feel intentional
-- the user can identify which topics are more commercially viable
-- drafts are closer to business-ready before backend refinement
+### 5.2 核心能力
 
-## 6. Phase E. Operating Console
+- Compose 內建 AI 起稿
+- persona-aware generation
+- Content Engine 來源改寫
+- style memory / persona memory / playbook-aware generation
+- 每個 persona 的 autopilot 設定
+- 手動 `儲存並立即生一篇`
+- 自動 draft candidate generation
+- 自動排程時段推估
 
-Priority: P2
+### 5.3 完成定義
 
-Core work:
+做到這些才算 M3 完成：
 
-- launch-mode or campaign grouping
-- content planning by goal
-- offer-linked content view
-- simple business review layer
+- 每個 persona 都能穩定手動試跑 AI 產文
+- 每個 persona 都能切換 `draft` 或 `scheduled`
+- AI 生成內容會吃 persona、站台方向、近期來源、近期高表現內容
+- 使用者能信任 autopilot 不是亂生文
 
-Why it matters:
+### 5.4 當前狀態
 
-- this is the step that completes the transition from “tool” to “console”
+`已達第一版`
 
-Definition of done:
+第一版已具備，但還需要更強的觀測與更明確的「這篇 AI 是根據什麼產的」。
 
-- the user can see content, repurposing, and monetization as one system
-- the app supports operating a self-media business, not only publishing posts
+## 6. M4 回饋式內容優化
 
-## 7. Recommended Build Order
+### 6.1 目標
 
-1. Publish reliability
-2. WordPress backend status sync
-3. Content inventory metadata
-4. Persona learning
-5. Revenue layer
-6. Campaign / operating console features
+讓系統開始真的「學會經營」，而不是一直從零開始寫。
 
-## 8. Immediate Recommendation
+這一段的核心是：
 
-If only one thing is built next, it should be:
+- 發出去之後，系統怎麼學
+- 留言、互動、表現，怎麼變成下一篇的輸入
 
-`publish reliability + WordPress backend status sync`
+### 6.2 核心能力
 
-This is the shortest path to making the whole console feel trustworthy.
+- Analytics / rewrite radar
+- reply insights
+- optimize-from-replies
+- autopilot feedback loop
+- top post memory
+- persona-level analytics
+- persona routing from content fit
+
+### 6.3 完成定義
+
+做到這些才算 M4 完成：
+
+- 系統能從留言中整理出可操作洞察
+- 系統能根據留言生成 follow-up draft
+- autopilot 不再只是照 persona 固定出稿，而是會參考最近有效內容
+- 使用者能清楚知道不同 persona 現在更適合怎麼寫
+
+### 6.4 當前狀態
+
+`已啟動，但仍需加深`
+
+這一段最值得繼續推，因為它會直接讓 AI 越跑越像真的在幫你經營。
+
+## 7. M5 自媒體創業者經營中台
+
+### 7.1 目標
+
+讓產品從 `AI 內容生產系統` 升級成 `自媒體創業者經營系統`。
+
+這一段不只管文章，還要開始管：
+
+- 題材資產
+- 商業機會
+- 長文沉澱
+- 內容支柱
+- 變現結構
+
+### 7.2 核心能力
+
+- Inventory stage view
+- monetizable / expandable classification
+- affiliate slot library
+- WordPress archive rewrite
+- WordPress style learning
+- site-level editorial direction
+- campaign / pillar / offer-aware planning
+
+### 7.3 完成定義
+
+做到這些才算 M5 完成：
+
+- 使用者不只是在發文，而是在經營自己的內容庫存
+- 高表現內容能被沉澱成長文資產
+- 商業位與 CTA 不再是手動每篇重做
+- 系統開始有「這題值不值得變成生意資產」的能力
+
+### 7.4 當前狀態
+
+`已建立雛形`
+
+WordPress、affiliate library、inventory 已經在這條路上，但還沒有完全收斂成成熟的經營中台。
+
+## 8. Recommended Build Order
+
+如果接下來照里程碑順序持續推，我建議這樣排：
+
+1. `M3 補穩`
+   把 autopilot 的可觀測性、成功率、candidate 透明度再補強
+2. `M4 做深`
+   把留言洞察、表現回饋、follow-up draft 變得更像真正的內容學習回路
+3. `M5 收斂`
+   把 content inventory、WordPress 沉澱、monetization 結構真正收成經營中台
+
+## 9. Four-Week Suggested Focus
+
+### Week 1
+
+主題：
+`Autopilot reliability and visibility`
+
+重點：
+
+- 明確顯示 autopilot 成功 / 失敗原因
+- 顯示 autopilot 這篇是根據哪些來源與哪些高表現內容生成
+- 讓 review queue 更明確區分手動稿與自動稿
+
+### Week 2
+
+主題：
+`Feedback-driven rewriting`
+
+重點：
+
+- 留言洞察更穩定
+- follow-up draft 更像原 persona
+- 讓高表現 Threads 的改寫路徑更短
+
+### Week 3
+
+主題：
+`Knowledge and archive leverage`
+
+重點：
+
+- 強化 WordPress archive reuse
+- 強化內容模板與知識沉澱
+- 把來源、舊文、Threads 勝利內容收成更清楚的題材資產
+
+### Week 4
+
+主題：
+`Monetization-aware operating layer`
+
+重點：
+
+- 更完整的 CTA / affiliate injection strategy
+- 更清楚的 monetizable content signals
+- 開始把內容與商業目標連起來
+
+## 10. Current Highest-Value Bet
+
+如果只選一個現在最值得做的方向，我會押：
+
+`把 autopilot 產文做成可觀測、可理解、可持續優化的內容引擎`
+
+因為一旦這條線穩了，你整個產品就不只是工具，而會開始真的像：
+
+`一位自媒體創業者的 AI 經營系統`
