@@ -3,6 +3,7 @@ import { inferBestScheduleTime } from "@/lib/automation/autopilot-timing";
 import { prisma } from "@/lib/prisma";
 import { buildAccountStyleMemory } from "@/lib/ai/style-memory";
 import { buildEditorialMemoryPrompt } from "@/lib/content/editorial-presets";
+import { classifySourceKnowledgeLane, scoreSourceItem } from "@/lib/content/source-inbox";
 import { getPlatformAdapter } from "@/lib/platforms";
 
 const AUTOMATION_TIMEZONE = "Asia/Taipei";
@@ -198,43 +199,83 @@ async function buildAutopilotFeedbackMemory(input: {
 }
 
 async function buildRecentSourceMemory(userId: string) {
-  const ingestions = await prisma.ingestionRecord.findMany({
+  const watchedSources = await prisma.sourceWatch.findMany({
     where: {
       userId,
-      sourceUrl: {
+      isActive: true,
+      lastItemTitle: {
         not: null
       }
     },
     orderBy: {
-      createdAt: "desc"
+      updatedAt: "desc"
     },
-    take: 3
+    take: 10
   });
 
-  if (!ingestions.length) {
+  if (!watchedSources.length) {
     return "";
   }
 
-  const lines = ingestions
-    .map((item, index) => {
-      const title = item.title?.trim() || "未命名來源";
-      const snippet = squeezeText(item.rawText || "", 140);
-      if (!snippet) {
-        return "";
-      }
+  const lines = watchedSources
+    .map((item) => {
+      const title = item.lastItemTitle?.trim() || item.label.trim() || "未命名來源";
+      const excerpt = item.lastExcerpt?.trim() || "";
+      const snippet = squeezeText(excerpt, 150);
+      if (!snippet) return null;
 
-      return `${index + 1}. ${title}\n來源訊號：${snippet}`;
+      const score = scoreSourceItem({
+        title,
+        excerpt,
+        sourceType: item.sourceType,
+        importCount: item.importCount,
+        skipCount: item.skipCount,
+        threadsPickCount: item.threadsPickCount,
+        wordpressPickCount: item.wordpressPickCount
+      });
+      const lane = classifySourceKnowledgeLane({
+        title,
+        excerpt,
+        sourceType: item.sourceType,
+        preferredOutcome: item.preferredOutcome
+      });
+      const strongestSignal = Math.max(score.threadsScore, score.wordpressScore, score.commercialScore);
+
+      return {
+        title,
+        snippet,
+        lane,
+        score,
+        strength: strongestSignal
+      };
     })
-    .filter(Boolean);
+    .filter(
+      (
+        item
+      ): item is {
+        title: string;
+        snippet: string;
+        lane: ReturnType<typeof classifySourceKnowledgeLane>;
+        score: ReturnType<typeof scoreSourceItem>;
+        strength: number;
+      } => Boolean(item)
+    )
+    .sort((left, right) => right.strength - left.strength)
+    .slice(0, 3)
+    .map((item, index) => {
+      const leadReason = item.score.reasons[0] || item.lane.instruction;
+      return `${index + 1}. [${item.lane.label}] ${item.title}\n來源訊號：${item.snippet}\n選題理由：${leadReason}`;
+    });
 
   if (!lines.length) {
     return "";
   }
 
   return [
-    "最近來源題目庫：",
+    "最近高優先來源題目庫：",
     ...lines,
-    "如果今天要自動生一篇，優先承接這些來源裡最值得延伸的角度，不要像跟來源無關的空泛日更。"
+    "如果今天要自動生一篇，請優先承接這些來源裡最值得延伸的角度。",
+    "看到 [快節奏快評] 就偏結論先行；看到 [深度拆解] 就偏觀點拆解；看到 [長期沉澱] 就偏可累積的知識型內容。"
   ].join("\n");
 }
 

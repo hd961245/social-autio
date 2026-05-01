@@ -9,6 +9,12 @@ export type SourceInboxScore = {
   memoryNote?: string;
 };
 
+export type SourceKnowledgeLane = {
+  lane: "news-fast" | "deep-dive" | "knowledge-bank";
+  label: string;
+  instruction: string;
+};
+
 export type PersonaRoutingCandidate = {
   id: string;
   username: string;
@@ -181,6 +187,48 @@ export function scoreSourceItem(input: {
     recommendation,
     reasons: reasons.slice(0, 3),
     memoryNote: memory.note
+  };
+}
+
+export function classifySourceKnowledgeLane(input: {
+  title: string;
+  excerpt: string;
+  sourceType: string;
+  preferredOutcome?: string | null;
+}) : SourceKnowledgeLane {
+  const text = `${input.title} ${input.excerpt}`.toLowerCase();
+  const hasHowTo = /(如何|怎麼|教學|指南|懶人包|步驟|攻略|guide|checklist)/i.test(text);
+  const hasPerspective = /(為什麼|其實|我認為|觀點|你會發現|重點不是|真正的問題|拆解)/i.test(text);
+  const hasSignal = /(最新|快訊|公布|升息|降息|財報|盤中|收盤|headline|breaking|市場|台股|美股|利率)/i.test(text);
+
+  if (input.preferredOutcome === "wordpress" || hasHowTo) {
+    return {
+      lane: "knowledge-bank",
+      label: "長期沉澱",
+      instruction: "這類來源更適合整理成可反覆引用的知識型內容，先抓框架、步驟或可教學的部分。"
+    };
+  }
+
+  if (input.sourceType === "site" || hasPerspective) {
+    return {
+      lane: "deep-dive",
+      label: "深度拆解",
+      instruction: "這類來源適合先抽正文主體，再轉成有觀點、有拆解感的 Threads 或長文底稿。"
+    };
+  }
+
+  if (hasSignal || input.sourceType === "rss") {
+    return {
+      lane: "news-fast",
+      label: "快節奏快評",
+      instruction: "這類來源適合做快速結論、情境判斷或市場快評，第一句要直接給觀點。"
+    };
+  }
+
+  return {
+    lane: "deep-dive",
+    label: "深度拆解",
+    instruction: "這類來源先當作可延伸的觀點素材處理，避免寫成空泛快訊。"
   };
 }
 
