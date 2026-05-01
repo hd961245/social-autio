@@ -32,76 +32,6 @@ type AccountPersona = {
   }>;
 };
 
-function MiniBarChart({ items }: { items: Array<{ label: string; value: number }> }) {
-  const max = Math.max(1, ...items.map((item) => item.value));
-
-  if (items.length === 0) {
-    return <p className="text-sm text-[var(--muted)]">還沒有足夠的已發布資料來推估較好的發文時段。</p>;
-  }
-
-  return (
-    <div className="space-y-3">
-      {items.map((item) => (
-        <div key={item.label} className="grid grid-cols-[56px_1fr_72px] items-center gap-3 text-sm">
-          <span className="text-[var(--muted)]">{item.label}</span>
-          <div className="h-3 overflow-hidden rounded-full bg-[var(--surface)]">
-            <div className="h-full rounded-full bg-[var(--accent)]" style={{ width: `${(item.value / max) * 100}%` }} />
-          </div>
-          <span className="text-right font-medium text-[var(--foreground)]">{item.value}</span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function MiniLineChart({ items }: { items: Array<{ label: string; value: number }> }) {
-  if (items.length === 0) {
-    return <p className="text-sm text-[var(--muted)]">還沒有 autopilot 執行資料。</p>;
-  }
-
-  const width = 300;
-  const height = 96;
-  const max = Math.max(1, ...items.map((item) => item.value));
-  const min = Math.min(...items.map((item) => item.value));
-  const spread = Math.max(1, max - min);
-
-  const points = items
-    .map((item, index) => {
-      const x = (index / Math.max(items.length - 1, 1)) * (width - 16) + 8;
-      const y = height - 12 - ((item.value - min) / spread) * (height - 24);
-      return `${x},${y}`;
-    })
-    .join(" ");
-
-  return (
-    <div className="space-y-3">
-      <svg viewBox={`0 0 ${width} ${height}`} className="h-28 w-full">
-        <polyline
-          fill="none"
-          stroke="var(--accent)"
-          strokeWidth="3"
-          strokeLinejoin="round"
-          strokeLinecap="round"
-          points={points}
-        />
-        {items.map((item, index) => {
-          const x = (index / Math.max(items.length - 1, 1)) * (width - 16) + 8;
-          const y = height - 12 - ((item.value - min) / spread) * (height - 24);
-          return <circle key={item.label} cx={x} cy={y} r="4" fill="var(--card-dark)" />;
-        })}
-      </svg>
-      <div className="grid grid-cols-3 gap-2 text-xs text-[var(--muted)]">
-        {items.map((item) => (
-          <div key={item.label} className="rounded-2xl border border-[var(--border)] bg-white px-3 py-2">
-            <p>{item.label}</p>
-            <p className="mt-1 font-medium text-[var(--foreground)]">{item.value}</p>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 export function AccountPersonaManager({ accounts }: { accounts: AccountPersona[] }) {
   const [localAccounts, setLocalAccounts] = useState(accounts);
   const [message, setMessage] = useState<string | null>(null);
@@ -154,11 +84,10 @@ export function AccountPersonaManager({ accounts }: { accounts: AccountPersona[]
         {localAccounts
           .filter((account) => account.platform === "threads")
           .map((account, index) => {
-            const autopilotTrend = [
-              { label: "Runs", value: account.autopilotRunCount },
-              { label: "Posts", value: account.recentPublishedCount },
-              { label: "Score", value: account.recentAverageScore }
-            ];
+            const bestHour =
+              account.hourlyBars.length > 0
+                ? [...account.hourlyBars].sort((left, right) => right.value - left.value)[0] ?? null
+                : null;
 
             return (
               <article key={account.id} className="rounded-[1.6rem] border border-[var(--border)] bg-white/80 p-5">
@@ -219,10 +148,21 @@ export function AccountPersonaManager({ accounts }: { accounts: AccountPersona[]
                         <p className="text-[11px] uppercase tracking-[0.2em] text-[var(--muted)]">Schedule Read</p>
                         <h4 className="mt-2 text-lg font-semibold">建議時段分佈</h4>
                       </div>
-                      <p className="text-sm text-[var(--muted)]">一定有數字，不只憑感覺</p>
+                      <p className="text-sm text-[var(--muted)]">用數字看，不用圖猜</p>
                     </div>
-                    <div className="mt-4">
-                      <MiniBarChart items={account.hourlyBars} />
+                    <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                      <div className="rounded-[1rem] border border-[var(--border)] bg-white px-4 py-3">
+                        <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--muted)]">最佳時段</p>
+                        <p className="mt-2 text-2xl font-semibold">{bestHour?.label ?? "--"}</p>
+                      </div>
+                      <div className="rounded-[1rem] border border-[var(--border)] bg-white px-4 py-3">
+                        <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--muted)]">最佳訊號值</p>
+                        <p className="mt-2 text-2xl font-semibold">{bestHour?.value ?? 0}</p>
+                      </div>
+                      <div className="rounded-[1rem] border border-[var(--border)] bg-white px-4 py-3">
+                        <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--muted)]">可參考時段數</p>
+                        <p className="mt-2 text-2xl font-semibold">{account.hourlyBars.length}</p>
+                      </div>
                     </div>
                     <p className="mt-4 text-sm text-[var(--muted)]">{account.recommendedScheduleDetail ?? "目前資料還不夠，先用保守預設時段。"}</p>
                   </div>
@@ -237,8 +177,19 @@ export function AccountPersonaManager({ accounts }: { accounts: AccountPersona[]
                         {account.lastAutopilotAt ? `最後一次 ${account.lastAutopilotAt}` : "尚未試跑"}
                       </p>
                     </div>
-                    <div className="mt-4">
-                      <MiniLineChart items={autopilotTrend} />
+                    <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                      <div className="rounded-[1rem] border border-[var(--border)] bg-white px-4 py-3">
+                        <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--muted)]">Runs</p>
+                        <p className="mt-2 text-2xl font-semibold">{account.autopilotRunCount}</p>
+                      </div>
+                      <div className="rounded-[1rem] border border-[var(--border)] bg-white px-4 py-3">
+                        <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--muted)]">Posts</p>
+                        <p className="mt-2 text-2xl font-semibold">{account.recentPublishedCount}</p>
+                      </div>
+                      <div className="rounded-[1rem] border border-[var(--border)] bg-white px-4 py-3">
+                        <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--muted)]">Score</p>
+                        <p className="mt-2 text-2xl font-semibold">{account.recentAverageScore}</p>
+                      </div>
                     </div>
                   </div>
                 </div>
