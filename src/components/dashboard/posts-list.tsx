@@ -427,7 +427,7 @@ export function PostsList({ posts }: { posts: PostSummary[] }) {
 
                 <div className="flex flex-col items-start gap-2">
                   {selectable ? (
-                    <a href={`/compose?postId=${post.id}&workspace=review`} className="rounded-full border border-[var(--border)] bg-white px-3 py-1.5 text-xs">
+                    <a href={`/review/${post.id}`} className="rounded-full border border-[var(--border)] bg-white px-3 py-1.5 text-xs">
                       編輯
                     </a>
                   ) : post.platform === "threads" && post.status === "published" ? (

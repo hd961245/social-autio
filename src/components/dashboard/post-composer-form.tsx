@@ -192,6 +192,7 @@ export function PostComposerForm({
   const [assignment, setAssignment] = useState(reviewContext?.nextAction ?? "");
   const [assignmentGoal, setAssignmentGoal] = useState("先生成一版可確認、可直接修的 Threads 草稿");
   const [assignmentOptimize, setAssignmentOptimize] = useState("hook、觀點、CTA");
+  const [reviewDraftReady, setReviewDraftReady] = useState(!isReviewWorkspace);
 
   const selectedAccount = accounts.find((account) => account.id === accountId);
   const isWordPress = selectedAccount?.platform === "wordpress";
@@ -262,6 +263,7 @@ export function PostComposerForm({
     setAiBrief(assignment || aiBrief);
     setAiGoal(assignmentGoal || aiGoal);
     setAiOptimizeFor(assignmentOptimize || aiOptimizeFor);
+    setReviewDraftReady(true);
     setAiMessage(`已依 assignment 生成一版新的 Threads 草稿。Provider: ${result.provider}`);
     setAiMessageTone("success");
   }
@@ -528,6 +530,7 @@ export function PostComposerForm({
                         onClick={() => {
                           setTitle(initialDraft.title);
                           setText(initialDraft.text);
+                          setReviewDraftReady(true);
                           setAiMessage("已把候選稿原文帶進編輯區，你可以直接手修。");
                           setAiMessageTone("success");
                         }}
@@ -540,6 +543,16 @@ export function PostComposerForm({
               </div>
             </div>
           ) : null}
+          {isReviewWorkspace && !reviewDraftReady ? (
+            <div className="rounded-3xl border border-[var(--border)] bg-[rgba(255,252,248,0.92)] p-5 text-sm text-[var(--muted)]">
+              <p className="text-[11px] uppercase tracking-[0.24em] text-[var(--muted)]">Step 2</p>
+              <p className="mt-2 text-base font-medium text-[var(--foreground)]">先在上方做 assignment，再打開真正的編輯區。</p>
+              <p className="mt-2 leading-7">
+                這裡先不展開發布表單，避免候選稿還沒整理方向就直接掉進發文區。等你按下「依 Assignment 生成 Threads 草稿」或「直接帶入編輯區」，下面的編輯與發布區才會打開。
+              </p>
+            </div>
+          ) : null}
+          <div className={isReviewWorkspace && !reviewDraftReady ? "hidden" : "space-y-4"}>
           {!initialDraft && initialSeed ? (
             <div className="rounded-3xl border border-[var(--border-strong)] bg-[var(--accent-soft)] p-4 text-sm text-[var(--foreground)]">
               已帶入一篇已發布內容作為新稿底本。這次會建立新的 Threads 草稿，不會回寫原本那篇。
@@ -1054,6 +1067,7 @@ export function PostComposerForm({
               ) : null}
             </div>
           ) : null}
+          </div>
         </form>
         <section className="grid gap-4 md:grid-cols-3">
           <article className="rounded-3xl border border-[var(--border)] bg-white/82 p-4">

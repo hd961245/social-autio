@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 
 type InboxItem = {
   id: string;
@@ -28,6 +29,7 @@ type InboxItem = {
 };
 
 export function SourceInbox({ initialItems }: { initialItems: InboxItem[] }) {
+  const router = useRouter();
   const [items, setItems] = useState(initialItems);
   const [statusFilter, setStatusFilter] = useState<"all" | "new" | "imported" | "skipped">("new");
   const [laneFilter, setLaneFilter] = useState<"all" | "official" | "deep" | "fast" | "knowledge">("all");
@@ -237,10 +239,7 @@ export function SourceInbox({ initialItems }: { initialItems: InboxItem[] }) {
                         ? result.generatedDrafts.find((draft: { platform: string }) => draft.platform === "threads") ?? result.generatedDrafts[0]
                         : null;
                       if (firstDraft?.id) {
-                        setLastAction({
-                          href: `/compose?postId=${firstDraft.id}`,
-                          label: "打開這篇 Threads 草稿"
-                        });
+                        router.push(`/review/${firstDraft.id}`);
                       } else if (!result.duplicated) {
                         setLastAction({
                           href: "/desk?tab=queue",

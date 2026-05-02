@@ -35,6 +35,7 @@ type AccountPersona = {
 export function AccountPersonaManager({ accounts }: { accounts: AccountPersona[] }) {
   const [localAccounts, setLocalAccounts] = useState(accounts);
   const [message, setMessage] = useState<string | null>(null);
+  const [lastAction, setLastAction] = useState<null | { href: string; label: string }>(null);
   const [busyKey, setBusyKey] = useState<string | null>(null);
   const [openAdvancedIds, setOpenAdvancedIds] = useState<Record<string, boolean>>({});
 
@@ -409,6 +410,7 @@ export function AccountPersonaManager({ accounts }: { accounts: AccountPersona[]
                     onClick={async () => {
                       setBusyKey(`save:${account.id}`);
                       setMessage(null);
+                      setLastAction(null);
 
                       try {
                         const { ok, result } = await savePersonaSettings(localAccounts[index] ?? account);
@@ -429,6 +431,7 @@ export function AccountPersonaManager({ accounts }: { accounts: AccountPersona[]
                     onClick={async () => {
                       setBusyKey(`run:${account.id}`);
                       setMessage(null);
+                      setLastAction(null);
 
                       try {
                         const currentAccount = localAccounts[index] ?? account;
@@ -471,6 +474,22 @@ export function AccountPersonaManager({ accounts }: { accounts: AccountPersona[]
                             ? `已替 ${account.username} 產出一篇文，並排進 ${result.result?.scheduledForLabel ?? "即刻"} 的佇列。`
                             : `已替 ${account.username} 補了 ${result.result?.createdCount ?? 1} 篇候選稿到總表。`
                         );
+                        if (result.result?.postStatus === "scheduled") {
+                          setLastAction({
+                            href: "/desk?tab=queue",
+                            label: "去 Queue 看排程"
+                          });
+                        } else if (result.result?.postId) {
+                          setLastAction({
+                            href: `/review/${result.result.postId}`,
+                            label: "進這篇 Threads 確認區"
+                          });
+                        } else if (result.result?.createdCount) {
+                          setLastAction({
+                            href: "/desk?tab=queue",
+                            label: "去 Queue 看候選稿"
+                          });
+                        }
                       } catch (error) {
                         setMessage(error instanceof Error ? error.message : "立即試跑失敗");
                       } finally {
@@ -495,7 +514,16 @@ export function AccountPersonaManager({ accounts }: { accounts: AccountPersona[]
         ) : null}
       </div>
 
-      {message ? <p className="mt-4 text-sm text-[var(--muted)]">{message}</p> : null}
+      {message ? (
+        <div className="mt-4 space-y-2 text-sm text-[var(--muted)]">
+          <p>{message}</p>
+          {lastAction ? (
+            <a href={lastAction.href} className="inline-flex font-medium text-[var(--accent)] underline underline-offset-4">
+              {lastAction.label}
+            </a>
+          ) : null}
+        </div>
+      ) : null}
     </section>
   );
 }

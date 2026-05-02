@@ -478,8 +478,8 @@ export default async function DeskPage({
                       <a href="/desk?tab=queue" className="rounded-full bg-[var(--card-dark)] px-4 py-2 text-sm text-white">
                         去 Queue 直接發
                       </a>
-                      <a href={`/compose?postId=${post.id}`} className="rounded-full border border-[var(--border)] bg-white px-4 py-2 text-sm">
-                        最後修一下
+                      <a href={`/review/${post.id}`} className="rounded-full border border-[var(--border)] bg-white px-4 py-2 text-sm">
+                        進確認區
                       </a>
                     </div>
                   </article>
@@ -518,8 +518,8 @@ export default async function DeskPage({
                       </p>
                     )}
                     <div className="mt-4 flex flex-wrap gap-2">
-                      <a href={`/compose?postId=${post.id}`} className="rounded-full border border-[var(--border)] bg-white px-4 py-2 text-sm">
-                        打開草稿
+                      <a href={`/review/${post.id}`} className="rounded-full border border-[var(--border)] bg-white px-4 py-2 text-sm">
+                        進確認區
                       </a>
                       <a href="/desk?tab=queue" className="rounded-full bg-[var(--card-dark)] px-4 py-2 text-sm text-white">
                         去 Queue 決定
@@ -622,7 +622,7 @@ export default async function DeskPage({
             platform: draft.account.platform,
             title: draft.title ?? draft.textContent ?? "未命名草稿",
             status: draft.status,
-            href: `/compose?postId=${draft.id}`
+            href: draft.account.platform === "threads" ? `/review/${draft.id}` : `/compose?postId=${draft.id}`
           }))}
         />
       ) : null}
