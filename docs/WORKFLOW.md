@@ -4,6 +4,10 @@
 > Updated: 2026-04-16  
 > Scope: Daily operating workflow for a self-media entrepreneur using multiple Threads personas and WordPress drafts
 
+For the full UX-oriented workflow spec, also see:
+
+`docs/USER_WORKFLOW_SPEC.md`
+
 ## 1. Workflow Goal
 
 This product is not meant to be used as a set of disconnected pages.
@@ -51,6 +55,9 @@ There are three valid entry points:
 - `Compose`
   when the idea is already clear and you want to write directly
 
+When a user is starting from a candidate draft or queue item, they should not skip directly into final publishing.
+They should first go through a `Review Workspace` step to define assignment and generate a publishable version.
+
 ## 3. Source Workflow
 
 Use this path when starting from outside content.
@@ -95,7 +102,18 @@ The system is optimizing for:
 
 Use this path when the main goal is fast testing, reach, or iteration.
 
-`Inbox / Engine -> Compose -> Publish or Schedule -> Analytics`
+`Inbox / Engine / Review Workspace -> Compose -> Publish or Schedule -> Analytics`
+
+### 4.0 Review Workspace Rule
+
+When entering from `Queue`, `Inbox`, or other candidate surfaces:
+
+1. inspect the original candidate
+2. define assignment / goal / optimization target
+3. let AI generate a publishable draft
+4. then move into final compose
+
+This avoids dropping raw candidate drafts directly into the publish form too early.
 
 ### 4.1 Compose For Threads
 

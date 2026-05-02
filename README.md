@@ -13,6 +13,7 @@ Threads-first 自媒體創業者管理中台。
 - Persistence + Automation: [docs/PERSISTENCE_AND_AUTOMATION.md](./docs/PERSISTENCE_AND_AUTOMATION.md)
 - Deploy / Recovery: [docs/ZEABUR.md](./docs/ZEABUR.md)
 - Workflow SOP: [docs/WORKFLOW.md](./docs/WORKFLOW.md)
+- User Workflow Spec: [docs/USER_WORKFLOW_SPEC.md](./docs/USER_WORKFLOW_SPEC.md)
 - Knowledge Ingestion Plan: [docs/KNOWLEDGE_INGESTION.md](./docs/KNOWLEDGE_INGESTION.md)
 - Current focus: Threads publishing + WordPress draft studio + Content Desk + Content Inventory
 - Stack: Next.js App Router, TypeScript, Tailwind CSS, Prisma, PostgreSQL, Inngest

@@ -7,6 +7,8 @@
 
 ## 1. 產品定位
 
+> UX / 使用者流程基準請同時參考：`docs/USER_WORKFLOW_SPEC.md`
+
 ### 1.1 一句話定位
 
 Social Audio 是一個給 `自媒體創業者` 使用的 `AI 內容經營中台`。
@@ -257,6 +259,18 @@ AI 的角色是：
 ### 6.5 無腦使用者路徑
 
 這個產品的主線不能讓使用者一直切頁思考。
+
+理想主流程應明確收斂成：
+
+`Desk -> 選題 -> Review Workspace -> AI 生成可發版 -> Compose 最後確認 -> 發布 / 排程 -> 復盤 -> WordPress 沉澱`
+
+這代表：
+
+- `Desk` 是每日決策入口
+- `Inbox / Queue` 是選題與候選稿入口
+- `Review Workspace` 是 assignment 與 AI 編輯確認區
+- `Compose` 是最後一哩，不應該太早承接原始候選稿
+- `WordPress` 是長文沉澱草稿台，不是即時發佈入口
 
 對一位自媒體創業者來說，最理想的無腦路徑應該是：
 
