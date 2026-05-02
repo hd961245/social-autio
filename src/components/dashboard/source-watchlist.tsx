@@ -60,6 +60,8 @@ export function SourceWatchlist({ initialItems }: { initialItems: SourceItem[] }
   const [preferredOutcome, setPreferredOutcome] = useState<"threads" | "wordpress">("threads");
   const [message, setMessage] = useState<string | null>(null);
   const [busySourceId, setBusySourceId] = useState<string | null>(null);
+  const [busyActionId, setBusyActionId] = useState<string | null>(null);
+  const [lastAction, setLastAction] = useState<null | { href: string; label: string }>(null);
   const [discovery, setDiscovery] = useState<{
     recommendedType: "rss" | "site" | "url";
     message: string;
@@ -90,6 +92,18 @@ export function SourceWatchlist({ initialItems }: { initialItems: SourceItem[] }
     if (status === "imported") return "border-emerald-200 bg-emerald-50 text-emerald-700";
     if (status === "skipped") return "border-stone-200 bg-stone-100 text-stone-700";
     return "border-amber-200 bg-amber-50 text-amber-700";
+  }
+
+  function getBusyLabel(itemId: string, action: "toggle" | "refresh" | "rewrite" | "skip" | "delete") {
+    if (busyActionId !== `${itemId}:${action}`) {
+      return null;
+    }
+
+    if (action === "toggle") return "更新中...";
+    if (action === "refresh") return "刷新中...";
+    if (action === "rewrite") return "改寫中...";
+    if (action === "skip") return "略過中...";
+    return "刪除中...";
   }
 
   return (
@@ -446,7 +460,16 @@ export function SourceWatchlist({ initialItems }: { initialItems: SourceItem[] }
             ) : null}
           </article>
         ) : null}
-        {message ? <p className="mt-4 text-sm text-[var(--muted)]">{message}</p> : null}
+        {message ? (
+          <div className="mt-4 space-y-2">
+            <p className="text-sm text-[var(--muted)]">{message}</p>
+            {lastAction ? (
+              <a href={lastAction.href} className="inline-flex text-sm font-medium text-[var(--accent)]">
+                {lastAction.label}
+              </a>
+            ) : null}
+          </div>
+        ) : null}
       </section>
 
       <section className="glass-panel rounded-[2rem] border border-[var(--border)] p-6">
@@ -526,11 +549,13 @@ export function SourceWatchlist({ initialItems }: { initialItems: SourceItem[] }
                     </a>
                   ) : null}
                   <button
-                    disabled={isPending}
+                    disabled={isPending || Boolean(busyActionId)}
                     className="rounded-full border border-[var(--border)] bg-white px-4 py-2 text-sm"
-                    onClick={() =>
-                      startTransition(async () => {
+                    onClick={async () => {
+                      try {
+                        setBusyActionId(`${item.id}:toggle`);
                         setMessage(null);
+                        setLastAction(null);
                         const response = await fetch(`/api/sources/${item.id}`, {
                           method: "PATCH",
                           headers: { "Content-Type": "application/json" },
@@ -549,17 +574,21 @@ export function SourceWatchlist({ initialItems }: { initialItems: SourceItem[] }
                           )
                         );
                         setMessage(item.autoImportEnabled ? "已改成手動匯入。" : "已開啟每日自動匯入。");
-                      })
-                    }
+                      } finally {
+                        setBusyActionId(null);
+                      }
+                    }}
                   >
-                    {item.autoImportEnabled ? "改成手動" : "開啟日更"}
+                    {getBusyLabel(item.id, "toggle") ?? (item.autoImportEnabled ? "改成手動" : "開啟日更")}
                   </button>
                   <button
-                    disabled={isPending}
+                    disabled={isPending || Boolean(busyActionId)}
                     className="rounded-full border border-[var(--border)] bg-white px-4 py-2 text-sm"
-                    onClick={() =>
-                      startTransition(async () => {
+                    onClick={async () => {
+                      try {
+                        setBusyActionId(`${item.id}:refresh`);
                         setMessage(null);
+                        setLastAction(null);
                         const response = await fetch(`/api/sources/${item.id}/refresh`, { method: "POST" });
                         const result = await response.json();
 
@@ -584,17 +613,21 @@ export function SourceWatchlist({ initialItems }: { initialItems: SourceItem[] }
                           )
                         );
                         setMessage(`已刷新 ${item.label}`);
-                      })
-                    }
+                      } finally {
+                        setBusyActionId(null);
+                      }
+                    }}
                   >
-                    刷新來源
+                    {getBusyLabel(item.id, "refresh") ?? "刷新來源"}
                   </button>
                   <button
-                    disabled={isPending}
+                    disabled={isPending || Boolean(busyActionId)}
                     className="rounded-full bg-[var(--accent)] px-4 py-2 text-sm text-white"
-                    onClick={() =>
-                      startTransition(async () => {
+                    onClick={async () => {
+                      try {
+                        setBusyActionId(`${item.id}:rewrite`);
                         setMessage(null);
+                        setLastAction(null);
                         const response = await fetch(`/api/sources/${item.id}/refresh`, { method: "PUT" });
                         const result = await response.json();
 
@@ -623,17 +656,33 @@ export function SourceWatchlist({ initialItems }: { initialItems: SourceItem[] }
                             ? "最近幾篇都處理過了，這次不重複建草稿。"
                             : "已從來源挑出值得寫的內容，去總表就能直接看候選稿。"
                         );
-                      })
-                    }
+                        const firstDraft = Array.isArray(result.generatedDrafts) ? result.generatedDrafts[0] : null;
+                        if (firstDraft?.id) {
+                          setLastAction({
+                            href: `/compose?postId=${firstDraft.id}`,
+                            label: firstDraft.platform === "wordpress" ? "打開這篇 WordPress 草稿" : "打開這篇 Threads 草稿"
+                          });
+                        } else if (!result.duplicated) {
+                          setLastAction({
+                            href: "/desk?tab=queue",
+                            label: "去 Queue 看候選稿"
+                          });
+                        }
+                      } finally {
+                        setBusyActionId(null);
+                      }
+                    }}
                   >
-                    一鍵改寫
+                    {getBusyLabel(item.id, "rewrite") ?? "一鍵改寫"}
                   </button>
                   <button
-                    disabled={isPending}
+                    disabled={isPending || Boolean(busyActionId)}
                     className="rounded-full border border-[var(--border)] bg-white px-4 py-2 text-sm"
-                    onClick={() =>
-                      startTransition(async () => {
+                    onClick={async () => {
+                      try {
+                        setBusyActionId(`${item.id}:skip`);
                         setMessage(null);
+                        setLastAction(null);
                         const response = await fetch(`/api/sources/${item.id}`, {
                           method: "PATCH",
                           headers: { "Content-Type": "application/json" },
@@ -652,22 +701,26 @@ export function SourceWatchlist({ initialItems }: { initialItems: SourceItem[] }
                           )
                         );
                         setMessage("已標記為先略過。");
-                      })
-                    }
+                      } finally {
+                        setBusyActionId(null);
+                      }
+                    }}
                   >
-                    先略過
+                    {getBusyLabel(item.id, "skip") ?? "先略過"}
                   </button>
                   <button
-                    disabled={isPending || busySourceId === item.id}
+                    disabled={isPending || busySourceId === item.id || Boolean(busyActionId)}
                     className="rounded-full border border-rose-200 bg-white px-4 py-2 text-sm text-rose-700"
                     onClick={async () => {
                       if (!window.confirm(`要刪除來源「${item.label}」嗎？`)) {
                         return;
                       }
 
+                      setBusyActionId(`${item.id}:delete`);
                       setBusySourceId(item.id);
                       try {
                         setMessage(null);
+                        setLastAction(null);
                         const response = await fetch(`/api/sources/${item.id}`, {
                           method: "DELETE"
                         });
@@ -682,10 +735,11 @@ export function SourceWatchlist({ initialItems }: { initialItems: SourceItem[] }
                         setMessage(result.message ?? "已刪除來源。");
                       } finally {
                         setBusySourceId(null);
+                        setBusyActionId(null);
                       }
                     }}
                   >
-                    {busySourceId === item.id ? "刪除中..." : "刪除來源"}
+                    {getBusyLabel(item.id, "delete") ?? "刪除來源"}
                   </button>
                 </div>
               </div>
