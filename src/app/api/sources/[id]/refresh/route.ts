@@ -102,6 +102,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     }
 
     let generatedDraftCount = 0;
+    const generatedDrafts: Array<{ id: string; platform: "threads" | "wordpress"; title: string; status: "draft" }> = [];
     const hydratedItems = await Promise.all(selectedItems.map((item) => hydrateSourceCandidate(item)));
     for (const item of hydratedItems) {
       const result = await ingestAndGenerateDrafts({
@@ -115,6 +116,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
         sourceNote: item.rationale
       });
       generatedDraftCount += result.generatedDrafts.length;
+      generatedDrafts.push(...result.generatedDrafts);
     }
 
     await prisma.sourceWatch.update({
@@ -153,6 +155,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
           ? `已從來源挑出 ${selectedItems.length} 篇，建立成待確認的 Threads 候選稿。`
           : `已從來源建立 ${selectedItems.length} 篇 WordPress 草稿。`,
       generatedDraftCount,
+      generatedDrafts,
       picked: selectedItems.length,
       preview,
       selectedItems: hydratedItems.map((item) => ({

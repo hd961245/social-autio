@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useState } from "react";
 
 type InboxItem = {
   id: string;
@@ -33,7 +33,8 @@ export function SourceInbox({ initialItems }: { initialItems: InboxItem[] }) {
   const [laneFilter, setLaneFilter] = useState<"all" | "official" | "deep" | "fast" | "knowledge">("all");
   const [query, setQuery] = useState("");
   const [message, setMessage] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
+  const [busyActionId, setBusyActionId] = useState<string | null>(null);
+  const [lastAction, setLastAction] = useState<null | { href: string; label: string }>(null);
 
   const visibleItems = useMemo(() => {
     const normalized = query.trim().toLowerCase();
@@ -69,6 +70,16 @@ export function SourceInbox({ initialItems }: { initialItems: InboxItem[] }) {
     if (tier === "high") return "bg-emerald-100 text-emerald-700";
     if (tier === "watch") return "bg-[var(--accent-soft)] text-[var(--accent-strong)]";
     return "bg-stone-200 text-stone-700";
+  }
+
+  function getBusyLabel(itemId: string, action: "threads" | "wordpress" | "skip") {
+    if (busyActionId !== `${itemId}:${action}`) {
+      return null;
+    }
+
+    if (action === "threads") return "建立中...";
+    if (action === "wordpress") return "起稿中...";
+    return "略過中...";
   }
 
   return (
@@ -189,11 +200,13 @@ export function SourceInbox({ initialItems }: { initialItems: InboxItem[] }) {
                   看原文
                 </a>
                 <button
-                  disabled={isPending}
+                  disabled={Boolean(busyActionId)}
                   className="rounded-full bg-[var(--accent)] px-4 py-2 text-sm text-white"
-                  onClick={() =>
-                    startTransition(async () => {
+                  onClick={async () => {
+                    try {
+                      setBusyActionId(`${item.id}:threads`);
                       setMessage(null);
+                      setLastAction(null);
                       const response = await fetch(`/api/sources/${item.id}/refresh`, {
                         method: "PUT",
                         headers: { "Content-Type": "application/json" },
@@ -206,6 +219,7 @@ export function SourceInbox({ initialItems }: { initialItems: InboxItem[] }) {
 
                       if (!response.ok) {
                         setMessage(result.message ?? "建立草稿失敗");
+                        setBusyActionId(null);
                         return;
                       }
 
@@ -219,17 +233,35 @@ export function SourceInbox({ initialItems }: { initialItems: InboxItem[] }) {
                           ? "這篇內容之前已改寫過。"
                           : `已按 Threads 優先建立新草稿${item.routedPersona ? `，並分派給 ${item.routedPersona.label}` : ""}。`
                       );
-                    })
-                  }
+                      const firstDraft = Array.isArray(result.generatedDrafts)
+                        ? result.generatedDrafts.find((draft: { platform: string }) => draft.platform === "threads") ?? result.generatedDrafts[0]
+                        : null;
+                      if (firstDraft?.id) {
+                        setLastAction({
+                          href: `/compose?postId=${firstDraft.id}`,
+                          label: "打開這篇 Threads 草稿"
+                        });
+                      } else if (!result.duplicated) {
+                        setLastAction({
+                          href: "/desk?tab=queue",
+                          label: "去 Queue 看候選稿"
+                        });
+                      }
+                    } finally {
+                      setBusyActionId(null);
+                    }
+                  }}
                 >
-                  先做 Threads
+                  {getBusyLabel(item.id, "threads") ?? "先做 Threads"}
                 </button>
                 <button
-                  disabled={isPending}
+                  disabled={Boolean(busyActionId)}
                   className="rounded-full border border-[var(--border-strong)] bg-white px-4 py-2 text-sm"
-                  onClick={() =>
-                    startTransition(async () => {
+                  onClick={async () => {
+                    try {
+                      setBusyActionId(`${item.id}:wordpress`);
                       setMessage(null);
+                      setLastAction(null);
                       const response = await fetch(`/api/sources/${item.id}/refresh`, {
                         method: "PUT",
                         headers: { "Content-Type": "application/json" },
@@ -239,6 +271,7 @@ export function SourceInbox({ initialItems }: { initialItems: InboxItem[] }) {
 
                       if (!response.ok) {
                         setMessage(result.message ?? "建立草稿失敗");
+                        setBusyActionId(null);
                         return;
                       }
 
@@ -252,17 +285,35 @@ export function SourceInbox({ initialItems }: { initialItems: InboxItem[] }) {
                           ? "這篇內容之前已改寫過。"
                           : "已按長文優先建立新草稿，去 Queue 或 Compose 接著修。"
                       );
-                    })
-                  }
+                      const firstDraft = Array.isArray(result.generatedDrafts)
+                        ? result.generatedDrafts.find((draft: { platform: string }) => draft.platform === "wordpress") ?? result.generatedDrafts[0]
+                        : null;
+                      if (firstDraft?.id) {
+                        setLastAction({
+                          href: `/compose?postId=${firstDraft.id}`,
+                          label: "打開這篇 WordPress 草稿"
+                        });
+                      } else if (!result.duplicated) {
+                        setLastAction({
+                          href: "/desk?tab=queue",
+                          label: "去 Queue 看新草稿"
+                        });
+                      }
+                    } finally {
+                      setBusyActionId(null);
+                    }
+                  }}
                 >
-                  先做長文
+                  {getBusyLabel(item.id, "wordpress") ?? "先做長文"}
                 </button>
                 <button
-                  disabled={isPending}
+                  disabled={Boolean(busyActionId)}
                   className="rounded-full border border-[var(--border)] bg-white px-4 py-2 text-sm"
-                  onClick={() =>
-                    startTransition(async () => {
+                  onClick={async () => {
+                    try {
+                      setBusyActionId(`${item.id}:skip`);
                       setMessage(null);
+                      setLastAction(null);
                       const response = await fetch(`/api/sources/${item.id}`, {
                         method: "PATCH",
                         headers: { "Content-Type": "application/json" },
@@ -272,6 +323,7 @@ export function SourceInbox({ initialItems }: { initialItems: InboxItem[] }) {
 
                       if (!response.ok) {
                         setMessage(result.message ?? "標記失敗");
+                        setBusyActionId(null);
                         return;
                       }
 
@@ -279,10 +331,12 @@ export function SourceInbox({ initialItems }: { initialItems: InboxItem[] }) {
                         current.map((source) => (source.id === item.id ? { ...source, status: "skipped" } : source))
                       );
                       setMessage("已從 Inbox 標記為略過。");
-                    })
-                  }
+                    } finally {
+                      setBusyActionId(null);
+                    }
+                  }}
                 >
-                  略過
+                  {getBusyLabel(item.id, "skip") ?? "略過"}
                 </button>
               </div>
             </div>
@@ -295,7 +349,16 @@ export function SourceInbox({ initialItems }: { initialItems: InboxItem[] }) {
         ) : null}
       </section>
 
-      {message ? <p className="text-sm text-[var(--muted)]">{message}</p> : null}
+      {message ? (
+        <div className="space-y-2">
+          <p className="text-sm text-[var(--muted)]">{message}</p>
+          {lastAction ? (
+            <a href={lastAction.href} className="inline-flex text-sm font-medium text-[var(--accent)]">
+              {lastAction.label}
+            </a>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 }
