@@ -19,7 +19,7 @@ export async function POST(request: Request) {
     maxAge: 60 * 60 * 24 * 7
   });
 
-  return NextResponse.redirect(new URL("/dashboard", request.url));
+  return NextResponse.redirect(new URL("/desk", request.url));
 }
 
 export async function DELETE() {

@@ -5,7 +5,7 @@ import { PostsList } from "@/components/dashboard/posts-list";
 import { QueueActions } from "@/components/dashboard/queue-actions";
 import { SourceInbox } from "@/components/dashboard/source-inbox";
 import { SourceWatchlist, type SourceItem as SourceWatchItem } from "@/components/dashboard/source-watchlist";
-import { getAnalyticsOverview, getPostSummaries } from "@/lib/dashboard-data";
+import { getAccountSummaries, getAnalyticsOverview, getDashboardStats, getKeywordHitSummaries, getPostSummaries } from "@/lib/dashboard-data";
 import { classifySourceKnowledgeLane, routeSourceToPersona, scoreSourceItem } from "@/lib/content/source-inbox";
 import { prisma } from "@/lib/prisma";
 
@@ -59,6 +59,11 @@ export default async function DeskPage({
   > = [];
   const posts = await getPostSummaries();
   const analytics = await getAnalyticsOverview({ window: "30d", accountId: "all" });
+  const [operatingSnapshot, accountSummaries, keywordHits] = await Promise.all([
+    getDashboardStats(),
+    getAccountSummaries(),
+    getKeywordHitSummaries()
+  ]);
   const todayDraftPicks = posts
     .filter((post) => post.platform === "threads" && post.status === "draft" && post.isFreshToday)
     .sort((left, right) => (right.reviewScore ?? 0) - (left.reviewScore ?? 0))
@@ -242,6 +247,45 @@ export default async function DeskPage({
             </article>
           ))}
         </div>
+      </section>
+
+      <section className="grid gap-4 xl:grid-cols-[1.08fr_0.92fr]">
+        <article className="glass-panel rounded-[2rem] border border-[var(--border)] p-5">
+          <div className="flex items-end justify-between gap-4">
+            <div>
+              <p className="text-[11px] uppercase tracking-[0.3em] text-[var(--muted)]">Operating Snapshot</p>
+              <h2 className="mt-2 text-3xl font-semibold">把原本總覽真正收進 Desk</h2>
+            </div>
+            <a href="/analytics" className="text-sm font-medium text-[var(--accent)]">
+              看完整分析
+            </a>
+          </div>
+          <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {operatingSnapshot.map((item) => (
+              <article key={item.label} className="rounded-[1.4rem] border border-[var(--border)] bg-white/72 p-4">
+                <p className="text-xs uppercase tracking-[0.24em] text-[var(--muted)]">{item.label}</p>
+                <p className="mt-3 text-3xl font-semibold">{item.value}</p>
+                <p className="mt-2 text-sm leading-7 text-[var(--muted)]">{item.detail}</p>
+              </article>
+            ))}
+          </div>
+        </article>
+
+        <article className="rounded-[2rem] bg-[var(--card-dark)] p-5 text-white shadow-[0_24px_60px_rgba(15,10,7,0.22)]">
+          <p className="text-[11px] uppercase tracking-[0.3em] text-white/55">Current System</p>
+          <h2 className="mt-2 text-3xl font-semibold">現在正在運轉的主控台</h2>
+          <div className="mt-5 space-y-3 text-sm text-white/78">
+            <p className="rounded-[1.2rem] border border-white/10 bg-white/5 px-4 py-3">
+              Desk 現在就是唯一首頁。原本的 Dashboard 只保留轉址，不再維持第二套入口。
+            </p>
+            <p className="rounded-[1.2rem] border border-white/10 bg-white/5 px-4 py-3">
+              先看總覽與題目，再進 Review Workspace、Compose、Queue，不再一開始就掉進發文表單。
+            </p>
+            <p className="rounded-[1.2rem] border border-white/10 bg-white/5 px-4 py-3">
+              WordPress 仍只做長文沉澱草稿台，Threads 才是每日主控發佈面。
+            </p>
+          </div>
+        </article>
       </section>
 
       <section className="grid gap-4 xl:grid-cols-3">
@@ -578,16 +622,85 @@ export default async function DeskPage({
       </section>
 
       {activeTab === "overview" ? (
-        <section className="glass-panel rounded-[2rem] border border-[var(--border)] p-6">
-          <div className="mb-6 flex items-center justify-between gap-4">
-            <div>
-              <p className="text-sm text-[var(--muted)]">先從總覽確認今天最值得處理的文章，再決定要不要發、排程，或沉到長文。</p>
-              <p className="mt-1 text-xs text-[var(--muted)]">這裡預設就是你每天打開後第一眼該看的確認台。</p>
+        <div className="grid gap-4 xl:grid-cols-[1.04fr_0.96fr]">
+          <section className="glass-panel rounded-[2rem] border border-[var(--border)] p-6">
+            <div className="mb-6 flex items-center justify-between gap-4">
+              <div>
+                <p className="text-sm text-[var(--muted)]">先從總覽確認今天最值得處理的文章，再決定要不要發、排程，或沉到長文。</p>
+                <p className="mt-1 text-xs text-[var(--muted)]">這裡預設就是你每天打開後第一眼該看的確認台。</p>
+              </div>
+              <QueueActions />
             </div>
-            <QueueActions />
+            <PostsList posts={posts} />
+          </section>
+
+          <div className="space-y-4">
+            <section className="glass-panel rounded-[2rem] border border-[var(--border)] p-5">
+              <div className="flex items-end justify-between gap-4">
+                <div>
+                  <p className="text-[11px] uppercase tracking-[0.3em] text-[var(--muted)]">Connected Accounts</p>
+                  <h2 className="mt-2 text-2xl font-semibold">目前有哪些主控帳號</h2>
+                </div>
+                <a href="/accounts" className="text-sm font-medium text-[var(--accent)]">
+                  管理帳號
+                </a>
+              </div>
+              <div className="mt-5 space-y-3">
+                {accountSummaries.slice(0, 4).map((account) => (
+                  <article key={account.id} className="rounded-[1.35rem] border border-[var(--border)] bg-white/72 p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-semibold">{account.username}</p>
+                        <p className="mt-1 text-xs text-[var(--muted)]">{account.personaLabel || "未命名 persona"}</p>
+                      </div>
+                      <span className={`rounded-full px-3 py-1 text-xs ${account.tokenStatus === "healthy" ? "bg-emerald-100 text-emerald-700" : "bg-[var(--accent-soft)] text-[var(--accent-strong)]"}`}>
+                        {account.tokenStatus === "healthy" ? "Ready" : "Expiring"}
+                      </span>
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-2 text-sm">
+                      <span className="rounded-full bg-white px-4 py-2">Followers {account.followers}</span>
+                      <span className="rounded-full bg-white px-4 py-2">Views {account.weeklyViews}</span>
+                    </div>
+                  </article>
+                ))}
+                {accountSummaries.length === 0 ? (
+                  <article className="rounded-[1.35rem] border border-dashed border-[var(--border)] p-4 text-sm text-[var(--muted)]">
+                    目前還沒有 Threads 帳號，先去 Accounts 完成授權。
+                  </article>
+                ) : null}
+              </div>
+            </section>
+
+            <section className="glass-panel rounded-[2rem] border border-[var(--border)] p-5">
+              <div className="flex items-end justify-between gap-4">
+                <div>
+                  <p className="text-[11px] uppercase tracking-[0.3em] text-[var(--muted)]">Keyword Signals</p>
+                  <h2 className="mt-2 text-2xl font-semibold">最近掃到的關鍵字訊號</h2>
+                </div>
+                <a href="/keywords" className="text-sm font-medium text-[var(--accent)]">
+                  看全部
+                </a>
+              </div>
+              <div className="mt-5 space-y-3">
+                {keywordHits.slice(0, 4).map((hit) => (
+                  <article key={hit.id} className="rounded-[1.35rem] border border-[var(--border)] bg-white/72 p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-sm font-semibold">{hit.keyword}</p>
+                      <span className="rounded-full bg-white px-3 py-1 text-xs text-[var(--foreground)]">{hit.actionTaken}</span>
+                    </div>
+                    <p className="mt-2 text-sm leading-7 text-[var(--muted)]">{hit.author}</p>
+                    <p className="mt-2 text-sm leading-7 text-[var(--accent-strong)]">{hit.excerpt}</p>
+                  </article>
+                ))}
+                {keywordHits.length === 0 ? (
+                  <article className="rounded-[1.35rem] border border-dashed border-[var(--border)] p-4 text-sm text-[var(--muted)]">
+                    目前還沒有新的關鍵字命中，可以先專注在來源與候選稿。
+                  </article>
+                ) : null}
+              </div>
+            </section>
           </div>
-          <PostsList posts={posts} />
-        </section>
+        </div>
       ) : null}
 
       {activeTab === "inbox" ? <SourceInbox initialItems={inboxItems} /> : null}

@@ -14,25 +14,25 @@ export type DashboardNavGroup = {
 
 export const dashboardNavGroups: DashboardNavGroup[] = [
   {
-    id: "overview",
-    label: "總覽",
-    hint: "今天狀態、資產與分析",
-    primaryHref: "/dashboard",
+    id: "desk",
+    label: "Desk",
+    hint: "今天總覽、候選稿與下一步",
+    primaryHref: "/desk",
     items: [
-      { href: "/dashboard", label: "總覽", hint: "Threads KPI + health" },
+      { href: "/desk", label: "今日總覽", hint: "先看這裡，再決定今天寫什麼" },
       { href: "/analytics", label: "分析", hint: "表現、留言、下一步" },
       { href: "/inventory", label: "內容庫存", hint: "source 到 monetizable" }
     ]
   },
   {
-    id: "desk",
-    label: "內容台",
+    id: "sources",
+    label: "來源",
     hint: "看來源、挑題、回到草稿",
-    primaryHref: "/desk",
+    primaryHref: "/inbox",
     items: [
-      { href: "/desk", label: "Desk", hint: "今天先看這裡" },
       { href: "/inbox", label: "Inbox", hint: "高訊號來源與改寫建議" },
-      { href: "/sources", label: "來源", hint: "watchlist + import" }
+      { href: "/sources", label: "來源", hint: "watchlist + import" },
+      { href: "/help", label: "知識輸入", hint: "來源策略 + transcript 路線" }
     ]
   },
   {

@@ -8,7 +8,7 @@ export async function Topbar() {
       <div className="relative z-10 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <p className="text-[11px] uppercase tracking-[0.35em] text-[var(--muted)]">Daily Workspace</p>
-          <h2 className="mt-2 text-3xl font-semibold">先決定今天寫什麼，再讓 AI 幫你起稿</h2>
+          <h2 className="mt-2 text-3xl font-semibold">先在 Desk 決定題目，再進 Review 與 Compose</h2>
           <p className="mt-3 text-sm text-[var(--muted)]">
             {activeAccount
               ? `目前主控帳號：${activeAccount.platform} ${activeAccount.username} · 最後同步 ${activeAccount.lastSyncedAt}`
@@ -18,7 +18,7 @@ export async function Topbar() {
         <div className="grid gap-3 sm:grid-cols-3 lg:min-w-[420px]">
           <div className="rounded-[1.2rem] border border-[var(--border)] bg-white/60 px-4 py-3">
             <p className="text-[11px] uppercase tracking-[0.25em] text-[var(--muted)]">今天主線</p>
-            <p className="mt-1 text-sm font-semibold">Desk → Compose → Analytics</p>
+            <p className="mt-1 text-sm font-semibold">Desk → Review → Compose → Analytics</p>
           </div>
           <div className="rounded-[1.2rem] border border-[var(--border)] bg-white/60 px-4 py-3">
             <p className="text-[11px] uppercase tracking-[0.25em] text-[var(--muted)]">目前帳號</p>
