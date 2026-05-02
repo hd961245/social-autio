@@ -5,6 +5,7 @@ import type { PostSummary } from "@/lib/dashboard-data";
 
 type StatusFilter = "draft" | "scheduled" | "published" | "failed" | "all";
 type TopicFilter = "all" | "news" | "opinion" | "howto";
+type ReviewLaneFilter = "all" | "direct" | "review";
 
 function getStatusLabel(status: string, requiresApproval?: boolean, approvalState?: string | null) {
   if (requiresApproval && approvalState === "requested") return "待 Telegram";
@@ -54,6 +55,7 @@ export function PostsList({ posts }: { posts: PostSummary[] }) {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("draft");
   const [personaFilter, setPersonaFilter] = useState("all");
   const [topicFilter, setTopicFilter] = useState<TopicFilter>("all");
+  const [reviewLaneFilter, setReviewLaneFilter] = useState<ReviewLaneFilter>("all");
   const [todayOnly, setTodayOnly] = useState(true);
   const [topPicksOnly, setTopPicksOnly] = useState(true);
   const [query, setQuery] = useState("");
@@ -82,13 +84,16 @@ export function PostsList({ posts }: { posts: PostSummary[] }) {
       const matchesTopic =
         topicFilter === "all" ||
         (post.platform === "threads" && post.topicTag === topicFilter);
+      const matchesReviewLane =
+        reviewLaneFilter === "all" ||
+        (post.platform === "threads" && post.reviewLane === reviewLaneFilter);
       const matchesToday =
         !todayOnly ||
         (post.platform === "threads" && ["draft", "awaiting_approval", "approval_rejected"].includes(post.status) && post.isFreshToday);
       const haystack = `${post.account} ${post.personaLabel ?? ""} ${post.platform} ${post.text} ${post.title ?? ""}`.toLowerCase();
       const matchesQuery = !query.trim() || haystack.includes(query.trim().toLowerCase());
 
-      return matchesThreadsOrWp && matchesStatus && matchesPersona && matchesTopic && matchesToday && matchesQuery;
+      return matchesThreadsOrWp && matchesStatus && matchesPersona && matchesTopic && matchesReviewLane && matchesToday && matchesQuery;
     });
 
     if (!topPicksOnly || !todayOnly || statusFilter !== "draft") {
@@ -121,7 +126,7 @@ export function PostsList({ posts }: { posts: PostSummary[] }) {
     );
 
     return [...curated, ...nonThreadItems];
-  }, [items, personaFilter, topicFilter, todayOnly, topPicksOnly, query, statusFilter]);
+  }, [items, personaFilter, topicFilter, reviewLaneFilter, todayOnly, topPicksOnly, query, statusFilter]);
 
   const selectableIds = visibleItems.filter(isConfirmable).map((post) => post.id);
   const selectedCount = selectedIds.length;
@@ -280,6 +285,15 @@ export function PostsList({ posts }: { posts: PostSummary[] }) {
                 <option value="opinion">觀點</option>
                 <option value="howto">教學</option>
               </select>
+              <select
+                className="rounded-full border border-[var(--border)] bg-white px-4 py-2 text-sm outline-none"
+                value={reviewLaneFilter}
+                onChange={(event) => setReviewLaneFilter(event.target.value as ReviewLaneFilter)}
+              >
+                <option value="all">全部決策層</option>
+                <option value="direct">可直接發</option>
+                <option value="review">先看一下</option>
+              </select>
               <input
                 className="w-full rounded-full border border-[var(--border)] bg-white px-4 py-2 text-sm outline-none lg:w-72"
                 placeholder="搜尋帳號、標題或文案"
@@ -395,6 +409,8 @@ export function PostsList({ posts }: { posts: PostSummary[] }) {
                       <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--muted)]">{post.personaLabel}</p>
                     ) : null}
                     {getTopicTagLabel(post.topicTag) ? <span className="pill-tag">{getTopicTagLabel(post.topicTag)}</span> : null}
+                    {post.reviewLane === "direct" ? <span className="pill-tag">可直接發</span> : null}
+                    {post.reviewLane === "review" ? <span className="pill-tag">先看一下</span> : null}
                     {post.reviewScore ? <span className="pill-tag">精選分數 {post.reviewScore}</span> : null}
                   </div>
                 </div>

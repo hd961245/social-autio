@@ -63,6 +63,8 @@ export default async function DeskPage({
     .filter((post) => post.platform === "threads" && post.status === "draft" && post.isFreshToday)
     .sort((left, right) => (right.reviewScore ?? 0) - (left.reviewScore ?? 0))
     .slice(0, 3);
+  const directPublishDraftPicks = todayDraftPicks.filter((post) => post.reviewLane === "direct");
+  const reviewFirstDraftPicks = todayDraftPicks.filter((post) => post.reviewLane !== "direct");
 
   try {
     [sourceItems, settings, ingestions, drafts, threadsAccounts] = await Promise.all([
@@ -435,39 +437,89 @@ export default async function DeskPage({
               去 Queue
             </a>
           </div>
-          <div className="mt-5 space-y-3">
-            {todayDraftPicks.map((post) => (
-              <article key={post.id} className="rounded-[1.5rem] border border-[var(--border)] bg-white/72 p-4">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">
-                    {post.personaLabel || post.account}
-                  </p>
-                  {post.reviewScore ? (
-                    <span className="rounded-full bg-[var(--accent-soft)] px-3 py-1 text-xs text-[var(--foreground)]">
-                      精選分數 {post.reviewScore}
-                    </span>
-                  ) : null}
+          <div className="mt-5 space-y-5">
+            {directPublishDraftPicks.length > 0 ? (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-sm font-medium">今天可直接發</p>
+                  <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs text-emerald-700">
+                    {directPublishDraftPicks.length} 篇
+                  </span>
                 </div>
-                <p className="mt-3 text-sm font-medium leading-7">{post.title ?? post.text}</p>
-                {post.candidateRationale ? (
-                  <p className="mt-3 rounded-[1.1rem] border border-[var(--border)] bg-[rgba(255,252,248,0.9)] px-4 py-3 text-sm leading-7 text-[var(--accent-strong)]">
-                    {post.candidateRationale}
-                  </p>
-                ) : (
-                  <p className="mt-3 text-sm leading-7 text-[var(--muted)]">
-                    這篇目前沒有來源理由摘要，但因為分數和新鮮度較高，仍被排在今日候選前段。
-                  </p>
-                )}
-                <div className="mt-4 flex flex-wrap gap-2">
-                  <a href={`/compose?postId=${post.id}`} className="rounded-full border border-[var(--border)] bg-white px-4 py-2 text-sm">
-                    打開草稿
-                  </a>
-                  <a href="/desk?tab=queue" className="rounded-full bg-[var(--card-dark)] px-4 py-2 text-sm text-white">
-                    去 Queue 決定
-                  </a>
+                {directPublishDraftPicks.map((post) => (
+                  <article key={post.id} className="rounded-[1.5rem] border border-emerald-200 bg-emerald-50/60 p-4">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">
+                        {post.personaLabel || post.account}
+                      </p>
+                      {post.reviewScore ? (
+                        <span className="rounded-full bg-white px-3 py-1 text-xs text-[var(--foreground)]">
+                          精選分數 {post.reviewScore}
+                        </span>
+                      ) : null}
+                    </div>
+                    <p className="mt-3 text-sm font-medium leading-7">{post.title ?? post.text}</p>
+                    {post.candidateRationale ? (
+                      <p className="mt-3 rounded-[1.1rem] border border-emerald-200 bg-white/90 px-4 py-3 text-sm leading-7 text-[var(--accent-strong)]">
+                        {post.candidateRationale}
+                      </p>
+                    ) : null}
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      <a href="/desk?tab=queue" className="rounded-full bg-[var(--card-dark)] px-4 py-2 text-sm text-white">
+                        去 Queue 直接發
+                      </a>
+                      <a href={`/compose?postId=${post.id}`} className="rounded-full border border-[var(--border)] bg-white px-4 py-2 text-sm">
+                        最後修一下
+                      </a>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            ) : null}
+
+            {reviewFirstDraftPicks.length > 0 ? (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-sm font-medium">今天先看一下</p>
+                  <span className="rounded-full bg-[var(--accent-soft)] px-3 py-1 text-xs text-[var(--foreground)]">
+                    {reviewFirstDraftPicks.length} 篇
+                  </span>
                 </div>
-              </article>
-            ))}
+                {reviewFirstDraftPicks.map((post) => (
+                  <article key={post.id} className="rounded-[1.5rem] border border-[var(--border)] bg-white/72 p-4">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">
+                        {post.personaLabel || post.account}
+                      </p>
+                      {post.reviewScore ? (
+                        <span className="rounded-full bg-[var(--accent-soft)] px-3 py-1 text-xs text-[var(--foreground)]">
+                          精選分數 {post.reviewScore}
+                        </span>
+                      ) : null}
+                    </div>
+                    <p className="mt-3 text-sm font-medium leading-7">{post.title ?? post.text}</p>
+                    {post.candidateRationale ? (
+                      <p className="mt-3 rounded-[1.1rem] border border-[var(--border)] bg-[rgba(255,252,248,0.9)] px-4 py-3 text-sm leading-7 text-[var(--accent-strong)]">
+                        {post.candidateRationale}
+                      </p>
+                    ) : (
+                      <p className="mt-3 text-sm leading-7 text-[var(--muted)]">
+                        這篇目前沒有來源理由摘要，但因為分數和新鮮度較高，仍被排在今日候選前段。
+                      </p>
+                    )}
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      <a href={`/compose?postId=${post.id}`} className="rounded-full border border-[var(--border)] bg-white px-4 py-2 text-sm">
+                        打開草稿
+                      </a>
+                      <a href="/desk?tab=queue" className="rounded-full bg-[var(--card-dark)] px-4 py-2 text-sm text-white">
+                        去 Queue 決定
+                      </a>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            ) : null}
+
             {todayDraftPicks.length === 0 ? (
               <article className="rounded-[1.5rem] border border-dashed border-[var(--border)] p-4 text-sm text-[var(--muted)]">
                 今天還沒有新的 Threads 候選稿。可以先去 `Sources` 刷一輪，或手動跑 persona autopilot。
