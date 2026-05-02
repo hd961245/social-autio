@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 export default async function ComposePage({
   searchParams
 }: {
-  searchParams?: Promise<{ postId?: string; reviewId?: string; seedPostId?: string; accountId?: string }>;
+  searchParams?: Promise<{ postId?: string; reviewId?: string; seedPostId?: string; accountId?: string; workspace?: string }>;
 }) {
   const databaseStatus = await getDatabaseStatus();
   const composeHealth = await getComposeHealth().catch(() => ({
@@ -166,6 +166,7 @@ export default async function ComposePage({
   });
 
   const requestedAccountId = databaseStatus.ready ? params?.accountId ?? "" : "";
+  const reviewWorkspace = params?.workspace === "review";
   const preferredAccountId =
     draftPost?.accountId ??
     (requestedAccountId && orderedAccounts.some((account) => account.id === requestedAccountId) ? requestedAccountId : "") ??
@@ -177,9 +178,11 @@ export default async function ComposePage({
     <div className="space-y-6">
       <PageIntro
         eyebrow="Compose"
-        title={draftPost ? "編輯現有草稿" : "建立新的 Threads 內容"}
+        title={reviewWorkspace && draftPost?.platform === "threads" ? "先進編輯確認區" : draftPost ? "編輯現有草稿" : "建立新的 Threads 內容"}
         description={
-          draftPost
+          reviewWorkspace && draftPost?.platform === "threads"
+            ? "這裡先看候選稿原文、補 assignment，再讓 AI 生成一版真正要送進發文區的 Threads 草稿。"
+            : draftPost
             ? "這裡會直接載入你剛才的草稿。AI 起稿、微調、排程與送出都在同一頁完成。"
             : "把 AI 起稿、手動改稿、排程與發佈收在同一條工作流裡。Threads 負責發布；WordPress 保留成草稿台。"
         }
@@ -246,6 +249,7 @@ export default async function ComposePage({
         initialDraft={draftPost?.id ? draftPost : null}
         initialSeed={!draftPost?.id && draftPost ? draftPost : null}
         reviewContext={reviewContext}
+        reviewWorkspace={reviewWorkspace}
         preferredAccountId={preferredAccountId}
         publishLogs={publishLogs}
         initialAiProvider={(settings?.aiProvider as "auto" | "gemini" | "claude" | "openai" | undefined) ?? "auto"}

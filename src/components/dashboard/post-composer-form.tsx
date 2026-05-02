@@ -137,6 +137,7 @@ export function PostComposerForm({
   initialDraft,
   initialSeed,
   reviewContext,
+  reviewWorkspace,
   preferredAccountId,
   publishLogs,
   initialAiProvider
@@ -147,16 +148,18 @@ export function PostComposerForm({
   initialDraft?: DraftPost | null;
   initialSeed?: DraftPost | null;
   reviewContext?: ReviewContext | null;
+  reviewWorkspace?: boolean;
   preferredAccountId?: string;
   publishLogs: PublishOutcomeLog[];
   initialAiProvider: "auto" | "gemini" | "claude" | "openai";
 }) {
   const router = useRouter();
   const baseDraft = initialDraft ?? initialSeed ?? null;
+  const isReviewWorkspace = Boolean(reviewWorkspace && initialDraft?.platform === "threads");
   const [recentItems, setRecentItems] = useState(recentPosts);
   const [accountId, setAccountId] = useState(baseDraft?.accountId ?? preferredAccountId ?? accounts[0]?.id ?? "");
-  const [title, setTitle] = useState(baseDraft?.title ?? "");
-  const [text, setText] = useState(baseDraft?.text ?? "");
+  const [title, setTitle] = useState(isReviewWorkspace ? "" : baseDraft?.title ?? "");
+  const [text, setText] = useState(isReviewWorkspace ? "" : baseDraft?.text ?? "");
   const [html, setHtml] = useState(baseDraft?.html ?? "");
   const [excerpt, setExcerpt] = useState(baseDraft?.excerpt ?? "");
   const [mediaUrl, setMediaUrl] = useState(baseDraft?.mediaUrl ?? "");
@@ -186,6 +189,9 @@ export function PostComposerForm({
   const [aiWordpressTemplate, setAiWordpressTemplate] = useState<(typeof wordpressTemplates)[number]["id"]>("opinion");
   const [aiMessage, setAiMessage] = useState<string | null>(null);
   const [aiMessageTone, setAiMessageTone] = useState<"neutral" | "success" | "error">("neutral");
+  const [assignment, setAssignment] = useState(reviewContext?.nextAction ?? "");
+  const [assignmentGoal, setAssignmentGoal] = useState("先生成一版可確認、可直接修的 Threads 草稿");
+  const [assignmentOptimize, setAssignmentOptimize] = useState("hook、觀點、CTA");
 
   const selectedAccount = accounts.find((account) => account.id === accountId);
   const isWordPress = selectedAccount?.platform === "wordpress";
@@ -221,6 +227,44 @@ export function PostComposerForm({
   const aiCanGenerate = Boolean(accountId && (aiSourceType === "url" ? aiSourceUrl.trim() || aiBrief.trim() : aiRawText.trim() || aiBrief.trim()));
   const latestDraft = recentItems[0] ?? null;
   const latestPublishLog = publishLogs[0] ?? null;
+
+  async function generateFromReviewWorkspace() {
+    setAiMessage(null);
+    setAiMessageTone("neutral");
+
+    const response = await fetch("/api/compose/ai-draft", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        accountId,
+        sourceType: "text",
+        title: initialDraft?.title || aiTitle || "候選稿改寫",
+        rawText: initialDraft?.text || "",
+        brief: assignment || aiBrief,
+        goal: assignmentGoal || aiGoal,
+        optimizeFor: assignmentOptimize || aiOptimizeFor,
+        provider: aiProvider
+      })
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      setAiMessage(result.message ?? "AI 改寫失敗");
+      setAiMessageTone("error");
+      return;
+    }
+
+    setTitle(result.draft.wordpressTitle ?? initialDraft?.title ?? "");
+    setText(result.draft.threadsDraft ?? "");
+    setAiBrief(assignment || aiBrief);
+    setAiGoal(assignmentGoal || aiGoal);
+    setAiOptimizeFor(assignmentOptimize || aiOptimizeFor);
+    setAiMessage(`已依 assignment 生成一版新的 Threads 草稿。Provider: ${result.provider}`);
+    setAiMessageTone("success");
+  }
 
   async function removeDraft(postId: string, options?: { redirectAfterDelete?: boolean }) {
     const response = await fetch(`/api/posts/${postId}`, {
@@ -411,6 +455,88 @@ export function PostComposerForm({
                 >
                   刪除這篇草稿
                 </button>
+              </div>
+            </div>
+          ) : null}
+          {isReviewWorkspace && initialDraft ? (
+            <div className="rounded-3xl border border-[var(--border-strong)] bg-[rgba(200,79,44,0.06)] p-5">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                <div className="min-w-0">
+                  <p className="text-[11px] uppercase tracking-[0.28em] text-[var(--muted)]">Draft Review Workspace</p>
+                  <h3 className="mt-2 text-xl font-semibold">先確認這篇想怎麼改，再交給 AI 出一版</h3>
+                  <p className="mt-3 text-sm leading-7 text-[var(--muted)]">
+                    這裡先看候選稿原文，補上 assignment 或目標，再生成一版真正要送進發文區的內容。這樣比較像編輯台，不會一按就直接掉進發布表單。
+                  </p>
+                </div>
+                <span className="rounded-full border border-[var(--border)] bg-white px-4 py-2 text-sm">
+                  候選稿先審，再生成可發版
+                </span>
+              </div>
+              <div className="mt-4 grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">
+                <article className="rounded-[1.5rem] border border-[var(--border)] bg-white/85 p-4">
+                  <p className="text-[11px] uppercase tracking-[0.22em] text-[var(--muted)]">原始候選稿</p>
+                  <p className="mt-3 text-lg font-semibold">{initialDraft.title || "未命名候選稿"}</p>
+                  <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-[var(--foreground)]">{initialDraft.text || "目前這篇候選稿還沒有文字內容。"}</p>
+                </article>
+                <article className="rounded-[1.5rem] border border-[var(--border)] bg-white/85 p-4">
+                  <p className="text-[11px] uppercase tracking-[0.22em] text-[var(--muted)]">編輯 Assignment</p>
+                  <div className="mt-3 space-y-3">
+                    <label className="block">
+                      <span className="mb-2 block text-sm text-[var(--muted)]">你想這篇最後達成什麼</span>
+                      <textarea
+                        className="min-h-24 w-full resize-none rounded-2xl border border-[var(--border)] bg-transparent p-4 outline-none"
+                        placeholder="例如：改成更像我會發的觀點文，先講結論，最後留一個會讓人留言的問句。"
+                        value={assignment}
+                        onChange={(event) => setAssignment(event.target.value)}
+                      />
+                    </label>
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <label className="block">
+                        <span className="mb-2 block text-sm text-[var(--muted)]">目標</span>
+                        <input
+                          className="w-full rounded-2xl border border-[var(--border)] bg-transparent px-4 py-3 outline-none"
+                          placeholder="例如：提高留言意願"
+                          value={assignmentGoal}
+                          onChange={(event) => setAssignmentGoal(event.target.value)}
+                        />
+                      </label>
+                      <label className="block">
+                        <span className="mb-2 block text-sm text-[var(--muted)]">優化重點</span>
+                        <input
+                          className="w-full rounded-2xl border border-[var(--border)] bg-transparent px-4 py-3 outline-none"
+                          placeholder="例如：hook、節奏、CTA"
+                          value={assignmentOptimize}
+                          onChange={(event) => setAssignmentOptimize(event.target.value)}
+                        />
+                      </label>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        className="rounded-full bg-[var(--card-dark)] px-4 py-2 text-sm text-white"
+                        onClick={() => {
+                          startAiTransition(async () => {
+                            await generateFromReviewWorkspace();
+                          });
+                        }}
+                      >
+                        {isAiPending ? "AI 生成中..." : "依 Assignment 生成 Threads 草稿"}
+                      </button>
+                      <button
+                        type="button"
+                        className="rounded-full border border-[var(--border)] bg-white px-4 py-2 text-sm"
+                        onClick={() => {
+                          setTitle(initialDraft.title);
+                          setText(initialDraft.text);
+                          setAiMessage("已把候選稿原文帶進編輯區，你可以直接手修。");
+                          setAiMessageTone("success");
+                        }}
+                      >
+                        直接帶入編輯區
+                      </button>
+                    </div>
+                  </div>
+                </article>
               </div>
             </div>
           ) : null}
