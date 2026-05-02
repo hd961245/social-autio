@@ -140,24 +140,13 @@ export function PostsList({ posts }: { posts: PostSummary[] }) {
     const scheduled = items.filter((post) => post.platform === "threads" && post.status === "scheduled").length;
     const published = items.filter((post) => post.platform === "threads" && post.status === "published").length;
     const wordpress = items.filter((post) => post.platform === "wordpress").length;
-    const total = Math.max(freshToday, draft, scheduled, published, wordpress, 1);
 
     return {
       freshToday,
       draft,
       scheduled,
       published,
-      wordpress,
-      bars: [
-        { label: "今日新稿", value: freshToday },
-        { label: "待確認", value: draft },
-        { label: "已排程", value: scheduled },
-        { label: "已發布", value: published },
-        { label: "WP 草稿", value: wordpress }
-      ].map((entry) => ({
-        ...entry,
-        width: `${Math.max(14, Math.round((entry.value / total) * 100))}%`
-      }))
+      wordpress
     };
   }, [items]);
 
@@ -209,19 +198,22 @@ export function PostsList({ posts }: { posts: PostSummary[] }) {
         <div className="mt-5 rounded-[1.4rem] border border-[var(--border)] bg-[rgba(249,245,238,0.82)] p-4">
           <div className="mb-3 flex items-center justify-between gap-4">
             <div>
-              <p className="text-sm font-medium">工作量分佈</p>
+              <p className="text-sm font-medium">工作量摘要</p>
               <p className="text-xs text-[var(--muted)]">先把待確認的文勾起來，確認方向後就能直接發。</p>
             </div>
             <p className="text-sm text-[var(--muted)]">總計 {summary.draft + summary.scheduled + summary.published + summary.wordpress} 筆</p>
           </div>
-          <div className="space-y-3">
-            {summary.bars.map((bar) => (
-              <div key={bar.label} className="grid grid-cols-[88px_1fr_48px] items-center gap-3 text-sm">
-                <span className="text-[var(--muted)]">{bar.label}</span>
-                <div className="h-3 rounded-full bg-[rgba(36,33,28,0.08)]">
-                  <div className="h-3 rounded-full bg-[var(--accent)]" style={{ width: bar.width }} />
-                </div>
-                <span className="text-right font-medium">{bar.value}</span>
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+            {[
+              { label: "今日新稿", value: summary.freshToday },
+              { label: "待確認", value: summary.draft },
+              { label: "已排程", value: summary.scheduled },
+              { label: "已發布", value: summary.published },
+              { label: "WP 草稿", value: summary.wordpress }
+            ].map((entry) => (
+              <div key={entry.label} className="rounded-[1rem] border border-[var(--border)] bg-white/85 px-3 py-3">
+                <p className="text-[11px] uppercase tracking-[0.16em] text-[var(--muted)]">{entry.label}</p>
+                <p className="mt-2 text-2xl font-semibold">{entry.value}</p>
               </div>
             ))}
           </div>
@@ -412,6 +404,8 @@ export function PostsList({ posts }: { posts: PostSummary[] }) {
                     {post.reviewLane === "direct" ? <span className="pill-tag">可直接發</span> : null}
                     {post.reviewLane === "review" ? <span className="pill-tag">先看一下</span> : null}
                     {post.reviewScore ? <span className="pill-tag">精選分數 {post.reviewScore}</span> : null}
+                    {post.suggestedScheduleLabel ? <span className="pill-tag">建議時段 {post.suggestedScheduleLabel}</span> : null}
+                    {post.suggestedCta ? <span className="pill-tag">CTA {truncateSoft(post.suggestedCta, 30)}</span> : null}
                   </div>
                 </div>
 
