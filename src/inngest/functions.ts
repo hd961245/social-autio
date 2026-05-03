@@ -6,7 +6,7 @@ import { scanKeywordMatches } from "@/lib/keywords/monitor";
 import { collectMetricsSnapshots, refreshExpiringTokens } from "@/lib/metrics-service";
 import { runScheduledPosts } from "@/lib/scheduler/engine";
 import { refreshAllSourceWatches, runDailySourceImports } from "@/lib/sources-service";
-import { runAutoWordPressExpansion, runOptimizationFlywheel } from "@/lib/automation/flywheel";
+import { runAutoPromoteDirectDrafts, runAutoWordPressExpansion, runOptimizationFlywheel } from "@/lib/automation/flywheel";
 
 export const schedulerFunction = inngest.createFunction(
   { id: "publish-scheduled-posts", retries: 1, triggers: [cron("* * * * *")] },
@@ -76,11 +76,21 @@ export const optimizationFlywheelFunction = inngest.createFunction(
   }
 );
 
+export const autoPromoteDraftsFunction = inngest.createFunction(
+  { id: "auto-promote-direct-drafts", retries: 1, triggers: [cron("*/20 * * * *")] },
+  async ({ step }) => {
+    const result = await step.run("promote-high-confidence-drafts", async () => runAutoPromoteDirectDrafts());
+
+    return result;
+  }
+);
+
 export const inngestFunctions = [
   schedulerFunction,
   metricsFunction,
   keywordScanFunction,
   automationFunction,
+  autoPromoteDraftsFunction,
   sourceWatchRefreshFunction,
   dailySourceImportFunction,
   dailyPersonaAutopilotFunction,

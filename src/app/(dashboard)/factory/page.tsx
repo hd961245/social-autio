@@ -52,7 +52,7 @@ export default async function FactoryPage() {
       prisma.automationLog.findMany({
         where: {
           actionType: {
-            in: ["daily_persona_autopilot", "optimization_flywheel", "auto_wordpress_expansion"]
+            in: ["daily_persona_generation", "optimization_flywheel", "auto_wordpress_expansion", "auto_promote_review_draft"]
           }
         },
         include: {
@@ -72,17 +72,20 @@ export default async function FactoryPage() {
 
   const fourteenDaysAgo = getRecentWindowStart(14);
   const recentFactoryRuns = automationLogs.filter((log) => log.executedAt >= fourteenDaysAgo);
-  const autopilotRuns = recentFactoryRuns.filter((log) => log.actionType === "daily_persona_autopilot" && log.status !== "failed").length;
+  const autopilotRuns = recentFactoryRuns.filter((log) => log.actionType === "daily_persona_generation" && log.status !== "failed").length;
   const optimizationRuns = recentFactoryRuns.filter((log) => log.actionType === "optimization_flywheel" && log.status !== "failed").length;
   const wordpressRuns = recentFactoryRuns.filter((log) => log.actionType === "auto_wordpress_expansion" && log.status !== "failed").length;
+  const promotedRuns = recentFactoryRuns.filter((log) => log.actionType === "auto_promote_review_draft" && log.status !== "failed").length;
   const recentFactoryFeed = automationLogs.slice(0, 6).map((log) => ({
     id: log.id,
     title:
-      log.actionType === "daily_persona_autopilot"
+      log.actionType === "daily_persona_generation"
         ? "AI 自動產文"
         : log.actionType === "optimization_flywheel"
           ? "14 天優化飛輪"
-          : "WordPress 自動沉澱",
+          : log.actionType === "auto_promote_review_draft"
+            ? "高信心稿自動排程"
+            : "WordPress 自動沉澱",
     accountLabel: log.account ? `@${log.account.platformUsername}` : "站台級任務",
     executedAt: log.executedAt.toLocaleString("zh-TW", { hour12: false }),
     detail: log.detail ?? "已完成背景任務",
@@ -103,9 +106,9 @@ export default async function FactoryPage() {
         action={
           <div className="flex flex-wrap gap-3">
             <HelpSheet topic="content-engine" buttonLabel="查看工廠說明" />
-            <a href="/compose" className="rounded-full border border-[var(--border)] bg-white/80 px-4 py-2 text-sm">
+            <Link href="/compose" className="rounded-full border border-[var(--border)] bg-white/80 px-4 py-2 text-sm">
               直接去 Compose
-            </a>
+            </Link>
           </div>
         }
       />
@@ -126,9 +129,9 @@ export default async function FactoryPage() {
       <section className="grid gap-4 xl:grid-cols-4">
         {[
           { label: "14 天自動產文", value: String(autopilotRuns), detail: "persona autopilot 成功執行次數" },
+          { label: "14 天自動排程", value: String(promotedRuns), detail: "高信心 Threads 候選稿自動升級進排程" },
           { label: "14 天優化飛輪", value: String(optimizationRuns), detail: "舊文觀察後自動生成的優化稿" },
-          { label: "14 天沉長文", value: String(wordpressRuns), detail: "強表現 Threads 自動送進 WordPress" },
-          { label: "待處理工廠草稿", value: String(drafts.length), detail: "最近產出的 Threads / WordPress 草稿" }
+          { label: "14 天沉長文", value: String(wordpressRuns), detail: "強表現 Threads 自動送進 WordPress" }
         ].map((card) => (
           <article key={card.label} className="metric-card">
             <p className="text-xs uppercase tracking-[0.24em] text-[var(--muted)]">{card.label}</p>
