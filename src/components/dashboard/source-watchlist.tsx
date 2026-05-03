@@ -451,9 +451,9 @@ export function SourceWatchlist({ initialItems }: { initialItems: SourceItem[] }
             {discovery.sampleArticleUrls.length ? (
               <div className="mt-3">
                 <p className="text-xs uppercase tracking-[0.16em] text-[var(--muted)]">文章樣本</p>
-                <div className="mt-2 space-y-2">
+                <div className="mt-2 max-h-[10rem] space-y-2 overflow-y-auto pr-1">
                   {discovery.sampleArticleUrls.map((item) => (
-                    <p key={item} className="truncate text-[var(--muted)]">{item}</p>
+                    <p key={item} className="break-all text-[var(--muted)]">{item}</p>
                   ))}
                 </div>
               </div>
@@ -529,13 +529,13 @@ export function SourceWatchlist({ initialItems }: { initialItems: SourceItem[] }
                       {getStatusLabel(item.lastHandledStatus)}
                     </span>
                   </div>
-                  <p className="mt-2 text-sm text-[var(--muted)]">{item.sourceUrl}</p>
+                  <p className="mt-2 break-all text-sm text-[var(--muted)]">{item.sourceUrl}</p>
                   <p className="mt-2 text-xs uppercase tracking-[0.16em] text-[var(--muted)]">
                     {item.autoImportEnabled ? `daily auto-import → ${item.preferredOutcome}` : "manual import only"}
                   </p>
                   {item.lastItemTitle ? <p className="mt-4 text-sm font-medium">{item.lastItemTitle}</p> : null}
-                  {item.lastExcerpt ? <p className="mt-2 text-sm leading-7 text-[var(--muted)]">{item.lastExcerpt}</p> : null}
-                  {item.lastError ? <p className="mt-2 text-sm text-rose-600">{item.lastError}</p> : null}
+                  {item.lastExcerpt ? <p className="mt-2 break-words text-sm leading-7 text-[var(--muted)]">{item.lastExcerpt}</p> : null}
+                  {item.lastError ? <p className="mt-2 break-all text-sm text-rose-600">{item.lastError}</p> : null}
                 </div>
                 <div className="flex shrink-0 flex-wrap gap-3">
                   {item.lastItemUrl ? (

@@ -466,7 +466,7 @@ export default async function DeskPage({
               <p className="mt-2 text-sm text-[var(--muted)]">{gscOpportunities.items[0]?.label ?? "等待新的搜尋訊號"}</p>
             </article>
           </div>
-          <div className="mt-4 space-y-3">
+          <div className="mt-4 max-h-[18rem] space-y-3 overflow-y-auto pr-1">
             {gscOpportunities.items.length ? (
               gscOpportunities.items.slice(0, 2).map((item) => (
                 <article key={item.id} className="rounded-[1.35rem] border border-[var(--border)] bg-white/82 p-4">
@@ -475,7 +475,7 @@ export default async function DeskPage({
                     <span className="pill-tag">{item.query ? "Query" : `Pos ${item.position.toFixed(1)}`}</span>
                   </div>
                   <p className="mt-3 text-sm font-medium leading-7">{item.query ?? item.page}</p>
-                  <p className="mt-2 text-sm leading-7 text-[var(--muted)]">{item.reason}</p>
+                  <p className="mt-2 break-words text-sm leading-7 text-[var(--muted)]">{item.reason}</p>
                   <div className="mt-3 flex flex-wrap gap-2 text-sm">
                     <span className="rounded-full bg-white px-4 py-2">Clicks {item.clicks}</span>
                     <span className="rounded-full bg-white px-4 py-2">Impressions {item.impressions}</span>
@@ -520,14 +520,14 @@ export default async function DeskPage({
               <p className="mt-2 text-sm text-[var(--muted)]">7 天內到期的 Threads 帳號</p>
             </article>
           </div>
-          <div className="mt-4 space-y-3">
+          <div className="mt-4 max-h-[18rem] space-y-3 overflow-y-auto pr-1">
             {interventionAlerts.length ? (
               interventionAlerts.map((item) => (
                 <article key={item.label} className="rounded-[1.35rem] border border-[var(--border)] bg-white/78 p-4">
                   <div className="flex items-start justify-between gap-4">
                     <div>
                       <p className="text-sm font-semibold">{item.label}</p>
-                      <p className="mt-2 text-sm leading-7 text-[var(--muted)]">{item.detail}</p>
+                      <p className="mt-2 break-words text-sm leading-7 text-[var(--muted)]">{item.detail}</p>
                     </div>
                     <a href={item.href} className="rounded-full border border-[var(--border)] bg-white px-4 py-2 text-sm">
                       {item.action}
@@ -699,7 +699,7 @@ export default async function DeskPage({
               去 Inbox
             </a>
           </div>
-          <div className="mt-5 space-y-3">
+          <div className="mt-5 max-h-[18rem] space-y-3 overflow-y-auto pr-1">
             {topInboxSignals.map((item) => (
               <article key={item.id} className="rounded-[1.5rem] border border-[var(--border)] bg-white/72 p-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
@@ -719,7 +719,7 @@ export default async function DeskPage({
                   </span>
                 </div>
                 <p className="mt-3 text-sm font-medium leading-7">{item.title}</p>
-                <p className="mt-3 text-sm leading-7 text-[var(--muted)]">{item.excerpt}</p>
+                <p className="mt-3 break-words text-sm leading-7 text-[var(--muted)]">{item.excerpt}</p>
                 <div className="mt-4 flex flex-wrap gap-2 text-sm">
                   <span className="rounded-full bg-white px-4 py-2">Threads {item.threadsScore}</span>
                   <span className="rounded-full bg-white px-4 py-2">WordPress {item.wordpressScore}</span>
@@ -727,7 +727,7 @@ export default async function DeskPage({
                 </div>
                 {item.reasons.length ? (
                   <p className="mt-3 rounded-[1.1rem] border border-[var(--border)] bg-[rgba(255,252,248,0.9)] px-4 py-3 text-sm leading-7 text-[var(--accent-strong)]">
-                    {item.reasons[0]}
+                    <span className="break-words">{item.reasons[0]}</span>
                   </p>
                 ) : null}
                 <div className="mt-4 flex flex-wrap gap-2">
@@ -778,7 +778,7 @@ export default async function DeskPage({
           </div>
           <div className="mt-5 space-y-5">
             {directPublishDraftPicks.length > 0 ? (
-              <div className="space-y-3">
+              <div className="max-h-[18rem] space-y-3 overflow-y-auto pr-1">
                 <div className="flex items-center justify-between gap-3">
                   <p className="text-sm font-medium">今天可直接發</p>
                   <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs text-emerald-700">
@@ -832,7 +832,7 @@ export default async function DeskPage({
             ) : null}
 
             {reviewFirstDraftPicks.length > 0 ? (
-              <div className="space-y-3">
+              <div className="max-h-[18rem] space-y-3 overflow-y-auto pr-1">
                 <div className="flex items-center justify-between gap-3">
                   <p className="text-sm font-medium">今天先看一下</p>
                   <span className="rounded-full bg-[var(--accent-soft)] px-3 py-1 text-xs text-[var(--foreground)]">
@@ -950,7 +950,7 @@ export default async function DeskPage({
                   管理帳號
                 </a>
               </div>
-              <div className="mt-5 space-y-3">
+              <div className="mt-5 max-h-[18rem] space-y-3 overflow-y-auto pr-1">
                 {accountSummaries.slice(0, 4).map((account) => (
                   <article key={account.id} className="rounded-[1.35rem] border border-[var(--border)] bg-white/72 p-4">
                     <div className="flex items-center justify-between gap-3">
@@ -986,7 +986,7 @@ export default async function DeskPage({
                   看全部
                 </a>
               </div>
-              <div className="mt-5 space-y-3">
+              <div className="mt-5 max-h-[18rem] space-y-3 overflow-y-auto pr-1">
                 {keywordHits.slice(0, 4).map((hit) => (
                   <article key={hit.id} className="rounded-[1.35rem] border border-[var(--border)] bg-white/72 p-4">
                     <div className="flex items-center justify-between gap-3">
@@ -994,7 +994,7 @@ export default async function DeskPage({
                       <span className="rounded-full bg-white px-3 py-1 text-xs text-[var(--foreground)]">{hit.actionTaken}</span>
                     </div>
                     <p className="mt-2 text-sm leading-7 text-[var(--muted)]">{hit.author}</p>
-                    <p className="mt-2 text-sm leading-7 text-[var(--accent-strong)]">{hit.excerpt}</p>
+                    <p className="mt-2 break-words text-sm leading-7 text-[var(--accent-strong)]">{hit.excerpt}</p>
                   </article>
                 ))}
                 {keywordHits.length === 0 ? (

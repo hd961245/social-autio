@@ -182,7 +182,7 @@ export default async function WordPressPage() {
         <article className="glass-panel rounded-[2rem] border border-[var(--border)] p-6">
           <p className="text-[11px] uppercase tracking-[0.3em] text-[var(--muted)]">Workflow</p>
           <h2 className="mt-2 text-3xl font-semibold">創作者每天最順的走法</h2>
-          <div className="mt-5 space-y-3 text-sm">
+          <div className="mt-5 max-h-[16rem] space-y-3 overflow-y-auto pr-1 text-sm">
             {[
               "1. 先看下方 Draft Inbox，挑今天要補完的長文草稿。",
               "2. 如果素材還不夠，去 Content Desk / Threads 把內容轉進來。",
@@ -211,7 +211,7 @@ export default async function WordPressPage() {
               </a>
             ) : null}
           </div>
-          <div className="mt-5 space-y-2 text-sm text-white/74">
+          <div className="mt-5 max-h-[12rem] space-y-2 overflow-y-auto pr-1 text-sm text-white/74">
             <p>Threads 轉進來：適合快速把高互動短文沉成長文底稿。</p>
             <p>Engine 生成：適合從外部來源或 URL 先做出第一版。</p>
             <p>Archive Rewrite：適合把舊文變成新的題目，不適合當每天第一步。</p>
@@ -229,13 +229,13 @@ export default async function WordPressPage() {
             </p>
           </div>
         </div>
-        <div className="mt-6 grid gap-4">
+        <div className="mt-6 grid max-h-[28rem] gap-4 overflow-y-auto pr-1">
           {localDrafts.map((draft) => (
             <article key={draft.id} className="rounded-[1.6rem] border border-[var(--border)] bg-white/75 p-5">
               <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-3">
-                    <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">{draft.siteUrl}</p>
+                    <p className="break-all text-xs uppercase tracking-[0.2em] text-[var(--muted)]">{draft.siteUrl}</p>
                     <span className="pill-tag">
                       {draft.origin === "threads-sync" ? "From Threads" : draft.origin === "archive-rewrite" ? "Archive Rewrite" : "Manual Draft"}
                     </span>
@@ -259,11 +259,11 @@ export default async function WordPressPage() {
                     ) : null}
                   </div>
                   <h3 className="mt-2 text-xl font-semibold">{draft.title}</h3>
-                  <p className="mt-3 text-sm leading-7 text-[var(--muted)]">{draft.excerpt || "這篇草稿還沒有摘要，進去後可以先補前言與結論。"}</p>
-                  <p className="mt-3 text-sm leading-7 text-[var(--muted)]">{draft.memory.detail}</p>
+                  <p className="mt-3 break-words text-sm leading-7 text-[var(--muted)]">{draft.excerpt || "這篇草稿還沒有摘要，進去後可以先補前言與結論。"}</p>
+                  <p className="mt-3 break-words text-sm leading-7 text-[var(--muted)]">{draft.memory.detail}</p>
                   <p className="mt-3 text-sm text-[var(--muted)]">最後更新：{draft.updatedAt}</p>
                   {draft.remoteModifiedAt ? (
-                    <p className="mt-2 text-sm text-[var(--muted)]">後台最後變更：{draft.remoteModifiedAt}</p>
+                    <p className="mt-2 break-all text-sm text-[var(--muted)]">後台最後變更：{draft.remoteModifiedAt}</p>
                   ) : null}
                 </div>
                 <div className="flex shrink-0 flex-wrap gap-3">
@@ -319,7 +319,7 @@ export default async function WordPressPage() {
             <h2 className="mt-2 text-3xl font-semibold">已連接站台</h2>
           </div>
         </div>
-        <div className="mt-6 grid gap-4 md:grid-cols-2">
+        <div className="mt-6 grid max-h-[18rem] gap-4 overflow-y-auto pr-1 md:grid-cols-2">
           {sites.map((site) => (
             <article key={site.id} className="rounded-[1.6rem] border border-[var(--border)] bg-white/75 p-5">
               <p className="text-sm text-[var(--muted)]">{site.platformUserId}</p>
