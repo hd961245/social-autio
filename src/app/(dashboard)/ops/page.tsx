@@ -63,7 +63,7 @@ export default async function OpsPage() {
       <section className="glass-panel rounded-[2rem] border border-[var(--border)] p-6">
         <p className="text-[11px] uppercase tracking-[0.3em] text-[var(--muted)]">Deploy Checklist</p>
         <h2 className="mt-2 text-3xl font-semibold">部署前檢查</h2>
-        <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <div className="mt-6 grid max-h-[18rem] gap-4 overflow-y-auto pr-1 md:grid-cols-2 xl:grid-cols-3">
           {diagnostics.deployChecklist.map((item) => (
             <article key={item.label} className="rounded-[1.5rem] border border-[var(--border)] bg-white/75 p-4">
               <div className="flex items-center justify-between gap-3">
@@ -89,7 +89,7 @@ export default async function OpsPage() {
       <section className="glass-panel rounded-[2rem] border border-[var(--border)] p-6">
         <p className="text-[11px] uppercase tracking-[0.3em] text-[var(--muted)]">Schema Checks</p>
         <h2 className="mt-2 text-3xl font-semibold">資料庫欄位抽查</h2>
-        <div className="mt-6 grid gap-4 md:grid-cols-2">
+        <div className="mt-6 grid max-h-[16rem] gap-4 overflow-y-auto pr-1 md:grid-cols-2">
           {diagnostics.schema.checks.map((check) => (
             <article key={check.column} className="rounded-[1.5rem] border border-[var(--border)] bg-white/75 p-4">
               <div className="flex items-center justify-between gap-3">
@@ -117,7 +117,7 @@ export default async function OpsPage() {
       <section className="glass-panel rounded-[2rem] border border-[var(--border)] p-6">
         <p className="text-[11px] uppercase tracking-[0.3em] text-[var(--muted)]">Environment Checks</p>
         <h2 className="mt-2 text-3xl font-semibold">關鍵環境變數</h2>
-        <div className="mt-6 grid gap-4 md:grid-cols-2">
+        <div className="mt-6 grid max-h-[18rem] gap-4 overflow-y-auto pr-1 md:grid-cols-2">
           {diagnostics.envChecks.map((check) => (
             <article key={check.key} className="rounded-[1.5rem] border border-[var(--border)] bg-white/75 p-4">
               <div className="flex items-center justify-between gap-3">
@@ -132,7 +132,7 @@ export default async function OpsPage() {
                   {check.status}
                 </span>
               </div>
-              <p className="mt-3 text-sm text-[var(--muted)]">{check.detail}</p>
+              <p className="mt-3 break-all text-sm text-[var(--muted)]">{check.detail}</p>
             </article>
           ))}
         </div>
@@ -141,7 +141,7 @@ export default async function OpsPage() {
       <section className="glass-panel rounded-[2rem] border border-[var(--border)] p-6">
         <p className="text-[11px] uppercase tracking-[0.3em] text-[var(--muted)]">Warnings</p>
         <h2 className="mt-2 text-3xl font-semibold">目前觀察</h2>
-        <div className="mt-6 space-y-3">
+        <div className="mt-6 max-h-[14rem] space-y-3 overflow-y-auto pr-1">
           {diagnostics.warnings.map((warning) => (
             <article key={warning} className="rounded-[1.4rem] border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
               {warning}
@@ -158,7 +158,7 @@ export default async function OpsPage() {
       <section className="glass-panel rounded-[2rem] border border-[var(--border)] p-6">
         <p className="text-[11px] uppercase tracking-[0.3em] text-[var(--muted)]">Recovery Hints</p>
         <h2 className="mt-2 text-3xl font-semibold">下一步建議</h2>
-        <div className="mt-6 space-y-3">
+        <div className="mt-6 max-h-[14rem] space-y-3 overflow-y-auto pr-1">
           {diagnostics.hints.map((hint) => (
             <article key={hint} className="rounded-[1.4rem] border border-[var(--border)] bg-white/75 p-4 text-sm text-[var(--foreground)]">
               {hint}
@@ -175,7 +175,7 @@ export default async function OpsPage() {
       <section className="glass-panel rounded-[2rem] border border-[var(--border)] p-6">
         <p className="text-[11px] uppercase tracking-[0.3em] text-[var(--muted)]">Threads Callback</p>
         <h2 className="mt-2 text-3xl font-semibold">最近授權寫庫紀錄</h2>
-        <div className="mt-6 space-y-3">
+        <div className="mt-6 max-h-[18rem] space-y-3 overflow-y-auto pr-1">
           {diagnostics.threadsCallbackLogs.map((log) => (
             <article key={log.id} className="rounded-[1.4rem] border border-[var(--border)] bg-white/75 p-4 text-sm">
               <div className="flex items-center justify-between gap-3">
@@ -188,7 +188,7 @@ export default async function OpsPage() {
                   {log.status}
                 </span>
               </div>
-              <p className="mt-3 text-[var(--muted)]">{log.detail}</p>
+              <p className="mt-3 break-all text-[var(--muted)]">{log.detail}</p>
             </article>
           ))}
           {diagnostics.threadsCallbackLogs.length === 0 ? (

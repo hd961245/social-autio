@@ -195,14 +195,14 @@ export default async function ReviewBoardPage() {
               <p className="mt-2 text-sm text-[var(--muted)]">自動飛輪的斷點</p>
             </article>
           </div>
-          <div className="mt-4 space-y-3">
+          <div className="mt-4 max-h-[18rem] space-y-3 overflow-y-auto pr-1">
             {interventionCards.length ? (
               interventionCards.map((item) => (
                 <article key={item.label} className="rounded-[1.35rem] border border-[var(--border)] bg-white/82 p-4">
                   <div className="flex items-start justify-between gap-4">
                     <div>
                       <p className="text-sm font-semibold">{item.label}</p>
-                      <p className="mt-2 text-sm leading-7 text-[var(--muted)]">{item.detail}</p>
+                      <p className="mt-2 break-words text-sm leading-7 text-[var(--muted)]">{item.detail}</p>
                     </div>
                     <a href={item.href} className="rounded-full border border-[var(--border)] bg-white px-4 py-2 text-sm">
                       {item.action}
@@ -243,7 +243,7 @@ export default async function ReviewBoardPage() {
               看流量層
             </a>
           </div>
-          <div className="mt-5 space-y-3">
+          <div className="mt-5 max-h-[22rem] space-y-3 overflow-y-auto pr-1">
             {gscOpportunities.items.length ? (
               gscOpportunities.items.map((item) => (
                 <article key={item.id} className="rounded-[1.4rem] border border-[var(--border)] bg-white/82 p-4">
@@ -254,13 +254,13 @@ export default async function ReviewBoardPage() {
                     </span>
                   </div>
                   <p className="mt-3 text-sm font-medium leading-7">{item.query ?? item.page}</p>
-                  <p className="mt-2 text-sm text-[var(--muted)]">{item.reason}</p>
+                  <p className="mt-2 break-words text-sm text-[var(--muted)]">{item.reason}</p>
                   <div className="mt-3 flex flex-wrap gap-2 text-sm">
                     <span className="rounded-full bg-white px-4 py-2">Clicks {item.clicks}</span>
                     <span className="rounded-full bg-white px-4 py-2">Impressions {item.impressions}</span>
                     <span className="rounded-full bg-white px-4 py-2">CTR {(item.ctr * 100).toFixed(1)}%</span>
                   </div>
-                  <p className="mt-3 text-sm text-[var(--muted)]">
+                  <p className="mt-3 break-words text-sm text-[var(--muted)]">
                     {item.confidence === "high"
                       ? "高信心機會：站台若開 near full auto + WordPress auto publish，系統可直接處理。"
                       : item.confidence === "medium"
@@ -303,7 +303,7 @@ export default async function ReviewBoardPage() {
               {optimizationCandidates.length} 篇
             </span>
           </div>
-          <div className="mt-5 space-y-3">
+          <div className="mt-5 max-h-[18rem] space-y-3 overflow-y-auto pr-1">
             {optimizationCandidates.length ? (
               optimizationCandidates.map((post) => (
                 <article key={post.id} className="rounded-[1.4rem] border border-[var(--border)] bg-white/82 p-4">
@@ -312,7 +312,7 @@ export default async function ReviewBoardPage() {
                     <span className="pill-tag">{post.statusLabel}</span>
                   </div>
                   <p className="mt-3 text-sm font-medium leading-7">{post.title}</p>
-                  <p className="mt-3 text-sm text-[var(--muted)]">{post.detail}</p>
+                  <p className="mt-3 break-words text-sm text-[var(--muted)]">{post.detail}</p>
                   <div className="mt-4">
                     <a href={post.href} className="rounded-full border border-[var(--border)] bg-white px-4 py-2 text-sm font-medium">
                       進確認區
@@ -338,7 +338,7 @@ export default async function ReviewBoardPage() {
               去長文台
             </a>
           </div>
-          <div className="mt-5 space-y-3">
+          <div className="mt-5 max-h-[18rem] space-y-3 overflow-y-auto pr-1">
             {wordpressExpansionFeed.length ? (
               wordpressExpansionFeed.map((item) => (
                 <article key={item.id} className="rounded-[1.4rem] border border-[var(--border)] bg-white/82 p-4">
@@ -346,7 +346,7 @@ export default async function ReviewBoardPage() {
                     <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">{item.accountLabel}</p>
                     <span className="pill-tag">{item.executedAt}</span>
                   </div>
-                  <p className="mt-3 text-sm text-[var(--foreground)]">{item.detail}</p>
+                  <p className="mt-3 break-words text-sm text-[var(--foreground)]">{item.detail}</p>
                   <div className="mt-4">
                     <a href={item.href} className="rounded-full border border-[var(--border)] bg-white px-4 py-2 text-sm font-medium">
                       看來源 Threads
@@ -374,7 +374,7 @@ export default async function ReviewBoardPage() {
               去 WordPress 草稿台
             </a>
           </div>
-          <div className="mt-5 grid gap-3">
+          <div className="mt-5 grid max-h-[22rem] gap-3 overflow-y-auto pr-1">
             {expansionCandidates.slice(0, 4).map((post) => (
               <article key={post.id} className="rounded-[1.4rem] border border-[var(--border)] bg-white/82 p-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
@@ -384,8 +384,8 @@ export default async function ReviewBoardPage() {
                   </span>
                 </div>
                 <p className="mt-3 text-sm font-medium leading-7">{post.text}</p>
-                <p className="mt-3 text-sm text-[var(--muted)]">{post.reason}</p>
-                <p className="mt-3 rounded-[1.1rem] border border-[var(--border)] bg-[rgba(255,252,248,0.86)] px-4 py-3 text-sm leading-7 text-[var(--accent-strong)]">
+                <p className="mt-3 break-words text-sm text-[var(--muted)]">{post.reason}</p>
+                <p className="mt-3 rounded-[1.1rem] border border-[var(--border)] bg-[rgba(255,252,248,0.86)] px-4 py-3 text-sm leading-7 break-words text-[var(--accent-strong)]">
                   {post.missionReason}
                 </p>
                 <div className="mt-3 flex flex-wrap gap-2 text-sm">

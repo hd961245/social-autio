@@ -174,7 +174,7 @@ export default async function AnalyticsPage({
         <div className="mt-6 grid gap-4 xl:grid-cols-2">
           <article className="rounded-[1.5rem] border border-[var(--border)] bg-white/72 p-4">
             <p className="text-xs uppercase tracking-[0.24em] text-[var(--muted)]">GA4 Top Pages</p>
-            <div className="mt-4 space-y-3">
+            <div className="mt-4 max-h-[18rem] space-y-3 overflow-y-auto pr-1">
               {gaOverview.topPages.length ? (
                 gaOverview.topPages.map((page) => (
                   <div key={page.path} className="flex items-center justify-between gap-3 rounded-[1.1rem] border border-[var(--border)] bg-[rgba(255,252,248,0.82)] px-4 py-3">
@@ -206,7 +206,7 @@ export default async function AnalyticsPage({
                 </div>
               ))}
             </div>
-            <p className="mt-4 text-sm leading-7 text-[var(--muted)]">{gscOverview.message}</p>
+            <p className="mt-4 break-all text-sm leading-7 text-[var(--muted)]">{gscOverview.message}</p>
           </article>
         </div>
       </section>
@@ -215,7 +215,7 @@ export default async function AnalyticsPage({
         <article className="glass-panel rounded-[1.8rem] border border-[var(--border)] p-6">
           <p className="text-xs uppercase tracking-[0.24em] text-[var(--muted)]">Top Queries</p>
           <h2 className="mt-3 text-3xl font-semibold">最近自然搜尋在吃什麼</h2>
-          <div className="mt-5 space-y-3">
+          <div className="mt-5 max-h-[18rem] space-y-3 overflow-y-auto pr-1">
             {gscOverview.topQueries.length ? (
               gscOverview.topQueries.map((query) => (
                 <article key={query.query} className="rounded-[1.3rem] border border-[var(--border)] bg-white/72 px-4 py-3">
@@ -237,7 +237,7 @@ export default async function AnalyticsPage({
         <article className="glass-panel rounded-[1.8rem] border border-[var(--border)] p-6">
           <p className="text-xs uppercase tracking-[0.24em] text-[var(--muted)]">Top Search Pages</p>
           <h2 className="mt-3 text-3xl font-semibold">最有機會放大的頁面</h2>
-          <div className="mt-5 space-y-3">
+          <div className="mt-5 max-h-[18rem] space-y-3 overflow-y-auto pr-1">
             {gscOverview.topPages.length ? (
               gscOverview.topPages.map((page) => (
                 <article key={page.page} className="rounded-[1.3rem] border border-[var(--border)] bg-white/72 px-4 py-3">
@@ -365,7 +365,7 @@ export default async function AnalyticsPage({
           </form>
         </div>
 
-        <div className="mt-6 space-y-3">
+        <div className="mt-6 max-h-[18rem] space-y-3 overflow-y-auto pr-1">
           {compactSnapshots.map((item) => (
             <article key={item.label} className="rounded-[1.3rem] border border-[var(--border)] bg-white/72 px-4 py-3">
               <div className="grid gap-3 sm:grid-cols-[120px_1fr_1fr] sm:items-center">
@@ -390,7 +390,7 @@ export default async function AnalyticsPage({
       <section className="glass-panel rounded-[2rem] border border-[var(--border)] p-6">
         <p className="text-[11px] uppercase tracking-[0.3em] text-[var(--muted)]">Viral Radar</p>
         <h2 className="mt-2 text-3xl font-semibold">值得放大的 Threads</h2>
-        <div className="mt-6 space-y-4">
+        <div className="mt-6 max-h-[22rem] space-y-4 overflow-y-auto pr-1">
           {analytics.viralCandidates.map((post) => (
             <article key={post.id} className="rounded-[1.5rem] border border-[var(--border)] bg-white/70 p-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
@@ -432,7 +432,7 @@ export default async function AnalyticsPage({
       <section className="glass-panel rounded-[2rem] border border-[var(--border)] p-6">
         <p className="text-[11px] uppercase tracking-[0.3em] text-[var(--muted)]">Top Posts</p>
         <h2 className="mt-2 text-3xl font-semibold">目前表現最好的 Threads</h2>
-        <div className="mt-6 space-y-4">
+        <div className="mt-6 max-h-[22rem] space-y-4 overflow-y-auto pr-1">
           {analytics.topPosts.map((post) => (
             <article key={post.id} className="rounded-[1.5rem] border border-[var(--border)] bg-white/70 p-4">
               <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">
