@@ -11,8 +11,8 @@ export function WorkspaceNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="glass-panel fade-in-up overflow-x-auto rounded-[1.8rem] border border-[var(--border)] px-4 py-4">
-      <div className="flex min-w-max gap-3">
+    <nav className="glass-panel fade-in-up rounded-[1.8rem] border border-[var(--border)] px-4 py-4">
+      <div className="grid gap-3 lg:grid-cols-2 2xl:grid-cols-4">
         {dashboardNavGroups.map((group) => {
           const active = isGroupActive(
             pathname,
@@ -22,7 +22,7 @@ export function WorkspaceNav() {
           return (
             <details
               key={group.id}
-              className={`group relative min-w-[220px] rounded-[1.3rem] border px-4 py-3 ${
+              className={`group relative min-w-0 rounded-[1.3rem] border px-4 py-3 ${
                 active ? "border-[var(--card-dark)] bg-[var(--card-dark)] text-white" : "border-[var(--border)] bg-white/72"
               }`}
             >

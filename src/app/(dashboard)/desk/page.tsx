@@ -318,18 +318,18 @@ export default async function DeskPage({
         description="這裡是唯一首頁。先看經營目標、今日待拍板與高價值來源，再把內容送進 Review、Compose、Threads 或 WordPress。"
       />
 
-      <section className="grid gap-4 xl:grid-cols-[1.08fr_0.92fr]">
-        <article className="rounded-[2rem] bg-[var(--card-dark)] p-6 text-white shadow-[0_24px_60px_rgba(15,10,7,0.22)]">
+      <section className="grid gap-4 2xl:grid-cols-[minmax(0,1.08fr)_minmax(320px,0.92fr)]">
+        <article className="min-w-0 rounded-[2rem] bg-[var(--card-dark)] p-5 text-white shadow-[0_24px_60px_rgba(15,10,7,0.22)] xl:p-6">
           <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
+            <div className="min-w-0 flex-1">
               <p className="text-[11px] uppercase tracking-[0.3em] text-white/55">PM Mission</p>
-              <h2 className="mt-2 text-3xl font-semibold">{missionTitle}</h2>
-              <p className="mt-3 text-sm text-white/72">
+              <h2 className="mt-2 text-[2rem] font-semibold leading-tight xl:text-3xl">{missionTitle}</h2>
+              <p className="mt-3 break-words text-sm text-white/72">
                 {missionCurrentValue.toLocaleString("zh-TW")} / {missionTargetValue.toLocaleString("zh-TW")} {missionUnit}
                 {missionDeadline ? ` · 截止 ${missionDeadline}` : ""}
               </p>
             </div>
-            <div className="rounded-[1.2rem] border border-white/10 bg-white/5 px-4 py-3 text-right">
+            <div className="w-full rounded-[1.2rem] border border-white/10 bg-white/5 px-4 py-3 text-left sm:w-auto sm:text-right">
               <p className="text-[11px] uppercase tracking-[0.24em] text-white/55">Autopilot</p>
               <p className="mt-2 text-lg font-semibold">{autopilotModeLabel}</p>
               <p className="mt-1 text-xs text-white/60">{settings?.automationPaused ? "目前已暫停" : "目前允許背景自動運轉"}</p>
@@ -343,22 +343,22 @@ export default async function DeskPage({
             <div className="mt-3 h-3 overflow-hidden rounded-full bg-white/10">
               <div className="h-full rounded-full bg-white" style={{ width: `${Math.max(6, missionProgress)}%` }} />
             </div>
-            <p className="mt-3 text-sm text-white/68">
+            <p className="mt-3 break-words text-sm text-white/68">
               {settings?.editorialDirection?.trim()
                 ? `當前站台方向：${settings.editorialDirection.trim().slice(0, 110)}${settings.editorialDirection.trim().length > 110 ? "…" : ""}`
                 : "目前尚未設定站台級內容方向，建議先去 Config / Accounts 補上 PM mission 與 editorial direction。"}
             </p>
           </div>
-          <div className="mt-4 grid gap-3 md:grid-cols-3">
-            <div className="rounded-[1.1rem] border border-white/10 bg-white/5 px-4 py-4">
+          <div className="mt-4 grid gap-3 xl:grid-cols-3">
+            <div className="min-w-0 rounded-[1.1rem] border border-white/10 bg-white/5 px-4 py-4">
               <p className="text-[11px] uppercase tracking-[0.22em] text-white/55">主軸</p>
               <p className="mt-2 text-sm leading-7 text-white/78">{missionStrategy.primaryFocus}</p>
             </div>
-            <div className="rounded-[1.1rem] border border-white/10 bg-white/5 px-4 py-4">
+            <div className="min-w-0 rounded-[1.1rem] border border-white/10 bg-white/5 px-4 py-4">
               <p className="text-[11px] uppercase tracking-[0.22em] text-white/55">Threads 分流</p>
               <p className="mt-2 text-sm leading-7 text-white/78">{missionStrategy.threadBias}</p>
             </div>
-            <div className="rounded-[1.1rem] border border-white/10 bg-white/5 px-4 py-4">
+            <div className="min-w-0 rounded-[1.1rem] border border-white/10 bg-white/5 px-4 py-4">
               <p className="text-[11px] uppercase tracking-[0.22em] text-white/55">WordPress / 優化</p>
               <p className="mt-2 text-sm leading-7 text-white/78">
                 {missionStrategy.wordpressBias} {missionStrategy.optimizationBias}
@@ -367,7 +367,7 @@ export default async function DeskPage({
           </div>
         </article>
 
-        <article className="glass-panel rounded-[2rem] border border-[var(--border)] p-6">
+        <article className="min-w-0 glass-panel rounded-[2rem] border border-[var(--border)] p-5 xl:p-6">
           <p className="text-[11px] uppercase tracking-[0.3em] text-[var(--muted)]">14 Day Ops</p>
           <h2 className="mt-2 text-3xl font-semibold">寫文軌與優化軌</h2>
           <div className="mt-5 grid gap-3 sm:grid-cols-2">
@@ -382,8 +382,8 @@ export default async function DeskPage({
         </article>
       </section>
 
-      <section className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
-        <article className="glass-panel rounded-[2rem] border border-[var(--border)] p-6">
+      <section className="grid gap-4 2xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
+        <article className="min-w-0 glass-panel rounded-[2rem] border border-[var(--border)] p-5 xl:p-6">
           <div className="flex items-end justify-between gap-4">
             <div>
               <p className="text-[11px] uppercase tracking-[0.3em] text-[var(--muted)]">Operating Flow</p>
@@ -393,7 +393,7 @@ export default async function DeskPage({
               去 Inventory
             </a>
           </div>
-          <div className="mt-6 grid gap-4 xl:grid-cols-3">
+          <div className="mt-6 grid gap-4 2xl:grid-cols-3">
             {ONBOARDING_STEPS.map((step) => (
               <article key={step.label} className="rounded-[1.35rem] border border-[var(--border)] bg-white/74 p-4">
                 <p className="text-xs uppercase tracking-[0.22em] text-[var(--muted)]">{step.label}</p>
@@ -406,7 +406,7 @@ export default async function DeskPage({
           </div>
         </article>
 
-        <article className="rounded-[2rem] bg-[var(--card-dark)] p-6 text-white shadow-[0_24px_60px_rgba(15,10,7,0.22)]">
+        <article className="min-w-0 rounded-[2rem] bg-[var(--card-dark)] p-5 text-white shadow-[0_24px_60px_rgba(15,10,7,0.22)] xl:p-6">
           <p className="text-[11px] uppercase tracking-[0.3em] text-white/55">Operating Rule</p>
           <h2 className="mt-2 text-3xl font-semibold">先挑題，再讓系統幫你放大</h2>
           <div className="mt-5 space-y-3 text-sm text-white/78">
