@@ -45,7 +45,10 @@ function normalizeWordPressContent(content: PostContent) {
 async function syncWordPressPost(
   accountId: string,
   content: PostContent,
-  existingPlatformPostId?: string
+  existingPlatformPostId?: string,
+  options?: {
+    status?: "draft" | "publish" | "future";
+  }
 ): Promise<PublishResult> {
   const account = await getWordPressAccountContext(accountId);
   const normalized = normalizeWordPressContent(content);
@@ -62,7 +65,7 @@ async function syncWordPressPost(
       title: normalized.title,
       content: normalized.html,
       excerpt: normalized.excerpt,
-      status: "draft",
+      status: options?.status ?? "draft",
       categories: categoryIds,
       tags: tagIds,
       featured_media: featuredMediaId
@@ -152,14 +155,23 @@ async function uploadFeaturedImage(
   return media.id;
 }
 
-export async function publishToWordPress(accountId: string, content: PostContent): Promise<PublishResult> {
-  return syncWordPressPost(accountId, content);
+export async function publishToWordPress(
+  accountId: string,
+  content: PostContent,
+  options?: {
+    status?: "draft" | "publish" | "future";
+  }
+): Promise<PublishResult> {
+  return syncWordPressPost(accountId, content, undefined, options);
 }
 
 export async function updateWordPressDraft(
   accountId: string,
   platformPostId: string,
-  content: PostContent
+  content: PostContent,
+  options?: {
+    status?: "draft" | "publish" | "future";
+  }
 ): Promise<PublishResult> {
-  return syncWordPressPost(accountId, content, platformPostId);
+  return syncWordPressPost(accountId, content, platformPostId, options);
 }

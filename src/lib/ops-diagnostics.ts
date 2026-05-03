@@ -91,6 +91,8 @@ export async function getOpsDiagnostics(): Promise<OpsDiagnostics> {
     checkEnv("THREADS_APP_SECRET", process.env.THREADS_APP_SECRET),
     checkEnv("THREADS_REDIRECT_URI", process.env.THREADS_REDIRECT_URI),
     checkEnv("TOKEN_ENCRYPTION_KEY", process.env.TOKEN_ENCRYPTION_KEY),
+    checkEnv("GSC_SITE_URL", process.env.GSC_SITE_URL),
+    checkEnv("GSC_CLIENT_EMAIL", process.env.GSC_CLIENT_EMAIL ?? process.env.GA4_CLIENT_EMAIL),
     checkEnv("INNGEST_EVENT_KEY", process.env.INNGEST_EVENT_KEY),
     checkEnv("INNGEST_SIGNING_KEY", process.env.INNGEST_SIGNING_KEY),
     checkEnv("INNGEST_SERVE_ORIGIN", process.env.INNGEST_SERVE_ORIGIN)
@@ -110,7 +112,7 @@ export async function getOpsDiagnostics(): Promise<OpsDiagnostics> {
         `select column_name
          from information_schema.columns
          where table_name = 'AppSettings'
-           and column_name in ('editorialDirection', 'editorialGoal', 'missionTitle', 'autopilotMode')`
+           and column_name in ('editorialDirection', 'editorialGoal', 'missionTitle', 'autopilotMode', 'wordpressPublishMode')`
       )
     ]);
     const callbackLogs = await prisma.automationLog.findMany({
@@ -123,7 +125,7 @@ export async function getOpsDiagnostics(): Promise<OpsDiagnostics> {
       take: 5
     });
     const schemaColumns = new Set(schemaRows.map((row) => row.column_name));
-    const schemaChecks = ["editorialDirection", "editorialGoal", "missionTitle", "autopilotMode"].map((column) => ({
+    const schemaChecks = ["editorialDirection", "editorialGoal", "missionTitle", "autopilotMode", "wordpressPublishMode"].map((column) => ({
       column,
       status: schemaColumns.has(column) ? ("present" as const) : ("missing" as const)
     }));

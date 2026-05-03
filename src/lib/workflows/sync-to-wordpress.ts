@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { buildTemplateHtml } from "@/lib/content/wordpress-templates";
+import { publishToWordPress } from "@/lib/platforms/wordpress/publisher";
 
 function extractTags(text: string) {
   const matches = [...text.matchAll(/#([\p{L}\p{N}_-]+)/gu)];
@@ -203,19 +204,50 @@ export async function syncPostToWordPress(postId: string, options?: { titleOverr
     }
   });
 
+  const wordpressRemoteStatus = settings?.wordpressPublishMode === "auto_publish" ? "publish" : "draft";
+  const remoteResult = await publishToWordPress(
+    wordpressAccount.id,
+    {
+      contentType: "text",
+      title: draft.title,
+      text: draft.excerpt,
+      html: draft.html,
+      excerpt: draft.excerpt,
+      mediaUrls: created.mediaUrls ? (JSON.parse(created.mediaUrls) as string[]) : undefined,
+      featuredImageUrl: created.featuredImageUrl ?? undefined,
+      tags: created.tags ? (JSON.parse(created.tags) as string[]) : undefined
+    },
+    { status: wordpressRemoteStatus }
+  );
+
+  await prisma.post.update({
+    where: { id: created.id },
+    data: {
+      platformPostId: remoteResult.platformPostId,
+      platformUrl: remoteResult.url ?? null,
+      status: wordpressRemoteStatus === "publish" ? "published" : "draft",
+      publishedAt: wordpressRemoteStatus === "publish" ? new Date() : null,
+      errorMessage: null
+    }
+  });
+
   await prisma.automationLog.create({
     data: {
       accountId: wordpressAccount.id,
       postId: created.id,
       actionType: "wordpress_sync",
       status: "executed",
-      detail: "已由 Threads 貼文建立 WordPress 可編輯草稿"
+      detail:
+        wordpressRemoteStatus === "publish"
+          ? "已由 Threads 貼文建立並自動發布到 WordPress"
+          : "已由 Threads 貼文建立 WordPress 可編輯草稿"
     }
   });
 
   return {
     postId: created.id,
     scheduled: false,
-    duplicated: false
+    duplicated: false,
+    published: wordpressRemoteStatus === "publish"
   };
 }

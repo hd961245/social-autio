@@ -11,7 +11,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
     return NextResponse.json({
       ok: true,
-      message: result.duplicated ? "這篇貼文已經有 WordPress 草稿。" : "已建立 WordPress 可編輯草稿。",
+      message: result.duplicated
+        ? "這篇貼文已經有 WordPress 草稿。"
+        : result.published
+          ? "已建立並自動發布到 WordPress。"
+          : "已建立 WordPress 可編輯草稿。",
       ...result
     });
   } catch (error) {

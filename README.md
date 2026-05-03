@@ -42,7 +42,8 @@ Open `http://localhost:3000`.
 - AI provider 可在內容引擎中選擇 `Auto / Gemini / Claude / OpenAI`
 - 若要使用 Threads 排程前 Telegram 確認，另外設定 `TELEGRAM_BOT_TOKEN`、`TELEGRAM_CHAT_ID`、`APP_BASE_URL`
 - 若要在 `Analytics` 看網站流量總覽，另外設定 `GA4_PROPERTY_ID`、`GA4_CLIENT_EMAIL`、`GA4_PRIVATE_KEY`
-- `GA4_CLIENT_EMAIL` / `GA4_PRIVATE_KEY` 來自 Google Cloud service account，並且該帳號需要加入 GA4 property 權限
+- 若要在 `Analytics` 看自然搜尋表現，另外設定 `GSC_SITE_URL`，必要時也可另外指定 `GSC_CLIENT_EMAIL`、`GSC_PRIVATE_KEY`
+- `GA4_CLIENT_EMAIL` / `GA4_PRIVATE_KEY` 來自 Google Cloud service account，並且該帳號需要加入 GA4 property 權限；若 GSC 共用同一組 service account，可只補 `GSC_SITE_URL`
 - 若要讓排程、metrics、keywords 與 automation 自動執行，另外設定 `INNGEST_EVENT_KEY`、`INNGEST_SIGNING_KEY`、`INNGEST_SERVE_ORIGIN`
 - `THREADS_REDIRECT_URI` 應設為 `https://social-audio.zeabur.app/api/threads/callback`
 - 首次部署後執行一次 `npm run db:push`
@@ -73,7 +74,7 @@ Open `http://localhost:3000`.
 - `Threads Personas`：每個 Threads 帳號可維護不同人設與預設語氣
 - `Persona Playbook`：每個 Threads 帳號可定義題材範圍、hook 風格、CTA 風格與語氣禁區
 - `Daily AI Autopilot`：每個 Threads 帳號可設定每日自動生文時間、方向與草稿 / 排程模式
-- `WordPress`：只建立 / 更新草稿，不直接發佈
+- `WordPress`：預設建立 / 更新草稿；也可切成站台級自動發布模式
 - `Content Engine`：輸入 URL / text / image，產出 Threads + WordPress draft
 - `Content Desk`：把 Inbox / Sources / Engine / Queue 收在同一個工作台
 - `Content Inventory`：用 source / draft / published / expandable / monetizable 看內容階段

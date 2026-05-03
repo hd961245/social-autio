@@ -24,7 +24,7 @@ const CONFIG_AREAS = [
   {
     label: "Ops",
     href: "/ops",
-    detail: "AI health、schema、Threads 帳號、deploy checklist 與 recovery hints。"
+    detail: "AI health、GA4 / GSC、schema、Threads 帳號、deploy checklist 與 recovery hints。"
   },
   {
     label: "Knowledge Inputs",

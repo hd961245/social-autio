@@ -20,7 +20,21 @@ const AUTOPILOT_MODES = [
   }
 ] as const;
 
+const WORDPRESS_PUBLISH_MODES = [
+  {
+    value: "draft_only",
+    label: "先存草稿",
+    detail: "WordPress 維持知識沉澱台，所有長文先進後台草稿。"
+  },
+  {
+    value: "auto_publish",
+    label: "自動發布",
+    detail: "高信心長文與沉澱稿會直接發到 WordPress，不再只停在草稿。"
+  }
+] as const;
+
 type AutopilotMode = (typeof AUTOPILOT_MODES)[number]["value"];
+type WordPressPublishMode = (typeof WORDPRESS_PUBLISH_MODES)[number]["value"];
 
 function toDateInputValue(value?: string | null) {
   if (!value) {
@@ -44,6 +58,7 @@ export function AutopilotEditorialControl({
   initialMissionUnit,
   initialMissionDeadline,
   initialAutopilotMode,
+  initialWordPressPublishMode,
   initialAutomationPaused
 }: {
   initialDirection: string;
@@ -54,6 +69,7 @@ export function AutopilotEditorialControl({
   initialMissionUnit: string;
   initialMissionDeadline: string | null;
   initialAutopilotMode: AutopilotMode;
+  initialWordPressPublishMode: WordPressPublishMode;
   initialAutomationPaused: boolean;
 }) {
   const [missionTitle, setMissionTitle] = useState(initialMissionTitle);
@@ -68,6 +84,7 @@ export function AutopilotEditorialControl({
   const [direction, setDirection] = useState(initialDirection);
   const [goal, setGoal] = useState(initialGoal);
   const [autopilotMode, setAutopilotMode] = useState<AutopilotMode>(initialAutopilotMode);
+  const [wordpressPublishMode, setWordpressPublishMode] = useState<WordPressPublishMode>(initialWordPressPublishMode);
   const [automationPaused, setAutomationPaused] = useState(initialAutomationPaused);
   const [message, setMessage] = useState<string | null>(null);
   const [messageTone, setMessageTone] = useState<"neutral" | "error">("neutral");
@@ -112,6 +129,7 @@ export function AutopilotEditorialControl({
           missionUnit,
           missionDeadline: missionDeadline ? new Date(`${missionDeadline}T00:00:00+08:00`).toISOString() : null,
           autopilotMode,
+          wordpressPublishMode,
           editorialDirection: direction,
           editorialGoal: goal
         })
@@ -252,6 +270,29 @@ export function AutopilotEditorialControl({
           </article>
 
           <article className="rounded-[1.25rem] border border-[var(--border)] bg-[var(--surface)]/70 p-4">
+            <p className="text-sm font-medium">WordPress 發佈模式</p>
+            <div className="mt-3 space-y-3">
+              {WORDPRESS_PUBLISH_MODES.map((mode) => (
+                <button
+                  key={mode.value}
+                  type="button"
+                  className={`w-full rounded-[1.2rem] border px-4 py-3 text-left ${
+                    wordpressPublishMode === mode.value
+                      ? "border-[var(--card-dark)] bg-[var(--card-dark)] text-white"
+                      : "border-[var(--border)] bg-white text-[var(--foreground)]"
+                  }`}
+                  onClick={() => setWordpressPublishMode(mode.value)}
+                >
+                  <span className="block text-sm font-semibold">{mode.label}</span>
+                  <span className={`mt-1 block text-xs ${wordpressPublishMode === mode.value ? "text-white/70" : "text-[var(--muted)]"}`}>
+                    {mode.detail}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </article>
+
+          <article className="rounded-[1.25rem] border border-[var(--border)] bg-[var(--surface)]/70 p-4">
             <p className="text-sm font-medium">人工 override</p>
             <div className="mt-3 space-y-3">
               <button
@@ -280,6 +321,7 @@ export function AutopilotEditorialControl({
               <li>1. PM Ops 首頁的 mission 與今日優先級</li>
               <li>2. autopilot 每天優先吃哪些來源與題材</li>
               <li>3. AI 產稿後是直接排程，還是先進 Review</li>
+              <li>4. WordPress 長文是只進草稿，還是可直接自動發布</li>
             </ul>
           </div>
         </div>

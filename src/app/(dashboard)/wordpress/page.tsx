@@ -161,6 +161,14 @@ export default async function WordPressPage() {
             value: settings?.writingStyleProfile ? "Ready" : "Empty",
             detail: settings?.writingStyleProfile ? "生成草稿時會帶入你的舊文寫法" : "建議先分析舊文，讓生成結果更像你"
           },
+          {
+            label: "Publish Mode",
+            value: settings?.wordpressPublishMode === "auto_publish" ? "Auto" : "Draft",
+            detail:
+              settings?.wordpressPublishMode === "auto_publish"
+                ? "長文同步後可直接發到 WordPress"
+                : "WordPress 目前仍以草稿沉澱為主"
+          }
         ].map((card) => (
           <article key={card.label} className="metric-card">
             <p className="text-xs uppercase tracking-[0.24em] text-[var(--muted)]">{card.label}</p>

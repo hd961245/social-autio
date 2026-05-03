@@ -27,5 +27,11 @@ export const env = {
   appBaseUrl: () => process.env.APP_BASE_URL?.trim() || process.env.INNGEST_SERVE_ORIGIN?.trim() || "",
   ga4PropertyId: () => process.env.GA4_PROPERTY_ID?.trim() || "",
   ga4ClientEmail: () => process.env.GA4_CLIENT_EMAIL?.trim() || "",
-  ga4PrivateKey: () => process.env.GA4_PRIVATE_KEY?.replace(/\\n/g, "\n").trim() || ""
+  ga4PrivateKey: () => process.env.GA4_PRIVATE_KEY?.replace(/\\n/g, "\n").trim() || "",
+  gscSiteUrl: () => process.env.GSC_SITE_URL?.trim() || "",
+  gscClientEmail: () => process.env.GSC_CLIENT_EMAIL?.trim() || process.env.GA4_CLIENT_EMAIL?.trim() || "",
+  gscPrivateKey: () =>
+    process.env.GSC_PRIVATE_KEY?.replace(/\\n/g, "\n").trim() ||
+    process.env.GA4_PRIVATE_KEY?.replace(/\\n/g, "\n").trim() ||
+    ""
 };

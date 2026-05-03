@@ -195,10 +195,10 @@ export default async function DeskPage({
   const pendingApprovalCount = reviewFirstDraftPicks.length;
   const readyToShipCount = directPublishDraftPicks.length;
   const highValueSourceCount = inboxItems.filter((item) => item.qualityTier === "high" && item.status === "new").length;
-  const missionTitle = settings?.missionTitle?.trim() || "建立可持續的 Threads → WordPress 自體營運飛輪";
+  const missionTitle = settings?.missionTitle?.trim() || "7 個月內，讓接入帳號進入台灣前 50 大理財內容流量級";
   const missionCurrentValue = settings?.missionCurrentValue ?? 0;
   const missionTargetValue = settings?.missionTargetValue ?? 30000;
-  const missionUnit = settings?.missionUnit?.trim() || "月點擊";
+  const missionUnit = settings?.missionUnit?.trim() || "月自然流量";
   const missionProgress = missionTargetValue > 0 ? Math.min(100, Math.round((missionCurrentValue / missionTargetValue) * 1000) / 10) : 0;
   const missionDeadline = settings?.missionDeadline
     ? settings.missionDeadline.toLocaleDateString("zh-TW")

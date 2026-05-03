@@ -207,13 +207,16 @@ export default async function AccountsPage() {
           <AutopilotEditorialControl
             initialDirection={settings?.editorialDirection ?? ""}
             initialGoal={settings?.editorialGoal ?? ""}
-            initialMissionTitle={settings?.missionTitle ?? "進入台灣理財關鍵字前段，建立可持續的 Threads → WordPress 飛輪"}
+            initialMissionTitle={settings?.missionTitle ?? "7 個月內，讓接入帳號進入台灣前 50 大理財內容流量級"}
             initialMissionCurrentValue={settings?.missionCurrentValue ?? 0}
             initialMissionTargetValue={settings?.missionTargetValue ?? 30000}
-            initialMissionUnit={settings?.missionUnit ?? "月點擊"}
+            initialMissionUnit={settings?.missionUnit ?? "月自然流量"}
             initialMissionDeadline={settings?.missionDeadline?.toISOString() ?? null}
             initialAutopilotMode={
               (settings?.autopilotMode as "review_only" | "auto_schedule" | "near_full_auto" | undefined) ?? "near_full_auto"
+            }
+            initialWordPressPublishMode={
+              (settings?.wordpressPublishMode as "draft_only" | "auto_publish" | undefined) ?? "draft_only"
             }
             initialAutomationPaused={settings?.automationPaused ?? false}
           />

@@ -39,9 +39,18 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       return NextResponse.json({ ok: false, message: "已發布的 Threads 貼文不可直接編輯" }, { status: 400 });
     }
 
+    const settings =
+      existingPost.account.platform === "wordpress"
+        ? await prisma.appSettings.findFirst()
+        : null;
+    const wordpressRemoteStatus =
+      settings?.wordpressPublishMode === "auto_publish" ? "publish" : "draft";
+    const wordpressLocalStatus =
+      wordpressRemoteStatus === "publish" ? "published" : "draft";
+
     const nextStatus =
       existingPost.account.platform === "wordpress"
-        ? "draft"
+        ? wordpressLocalStatus
         : payload.publishMode === "scheduled"
           ? "scheduled"
           : payload.requiresApproval
@@ -89,11 +98,11 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
                 text: updatedPost.textContent ?? undefined,
                 html: updatedPost.htmlContent ?? undefined,
                 excerpt: updatedPost.excerpt ?? undefined,
-                mediaUrls: updatedPost.mediaUrls ? (JSON.parse(updatedPost.mediaUrls) as string[]) : undefined,
-                featuredImageUrl: updatedPost.featuredImageUrl ?? undefined,
-                categories: updatedPost.categories ? (JSON.parse(updatedPost.categories) as string[]) : undefined,
+              mediaUrls: updatedPost.mediaUrls ? (JSON.parse(updatedPost.mediaUrls) as string[]) : undefined,
+              featuredImageUrl: updatedPost.featuredImageUrl ?? undefined,
+              categories: updatedPost.categories ? (JSON.parse(updatedPost.categories) as string[]) : undefined,
                 tags: updatedPost.tags ? (JSON.parse(updatedPost.tags) as string[]) : undefined
-              })
+              }, { status: wordpressRemoteStatus })
             : await publishToWordPress(updatedPost.accountId, {
                 contentType: updatedPost.contentType as "text" | "image" | "video" | "carousel",
                 title: updatedPost.title ?? undefined,
@@ -104,14 +113,16 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
                 featuredImageUrl: updatedPost.featuredImageUrl ?? undefined,
                 categories: updatedPost.categories ? (JSON.parse(updatedPost.categories) as string[]) : undefined,
                 tags: updatedPost.tags ? (JSON.parse(updatedPost.tags) as string[]) : undefined
-              });
+              }, { status: wordpressRemoteStatus });
 
         await prisma.post.update({
           where: { id: updatedPost.id },
           data: {
             platformPostId: result.platformPostId,
             platformUrl: result.url ?? null,
-            errorMessage: null
+            errorMessage: null,
+            status: wordpressLocalStatus,
+            publishedAt: wordpressLocalStatus === "published" ? new Date() : null
           }
         });
 
@@ -120,13 +131,20 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
           postId: updatedPost.id,
           actionType: "wordpress_draft_sync",
           status: "executed",
-          detail: updatedPost.platformPostId ? "WordPress 後台草稿已更新" : "已建立 WordPress 後台草稿"
+          detail:
+            wordpressRemoteStatus === "publish"
+              ? updatedPost.platformPostId
+                ? "WordPress 已自動更新並發布"
+                : "已建立並自動發布到 WordPress"
+              : updatedPost.platformPostId
+                ? "WordPress 後台草稿已更新"
+                : "已建立 WordPress 後台草稿"
         });
 
         return NextResponse.json({
           ok: true,
           postId: updatedPost.id,
-          message: "WordPress 草稿已更新。"
+          message: wordpressRemoteStatus === "publish" ? "WordPress 文章已同步並發布。" : "WordPress 草稿已更新。"
         });
       } catch (error) {
         await prisma.post.update({

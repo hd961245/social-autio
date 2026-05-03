@@ -2,6 +2,7 @@ import { DatabaseBanner } from "@/components/dashboard/database-banner";
 import { PageIntro } from "@/components/dashboard/page-intro";
 import { getAnalyticsOverview, getDatabaseStatus } from "@/lib/dashboard-data";
 import { getGaOverview } from "@/lib/ga";
+import { getGscOverview } from "@/lib/gsc";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +20,7 @@ export default async function AnalyticsPage({
   const params = await searchParams;
   const window = params.window === "7d" || params.window === "30d" || params.window === "all" ? params.window : "30d";
   const accountId = params.accountId ?? "all";
-  const [databaseStatus, analytics, gaOverview] = await Promise.all([
+  const [databaseStatus, analytics, gaOverview, gscOverview] = await Promise.all([
     getDatabaseStatus(),
     getAnalyticsOverview({ window, accountId }),
     getGaOverview().catch((error) => ({
@@ -34,10 +35,25 @@ export default async function AnalyticsPage({
       },
       topPages: [],
       message: error instanceof Error ? error.message : "GA4 讀取失敗"
+    })),
+    getGscOverview().catch((error) => ({
+      configured: false,
+      siteUrl: "",
+      source: "gsc",
+      totals: {
+        clicks: 0,
+        impressions: 0,
+        ctr: 0,
+        position: 0
+      },
+      topPages: [],
+      topQueries: [],
+      message: error instanceof Error ? error.message : "GSC 讀取失敗"
     }))
   ]);
   const bestPost = analytics.topPosts[0] ?? null;
   const strongestCandidate = analytics.viralCandidates[0] ?? null;
+  const compactSnapshots = analytics.followerTrend.slice(-7).reverse();
   const totalCards = [
     { label: "Views", value: analytics.totals.views },
     { label: "Likes", value: analytics.totals.likes },
@@ -52,7 +68,7 @@ export default async function AnalyticsPage({
       <PageIntro
         eyebrow="Analytics"
         title="Threads 復盤板"
-        description="這裡只看 Threads，而且現在會把帳號 / persona 一起拉進來。你不只是在看數字，也是在看哪一種聲音、哪一種切法更有效。"
+        description="這裡把 Threads、GA4、Search Console 收成同一塊營運面。只保留對決策有用的數字、排名與下一步建議。"
       />
       <DatabaseBanner status={databaseStatus} />
 
@@ -120,13 +136,23 @@ export default async function AnalyticsPage({
       <section className="glass-panel rounded-[1.8rem] border border-[var(--border)] p-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <p className="text-xs uppercase tracking-[0.24em] text-[var(--muted)]">GA4 Overview</p>
-            <h2 className="mt-3 text-3xl font-semibold">{gaOverview.configured ? "網站流量總覽" : "GA4 尚未接好"}</h2>
-            <p className="mt-3 max-w-3xl text-sm leading-7 text-[var(--muted)]">{gaOverview.message}</p>
+            <p className="text-xs uppercase tracking-[0.24em] text-[var(--muted)]">Traffic Layer</p>
+            <h2 className="mt-3 text-3xl font-semibold">站台流量總覽</h2>
+            <p className="mt-3 max-w-3xl text-sm leading-7 text-[var(--muted)]">
+              GA4 看整站，Search Console 看自然搜尋。這裡先回答流量有沒有在往「台灣前 50 大理財帳號」的方向推進。
+            </p>
           </div>
-          <div className="rounded-[1.2rem] border border-[var(--border)] bg-white/70 px-4 py-3 text-sm">
-            <p className="text-xs uppercase tracking-[0.22em] text-[var(--muted)]">Property ID</p>
-            <p className="mt-2 font-semibold">{gaOverview.propertyId || "未設定"}</p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="rounded-[1.2rem] border border-[var(--border)] bg-white/70 px-4 py-3 text-sm">
+              <p className="text-xs uppercase tracking-[0.22em] text-[var(--muted)]">GA4</p>
+              <p className="mt-2 font-semibold">{gaOverview.propertyId || "未設定"}</p>
+              <p className="mt-2 text-xs text-[var(--muted)]">{gaOverview.configured ? "已連線" : "尚未接好"}</p>
+            </div>
+            <div className="rounded-[1.2rem] border border-[var(--border)] bg-white/70 px-4 py-3 text-sm">
+              <p className="text-xs uppercase tracking-[0.22em] text-[var(--muted)]">GSC</p>
+              <p className="mt-2 font-semibold">{gscOverview.siteUrl || "未設定"}</p>
+              <p className="mt-2 text-xs text-[var(--muted)]">{gscOverview.configured ? "已連線" : "尚未接好"}</p>
+            </div>
           </div>
         </div>
 
@@ -145,24 +171,90 @@ export default async function AnalyticsPage({
           ))}
         </div>
 
-        <div className="mt-6 space-y-3">
-          <p className="text-xs uppercase tracking-[0.24em] text-[var(--muted)]">Top Pages</p>
-          {gaOverview.topPages.length ? (
-            gaOverview.topPages.map((page) => (
-              <article key={page.path} className="rounded-[1.4rem] border border-[var(--border)] bg-white/72 p-4">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <p className="font-medium">{page.path}</p>
-                  <div className="flex flex-wrap gap-2 text-sm text-[var(--muted)]">
-                    <span className="pill-tag">Views {page.views}</span>
-                    <span className="pill-tag">Users {page.users}</span>
+        <div className="mt-6 grid gap-4 xl:grid-cols-2">
+          <article className="rounded-[1.5rem] border border-[var(--border)] bg-white/72 p-4">
+            <p className="text-xs uppercase tracking-[0.24em] text-[var(--muted)]">GA4 Top Pages</p>
+            <div className="mt-4 space-y-3">
+              {gaOverview.topPages.length ? (
+                gaOverview.topPages.map((page) => (
+                  <div key={page.path} className="flex items-center justify-between gap-3 rounded-[1.1rem] border border-[var(--border)] bg-[rgba(255,252,248,0.82)] px-4 py-3">
+                    <p className="min-w-0 flex-1 truncate text-sm font-medium">{page.path}</p>
+                    <div className="text-right text-sm">
+                      <p>{page.views} views</p>
+                      <p className="text-[var(--muted)]">{page.users} users</p>
+                    </div>
                   </div>
+                ))
+              ) : (
+                <p className="text-sm text-[var(--muted)]">{gaOverview.message}</p>
+              )}
+            </div>
+          </article>
+
+          <article className="rounded-[1.5rem] border border-[var(--border)] bg-white/72 p-4">
+            <p className="text-xs uppercase tracking-[0.24em] text-[var(--muted)]">Search Console</p>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              {[
+                { label: "Clicks", value: gscOverview.totals.clicks },
+                { label: "Impressions", value: gscOverview.totals.impressions },
+                { label: "CTR", value: `${(gscOverview.totals.ctr * 100).toFixed(1)}%` },
+                { label: "Avg Position", value: gscOverview.totals.position ? gscOverview.totals.position.toFixed(1) : "0.0" }
+              ].map((card) => (
+                <div key={card.label} className="rounded-[1.1rem] border border-[var(--border)] bg-[rgba(255,252,248,0.82)] px-4 py-3">
+                  <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">{card.label}</p>
+                  <p className="mt-2 text-2xl font-semibold">{card.value}</p>
                 </div>
-              </article>
-            ))
-          ) : (
-            <p className="text-sm text-[var(--muted)]">補好 GA4 後，這裡會開始顯示近 30 天最常被閱讀的頁面。</p>
-          )}
+              ))}
+            </div>
+            <p className="mt-4 text-sm leading-7 text-[var(--muted)]">{gscOverview.message}</p>
+          </article>
         </div>
+      </section>
+
+      <section className="grid gap-4 xl:grid-cols-2">
+        <article className="glass-panel rounded-[1.8rem] border border-[var(--border)] p-6">
+          <p className="text-xs uppercase tracking-[0.24em] text-[var(--muted)]">Top Queries</p>
+          <h2 className="mt-3 text-3xl font-semibold">最近自然搜尋在吃什麼</h2>
+          <div className="mt-5 space-y-3">
+            {gscOverview.topQueries.length ? (
+              gscOverview.topQueries.map((query) => (
+                <article key={query.query} className="rounded-[1.3rem] border border-[var(--border)] bg-white/72 px-4 py-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="min-w-0 flex-1 text-sm font-medium">{query.query}</p>
+                    <div className="text-right text-sm">
+                      <p>{query.clicks} clicks</p>
+                      <p className="text-[var(--muted)]">{query.impressions} impressions</p>
+                    </div>
+                  </div>
+                </article>
+              ))
+            ) : (
+              <p className="text-sm text-[var(--muted)]">{gscOverview.message}</p>
+            )}
+          </div>
+        </article>
+
+        <article className="glass-panel rounded-[1.8rem] border border-[var(--border)] p-6">
+          <p className="text-xs uppercase tracking-[0.24em] text-[var(--muted)]">Top Search Pages</p>
+          <h2 className="mt-3 text-3xl font-semibold">最有機會放大的頁面</h2>
+          <div className="mt-5 space-y-3">
+            {gscOverview.topPages.length ? (
+              gscOverview.topPages.map((page) => (
+                <article key={page.page} className="rounded-[1.3rem] border border-[var(--border)] bg-white/72 px-4 py-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="min-w-0 flex-1 text-sm font-medium">{page.page}</p>
+                    <div className="text-right text-sm">
+                      <p>{page.clicks} clicks</p>
+                      <p className="text-[var(--muted)]">CTR {(page.ctr * 100).toFixed(1)}%</p>
+                    </div>
+                  </div>
+                </article>
+              ))
+            ) : (
+              <p className="text-sm text-[var(--muted)]">接好 Search Console 後，這裡會開始回答「哪些頁面最該補 title / desc / CTA」。</p>
+            )}
+          </div>
+        </article>
       </section>
 
       {analytics.personaSnapshot ? (
@@ -259,13 +351,13 @@ export default async function AnalyticsPage({
       <section className="glass-panel rounded-[2rem] border border-[var(--border)] p-6">
         <div className="flex items-center justify-between gap-4">
           <div>
-            <p className="text-[11px] uppercase tracking-[0.3em] text-[var(--muted)]">Follower Trend</p>
+            <p className="text-[11px] uppercase tracking-[0.3em] text-[var(--muted)]">Threads Snapshots</p>
             <h2 className="mt-2 text-3xl font-semibold">
               {analytics.filters.window === "7d"
-                ? "近 7 天 Threads 快照"
+                ? "近 7 天 Threads 數字快照"
                 : analytics.filters.window === "30d"
-                  ? "近 30 天 Threads 快照"
-                  : "全部可用 Threads 快照"}
+                  ? "近 30 天 Threads 數字快照"
+                  : "全部可用 Threads 數字快照"}
             </h2>
           </div>
           <form action="/api/cron/metrics" method="post">
@@ -273,29 +365,22 @@ export default async function AnalyticsPage({
           </form>
         </div>
 
-        <div className="mt-8 space-y-4">
-          {analytics.followerTrend.map((item) => {
-            const followerMax = Math.max(...analytics.followerTrend.map((entry) => entry.followers), 1);
-            const engagementMax = Math.max(...analytics.followerTrend.map((entry) => entry.engagement), 1);
-
-            return (
-              <div key={item.label} className="grid grid-cols-[72px_1fr_1fr] items-center gap-4 text-sm">
-                <span className="text-[var(--muted)]">{item.label}</span>
-                <div className="rounded-full bg-white/80 p-1">
-                  <div
-                    className="h-3 rounded-full bg-[var(--accent)]"
-                    style={{ width: `${(item.followers / followerMax) * 100}%` }}
-                  />
+        <div className="mt-6 space-y-3">
+          {compactSnapshots.map((item) => (
+            <article key={item.label} className="rounded-[1.3rem] border border-[var(--border)] bg-white/72 px-4 py-3">
+              <div className="grid gap-3 sm:grid-cols-[120px_1fr_1fr] sm:items-center">
+                <p className="text-sm font-medium">{item.label}</p>
+                <div>
+                  <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">Followers</p>
+                  <p className="mt-1 text-lg font-semibold">{item.followers}</p>
                 </div>
-                <div className="rounded-full bg-white/80 p-1">
-                  <div
-                    className="h-3 rounded-full bg-[var(--success)]"
-                    style={{ width: `${(item.engagement / engagementMax) * 100}%` }}
-                  />
+                <div>
+                  <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">Engagement</p>
+                  <p className="mt-1 text-lg font-semibold">{item.engagement}</p>
                 </div>
               </div>
-            );
-          })}
+            </article>
+          ))}
           {analytics.followerTrend.length === 0 ? (
             <p className="text-sm text-[var(--muted)]">還沒有 metrics snapshot，先按上方按鈕或呼叫 cron route 收集一次。</p>
           ) : null}

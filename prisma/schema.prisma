@@ -200,6 +200,7 @@ model AppSettings {
   missionUnit           String?  @default("月點擊")
   missionDeadline       DateTime?
   autopilotMode         String?  @default("near_full_auto")
+  wordpressPublishMode  String?  @default("draft_only")
   globalPersonaPrompt   String?
   editorialDirection    String?
   editorialGoal         String?
