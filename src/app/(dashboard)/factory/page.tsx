@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ContentEngineForm } from "@/components/dashboard/content-engine-form";
 import { HelpSheet } from "@/components/dashboard/help-sheet";
 import { PageIntro } from "@/components/dashboard/page-intro";
+import { SeoOpportunityDraftButton } from "@/components/dashboard/seo-opportunity-draft-button";
 import { getGscOpportunityQueue } from "@/lib/gsc";
 import { prisma } from "@/lib/prisma";
 
@@ -194,6 +195,15 @@ export default async function FactoryPage() {
                 <p className="mt-3 text-sm font-medium leading-7">{item.query ?? item.page}</p>
                 <p className="mt-2 text-sm leading-7 text-[var(--muted)]">{item.reason}</p>
                 <p className="mt-3 text-sm text-[var(--accent-strong)]">{item.action}</p>
+                <div className="mt-4">
+                  <SeoOpportunityDraftButton
+                    page={item.page}
+                    query={item.query}
+                    lane={item.lane}
+                    reason={item.reason}
+                    action={item.action}
+                  />
+                </div>
               </article>
             ))
           ) : (

@@ -1,5 +1,6 @@
 import { PageIntro } from "@/components/dashboard/page-intro";
 import { PostsList } from "@/components/dashboard/posts-list";
+import { SeoOpportunityDraftButton } from "@/components/dashboard/seo-opportunity-draft-button";
 import { SyncWordPressButton } from "@/components/dashboard/sync-wordpress-button";
 import { getGscOpportunityQueue } from "@/lib/gsc";
 import { summarizeMissionStrategy } from "@/lib/mission-scoring";
@@ -260,9 +261,18 @@ export default async function ReviewBoardPage() {
                   </div>
                   <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
                     <p className="text-sm text-[var(--accent-strong)]">{item.action}</p>
-                    <a href={item.href} className="rounded-full border border-[var(--border)] bg-white px-4 py-2 text-sm font-medium">
-                      去處理
-                    </a>
+                    <div className="flex flex-wrap gap-2">
+                      <SeoOpportunityDraftButton
+                        page={item.page}
+                        query={item.query}
+                        lane={item.lane}
+                        reason={item.reason}
+                        action={item.action}
+                      />
+                      <a href={item.href} className="rounded-full border border-[var(--border)] bg-white px-4 py-2 text-sm font-medium">
+                        去處理
+                      </a>
+                    </div>
                   </div>
                 </article>
               ))
