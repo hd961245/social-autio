@@ -5,6 +5,17 @@ import { prisma } from "@/lib/prisma";
 const settingsSchema = z.object({
   automationPaused: z.boolean().optional(),
   keywordScanPaused: z.boolean().optional(),
+  missionTitle: z.string().trim().max(200).optional(),
+  missionCurrentValue: z.number().int().min(0).max(1_000_000_000).nullable().optional(),
+  missionTargetValue: z.number().int().min(0).max(1_000_000_000).nullable().optional(),
+  missionUnit: z.string().trim().max(40).optional(),
+  missionDeadline: z
+    .string()
+    .datetime({ offset: true })
+    .or(z.string().datetime())
+    .nullable()
+    .optional(),
+  autopilotMode: z.enum(["review_only", "auto_schedule", "near_full_auto"]).optional(),
   globalPersonaPrompt: z.string().trim().max(5000).optional(),
   editorialDirection: z.string().trim().max(3000).optional(),
   editorialGoal: z.string().trim().max(1000).optional(),
@@ -23,6 +34,12 @@ export async function GET() {
     settings: settings ?? {
         automationPaused: false,
         keywordScanPaused: false,
+        missionTitle: "用 AI 維持內容輸出與成長節奏",
+        missionCurrentValue: 0,
+        missionTargetValue: 30000,
+        missionUnit: "月點擊",
+        missionDeadline: null,
+        autopilotMode: "near_full_auto",
         globalPersonaPrompt: "",
         editorialDirection: "",
         editorialGoal: "",
@@ -39,26 +56,36 @@ export async function GET() {
 export async function PATCH(request: Request) {
   try {
     const payload = settingsSchema.parse(await request.json());
+    const normalizedPayload = {
+      ...payload,
+      missionDeadline: payload.missionDeadline ? new Date(payload.missionDeadline) : payload.missionDeadline
+    };
     const existing = await prisma.appSettings.findFirst();
 
     const settings = existing
       ? await prisma.appSettings.update({
           where: { id: existing.id },
-          data: payload
+          data: normalizedPayload
         })
       : await prisma.appSettings.create({
           data: {
-            automationPaused: payload.automationPaused ?? false,
-            keywordScanPaused: payload.keywordScanPaused ?? false,
-            globalPersonaPrompt: payload.globalPersonaPrompt,
-            editorialDirection: payload.editorialDirection,
-            editorialGoal: payload.editorialGoal,
-            defaultTone: payload.defaultTone ?? "sharp-observer",
-            aiProvider: payload.aiProvider ?? "auto",
-            affiliateBlockPrimary: payload.affiliateBlockPrimary,
-            affiliateBlockSecondary: payload.affiliateBlockSecondary,
-            affiliateDisclosure: payload.affiliateDisclosure,
-            affiliateCta: payload.affiliateCta
+            automationPaused: normalizedPayload.automationPaused ?? false,
+            keywordScanPaused: normalizedPayload.keywordScanPaused ?? false,
+            missionTitle: normalizedPayload.missionTitle,
+            missionCurrentValue: normalizedPayload.missionCurrentValue ?? 0,
+            missionTargetValue: normalizedPayload.missionTargetValue ?? 30000,
+            missionUnit: normalizedPayload.missionUnit ?? "月點擊",
+            missionDeadline: normalizedPayload.missionDeadline ?? null,
+            autopilotMode: normalizedPayload.autopilotMode ?? "near_full_auto",
+            globalPersonaPrompt: normalizedPayload.globalPersonaPrompt,
+            editorialDirection: normalizedPayload.editorialDirection,
+            editorialGoal: normalizedPayload.editorialGoal,
+            defaultTone: normalizedPayload.defaultTone ?? "sharp-observer",
+            aiProvider: normalizedPayload.aiProvider ?? "auto",
+            affiliateBlockPrimary: normalizedPayload.affiliateBlockPrimary,
+            affiliateBlockSecondary: normalizedPayload.affiliateBlockSecondary,
+            affiliateDisclosure: normalizedPayload.affiliateDisclosure,
+            affiliateCta: normalizedPayload.affiliateCta
           }
         });
 

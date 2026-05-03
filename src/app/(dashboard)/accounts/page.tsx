@@ -132,9 +132,9 @@ export default async function AccountsPage() {
   return (
     <div className="space-y-6">
       <PageIntro
-        eyebrow="Accounts"
-        title="已連接帳號"
-        description="查看 Threads 授權狀態、同步時間與目前可用帳號。每支 Threads 帳號也可以在這裡設定人設，並啟用每天自動產文後直接進總表待確認，或自動排進發布佇列。"
+        eyebrow="Config"
+        title="帳號、persona 與站台 autopilot 設定"
+        description="這裡只做設定，不做日常決策。Threads 授權、persona、每日自動生文與站台級 mission 都集中在這裡。"
         action={
           <a href="/accounts/connect" className="rounded-full bg-[var(--accent)] px-4 py-3 text-sm text-white">
             連接 Threads 帳號
@@ -207,6 +207,15 @@ export default async function AccountsPage() {
           <AutopilotEditorialControl
             initialDirection={settings?.editorialDirection ?? ""}
             initialGoal={settings?.editorialGoal ?? ""}
+            initialMissionTitle={settings?.missionTitle ?? "進入台灣理財關鍵字前段，建立可持續的 Threads → WordPress 飛輪"}
+            initialMissionCurrentValue={settings?.missionCurrentValue ?? 0}
+            initialMissionTargetValue={settings?.missionTargetValue ?? 30000}
+            initialMissionUnit={settings?.missionUnit ?? "月點擊"}
+            initialMissionDeadline={settings?.missionDeadline?.toISOString() ?? null}
+            initialAutopilotMode={
+              (settings?.autopilotMode as "review_only" | "auto_schedule" | "near_full_auto" | undefined) ?? "near_full_auto"
+            }
+            initialAutomationPaused={settings?.automationPaused ?? false}
           />
         </div>
         <div className="mt-4">

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { dashboardPrimaryLinks } from "@/lib/dashboard-nav";
 
@@ -10,29 +11,29 @@ export function Sidebar() {
     <aside className="glass-panel fade-in-up sticky top-6 overflow-hidden rounded-[2rem] border border-[var(--border)] p-5">
       <div className="mb-6">
         <p className="text-[11px] uppercase tracking-[0.35em] text-[var(--muted)]">Social Audio</p>
-        <h1 className="mt-3 text-3xl font-semibold leading-none">Creator Console</h1>
+        <h1 className="mt-3 text-3xl font-semibold leading-none">PM / Ops Console</h1>
         <p className="mt-3 max-w-xs text-sm leading-6 text-[var(--muted)]">
-          把你每天真的會做的事留在眼前：看今天題目、AI 起稿、發 Threads、回看表現。
+          把內容經營收成單一營運台：先看 mission、再拍板、再交給 AI 與 Threads / WordPress 飛輪。
         </p>
       </div>
 
       <div className="mb-5 grid gap-2">
-        <a
-          href="/compose"
+        <Link
+          href="/desk"
           className="rounded-[1.15rem] bg-[var(--accent)] px-4 py-3 text-sm font-semibold text-white shadow-[0_18px_40px_rgba(187,90,54,0.22)]"
         >
-          開始今天的內容
-        </a>
-        <a
-          href="/desk"
+          打開 PM Ops
+        </Link>
+        <Link
+          href="/review"
           className="rounded-[1.15rem] border border-[var(--border)] bg-white/72 px-4 py-3 text-sm font-semibold text-[var(--foreground)]"
         >
-          打開今日總覽
-        </a>
+          去 Review 拍板
+        </Link>
       </div>
 
       <div className="mb-3">
-        <p className="text-[11px] uppercase tracking-[0.3em] text-[var(--muted)]">Daily Lane</p>
+        <p className="text-[11px] uppercase tracking-[0.3em] text-[var(--muted)]">Operating Lane</p>
       </div>
 
       <nav className="space-y-2">

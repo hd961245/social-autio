@@ -14,55 +14,55 @@ export type DashboardNavGroup = {
 
 export const dashboardNavGroups: DashboardNavGroup[] = [
   {
-    id: "desk",
-    label: "Desk",
-    hint: "今天總覽、候選稿與下一步",
+    id: "pm-ops",
+    label: "PM Ops",
+    hint: "唯一首頁：mission、待拍板與今日節奏",
     primaryHref: "/desk",
     items: [
-      { href: "/desk", label: "今日總覽", hint: "先看這裡，再決定今天寫什麼" },
-      { href: "/analytics", label: "分析", hint: "表現、留言、下一步" },
-      { href: "/inventory", label: "內容庫存", hint: "source 到 monetizable" }
+      { href: "/desk", label: "PM Ops", hint: "mission、今日待拍板、兩條營運軌" },
+      { href: "/analytics", label: "Analytics", hint: "14 天觀察、留言與表現回饋" },
+      { href: "/inventory", label: "Content Inventory", hint: "source 到 monetizable" }
     ]
   },
   {
-    id: "sources",
-    label: "來源",
-    hint: "看來源、挑題、回到草稿",
-    primaryHref: "/inbox",
+    id: "review",
+    label: "Review",
+    hint: "所有需要你拍板的內容先進這裡",
+    primaryHref: "/review",
     items: [
-      { href: "/inbox", label: "Inbox", hint: "高訊號來源與改寫建議" },
-      { href: "/sources", label: "來源", hint: "watchlist + import" },
-      { href: "/help", label: "知識輸入", hint: "來源策略 + transcript 路線" }
+      { href: "/review", label: "Review Board", hint: "Threads 待拍板與下一步" },
+      { href: "/posts", label: "Queue", hint: "直接發 / 先看一下 / WordPress 擴寫" },
+      { href: "/inbox", label: "Source Inbox", hint: "高訊號來源與建議方向" }
     ]
   },
   {
-    id: "publish",
-    label: "發佈",
-    hint: "AI 起稿、發 Threads、沉長文",
-    primaryHref: "/compose",
+    id: "factory",
+    label: "Content Factory",
+    hint: "來源轉稿、AI 起稿、persona autopilot、長文擴寫",
+    primaryHref: "/factory",
     items: [
-      { href: "/compose", label: "Compose", hint: "起稿、修稿、發文、排程" },
-      { href: "/posts", label: "Queue", hint: "review queue + next moves" },
-      { href: "/wordpress", label: "WP 草稿", hint: "draft sync + expansion" }
+      { href: "/factory", label: "Factory", hint: "AI 寫文工廠與知識輸入主線" },
+      { href: "/content-engine", label: "Advanced Engine", hint: "進階素材拆稿台" },
+      { href: "/wordpress", label: "WordPress Draft Studio", hint: "長文沉澱與 CTA/affiliate" }
     ]
   },
   {
-    id: "system",
-    label: "設定",
-    hint: "帳號、人設、自動化、診斷",
-    primaryHref: "/accounts",
+    id: "config",
+    label: "Config",
+    hint: "帳號、persona、來源包、AI、WordPress、診斷",
+    primaryHref: "/config",
     items: [
-      { href: "/accounts", label: "帳號", hint: "Threads OAuth + persona" },
-      { href: "/automation", label: "自動化", hint: "rules + safety" },
-      { href: "/ops", label: "Ops", hint: "env + db diagnostics" },
-      { href: "/help", label: "說明中心", hint: "workflow + AI guide" }
+      { href: "/config", label: "Config Hub", hint: "站台級設定與知識輸入入口" },
+      { href: "/accounts", label: "Accounts", hint: "Threads OAuth + persona + autopilot" },
+      { href: "/sources", label: "Sources", hint: "starter packs + watchlist" },
+      { href: "/ops", label: "Ops", hint: "env、schema 與 deploy checklist" }
     ]
   }
 ];
 
 export const dashboardPrimaryLinks: DashboardNavItem[] = [
-  { href: "/desk", label: "Desk", hint: "今天先看這裡" },
-  { href: "/compose", label: "發文", hint: "AI 起稿 + Threads 發佈" },
-  { href: "/analytics", label: "分析", hint: "復盤 + rewrite radar" },
-  { href: "/accounts", label: "帳號", hint: "persona + autopilot" }
+  { href: "/desk", label: "PM Ops", hint: "今天先看 mission、待拍板與節奏" },
+  { href: "/review", label: "Review", hint: "所有需要你拍板的稿件" },
+  { href: "/compose", label: "Compose", hint: "最後確認與送出 Threads" },
+  { href: "/analytics", label: "Analytics", hint: "14 天觀察、留言與下一步" }
 ];

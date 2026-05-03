@@ -12,11 +12,11 @@ import { prisma } from "@/lib/prisma";
 export const dynamic = "force-dynamic";
 
 const DESK_TABS = [
-  { id: "overview", label: "總覽", description: "先看今天題目、候選稿與工作焦點" },
-  { id: "inbox", label: "Inbox", description: "先看今天值得處理的來源內容" },
-  { id: "sources", label: "來源", description: "管理固定追蹤來源與刷新名單" },
-  { id: "engine", label: "AI 起稿", description: "把素材拆成 Threads + WordPress 草稿" },
-  { id: "queue", label: "Queue", description: "編修草稿、排程與查看發布紀錄" }
+  { id: "overview", label: "PM Ops", description: "mission、待拍板、今日來源與兩條營運軌" },
+  { id: "inbox", label: "Source Inbox", description: "先看今天值得處理的來源內容" },
+  { id: "sources", label: "Sources", description: "管理固定追蹤來源與 discovery 名單" },
+  { id: "engine", label: "Factory", description: "把素材送進 AI 寫文工廠" },
+  { id: "queue", label: "Review Queue", description: "編修草稿、排程與查看發布紀錄" }
 ] as const;
 
 const ONBOARDING_STEPS = [
@@ -54,6 +54,7 @@ export default async function DeskPage({
   let settings: Awaited<ReturnType<typeof prisma.appSettings.findFirst>> = null;
   let ingestions: Awaited<ReturnType<typeof prisma.ingestionRecord.findMany>> = [];
   let threadsAccounts: Awaited<ReturnType<typeof prisma.platformAccount.findMany>> = [];
+  let autopilotLogs: Awaited<ReturnType<typeof prisma.automationLog.findMany>> = [];
   let drafts: Array<
     Awaited<ReturnType<typeof prisma.post.findMany<{ include: { account: true } }>>>[number]
   > = [];
@@ -72,7 +73,7 @@ export default async function DeskPage({
   const reviewFirstDraftPicks = todayDraftPicks.filter((post) => post.reviewLane !== "direct");
 
   try {
-    [sourceItems, settings, ingestions, drafts, threadsAccounts] = await Promise.all([
+    [sourceItems, settings, ingestions, drafts, threadsAccounts, autopilotLogs] = await Promise.all([
       prisma.sourceWatch.findMany({
         orderBy: [{ updatedAt: "desc" }, { createdAt: "desc" }]
       }),
@@ -90,6 +91,15 @@ export default async function DeskPage({
       prisma.platformAccount.findMany({
         where: { platform: "threads", isActive: true },
         orderBy: [{ isActive: "desc" }, { createdAt: "asc" }]
+      }),
+      prisma.automationLog.findMany({
+        where: {
+          actionType: "daily_persona_generation"
+        },
+        orderBy: {
+          executedAt: "desc"
+        },
+        take: 24
       })
     ]);
   } catch {}
@@ -178,26 +188,106 @@ export default async function DeskPage({
     lastError: item.lastError ?? ""
   }));
 
+  const now = new Date();
+  const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+  const recentAutopilotLogs = autopilotLogs.filter((log) => log.executedAt >= fourteenDaysAgo);
+  const aiGeneratedToday = posts.filter((post) => post.status === "draft" && post.platform === "threads" && post.isFreshToday).length;
+  const pendingApprovalCount = reviewFirstDraftPicks.length;
+  const readyToShipCount = directPublishDraftPicks.length;
+  const highValueSourceCount = inboxItems.filter((item) => item.qualityTier === "high" && item.status === "new").length;
+  const missionTitle = settings?.missionTitle?.trim() || "建立可持續的 Threads → WordPress 自體營運飛輪";
+  const missionCurrentValue = settings?.missionCurrentValue ?? 0;
+  const missionTargetValue = settings?.missionTargetValue ?? 30000;
+  const missionUnit = settings?.missionUnit?.trim() || "月點擊";
+  const missionProgress = missionTargetValue > 0 ? Math.min(100, Math.round((missionCurrentValue / missionTargetValue) * 1000) / 10) : 0;
+  const missionDeadline = settings?.missionDeadline
+    ? settings.missionDeadline.toLocaleDateString("zh-TW")
+    : null;
+  const autopilotModeLabel =
+    settings?.autopilotMode === "review_only"
+      ? "只進待拍板"
+      : settings?.autopilotMode === "auto_schedule"
+        ? "強稿自動排程"
+        : "近乎全自動";
+  const publishedIn14Days = posts.filter((post) => {
+    const timestamp = new Date(post.scheduledAt).getTime();
+    return post.status === "published" && !Number.isNaN(timestamp) && timestamp >= fourteenDaysAgo.getTime();
+  }).length;
+  const optimizationSnapshot = [
+    { label: "14 天 autopilot 執行", value: String(recentAutopilotLogs.length), detail: "自動產文與排程補跑次數" },
+    { label: "14 天已發布", value: String(publishedIn14Days), detail: "Threads 已完成發布的數量" },
+    { label: "今日待拍板", value: String(pendingApprovalCount), detail: "需要先進 Review 決定 assignment 的稿件" },
+    { label: "今日可直發", value: String(readyToShipCount), detail: "高信心稿，適合最後確認後送出" }
+  ];
+
   const summaryCards = [
-    { label: "待處理來源", value: String(inboxItems.filter((item) => item.status === "new").length), detail: "今天還沒處理的來源內容" },
-    { label: "追蹤來源", value: String(trackedSources.length), detail: "固定觀察中的 RSS / URL 名單" },
-    { label: "最近輸入", value: String(ingestions.length), detail: "最近一次進 Content Engine 的素材" },
-    { label: "可編輯草稿", value: String(posts.filter((post) => post.status === "draft").length), detail: "Threads + WordPress 尚待細修" }
+    { label: "高價值來源", value: String(highValueSourceCount), detail: "今天最值得先寫的來源數" },
+    { label: "AI 今日產文", value: String(aiGeneratedToday), detail: "autopilot + AI 工廠新產出的草稿" },
+    { label: "待你拍板", value: String(pendingApprovalCount), detail: "需要先進 Review 決定 assignment" },
+    { label: "追蹤來源", value: String(trackedSources.length), detail: "固定觀察中的 RSS / URL / site 名單" }
   ];
 
   return (
     <div className="space-y-6">
       <PageIntro
-        eyebrow="Content Desk"
-        title="今天先在這裡決定要寫什麼"
-        description="Desk 只做一件事：幫你先確認今天最值得寫的題目，再把你送去 Compose、Queue 或 WordPress。"
+        eyebrow="PM Ops"
+        title="先看 mission，再決定今天哪些內容值得被放大"
+        description="這裡是唯一首頁。先看經營目標、今日待拍板與高價值來源，再把內容送進 Review、Compose、Threads 或 WordPress。"
       />
+
+      <section className="grid gap-4 xl:grid-cols-[1.08fr_0.92fr]">
+        <article className="rounded-[2rem] bg-[var(--card-dark)] p-6 text-white shadow-[0_24px_60px_rgba(15,10,7,0.22)]">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <p className="text-[11px] uppercase tracking-[0.3em] text-white/55">PM Mission</p>
+              <h2 className="mt-2 text-3xl font-semibold">{missionTitle}</h2>
+              <p className="mt-3 text-sm text-white/72">
+                {missionCurrentValue.toLocaleString("zh-TW")} / {missionTargetValue.toLocaleString("zh-TW")} {missionUnit}
+                {missionDeadline ? ` · 截止 ${missionDeadline}` : ""}
+              </p>
+            </div>
+            <div className="rounded-[1.2rem] border border-white/10 bg-white/5 px-4 py-3 text-right">
+              <p className="text-[11px] uppercase tracking-[0.24em] text-white/55">Autopilot</p>
+              <p className="mt-2 text-lg font-semibold">{autopilotModeLabel}</p>
+              <p className="mt-1 text-xs text-white/60">{settings?.automationPaused ? "目前已暫停" : "目前允許背景自動運轉"}</p>
+            </div>
+          </div>
+          <div className="mt-5 rounded-[1.2rem] border border-white/10 bg-white/5 px-4 py-4">
+            <div className="flex items-center justify-between gap-3 text-sm">
+              <span>Mission 進度</span>
+              <span>{missionProgress}%</span>
+            </div>
+            <div className="mt-3 h-3 overflow-hidden rounded-full bg-white/10">
+              <div className="h-full rounded-full bg-white" style={{ width: `${Math.max(6, missionProgress)}%` }} />
+            </div>
+            <p className="mt-3 text-sm text-white/68">
+              {settings?.editorialDirection?.trim()
+                ? `當前站台方向：${settings.editorialDirection.trim().slice(0, 110)}${settings.editorialDirection.trim().length > 110 ? "…" : ""}`
+                : "目前尚未設定站台級內容方向，建議先去 Config / Accounts 補上 PM mission 與 editorial direction。"}
+            </p>
+          </div>
+        </article>
+
+        <article className="glass-panel rounded-[2rem] border border-[var(--border)] p-6">
+          <p className="text-[11px] uppercase tracking-[0.3em] text-[var(--muted)]">14 Day Ops</p>
+          <h2 className="mt-2 text-3xl font-semibold">寫文軌與優化軌</h2>
+          <div className="mt-5 grid gap-3 sm:grid-cols-2">
+            {optimizationSnapshot.map((item) => (
+              <article key={item.label} className="rounded-[1.3rem] border border-[var(--border)] bg-white/72 p-4">
+                <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">{item.label}</p>
+                <p className="mt-3 text-3xl font-semibold">{item.value}</p>
+                <p className="mt-2 text-sm text-[var(--muted)]">{item.detail}</p>
+              </article>
+            ))}
+          </div>
+        </article>
+      </section>
 
       <section className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
         <article className="glass-panel rounded-[2rem] border border-[var(--border)] p-6">
           <div className="flex items-end justify-between gap-4">
             <div>
-              <p className="text-[11px] uppercase tracking-[0.3em] text-[var(--muted)]">Daily Flow</p>
+              <p className="text-[11px] uppercase tracking-[0.3em] text-[var(--muted)]">Operating Flow</p>
               <h2 className="mt-2 text-3xl font-semibold">每天就走這三步</h2>
             </div>
             <a href="/inventory" className="text-sm font-medium text-[var(--accent)]">
@@ -222,13 +312,13 @@ export default async function DeskPage({
           <h2 className="mt-2 text-3xl font-semibold">先挑題，再讓系統幫你放大</h2>
           <div className="mt-5 space-y-3 text-sm text-white/78">
             <p className="rounded-[1.2rem] border border-white/10 bg-white/5 px-4 py-3">
-              來源先進 Inbox，先判斷值不值得寫，再進 Compose。
+              來源先進 Inbox，先判斷值不值得寫，再進 Review / Compose。
             </p>
             <p className="rounded-[1.2rem] border border-white/10 bg-white/5 px-4 py-3">
-              Threads 先驗證，WordPress 後沉澱。長文不是起點。
+              Threads 先驗證，WordPress 後沉澱。長文不是起點，是知識沉澱與商業位承接。
             </p>
             <p className="rounded-[1.2rem] border border-white/10 bg-white/5 px-4 py-3">
-              AI 是起稿助手，不是代替你決定今天主題的人。
+              AI 負責找題、起稿、優化與背景自動化；你主要處理 mission、例外與高價值決策。
             </p>
           </div>
         </article>

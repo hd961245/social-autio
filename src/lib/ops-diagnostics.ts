@@ -110,7 +110,7 @@ export async function getOpsDiagnostics(): Promise<OpsDiagnostics> {
         `select column_name
          from information_schema.columns
          where table_name = 'AppSettings'
-           and column_name in ('editorialDirection', 'editorialGoal')`
+           and column_name in ('editorialDirection', 'editorialGoal', 'missionTitle', 'autopilotMode')`
       )
     ]);
     const callbackLogs = await prisma.automationLog.findMany({
@@ -123,7 +123,7 @@ export async function getOpsDiagnostics(): Promise<OpsDiagnostics> {
       take: 5
     });
     const schemaColumns = new Set(schemaRows.map((row) => row.column_name));
-    const schemaChecks = ["editorialDirection", "editorialGoal"].map((column) => ({
+    const schemaChecks = ["editorialDirection", "editorialGoal", "missionTitle", "autopilotMode"].map((column) => ({
       column,
       status: schemaColumns.has(column) ? ("present" as const) : ("missing" as const)
     }));

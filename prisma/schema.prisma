@@ -194,6 +194,12 @@ model AppSettings {
   id                    String   @id @default(cuid())
   automationPaused      Boolean  @default(false)
   keywordScanPaused     Boolean  @default(false)
+  missionTitle          String?
+  missionCurrentValue   Int?
+  missionTargetValue    Int?
+  missionUnit           String?  @default("月點擊")
+  missionDeadline       DateTime?
+  autopilotMode         String?  @default("near_full_auto")
   globalPersonaPrompt   String?
   editorialDirection    String?
   editorialGoal         String?
