@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { ContentEngineForm } from "@/components/dashboard/content-engine-form";
 import { HelpSheet } from "@/components/dashboard/help-sheet";
 import { PageIntro } from "@/components/dashboard/page-intro";
@@ -5,16 +7,33 @@ import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
+function getRecentWindowStart(days: number) {
+  const date = new Date();
+  date.setDate(date.getDate() - days);
+  return date;
+}
+
 export default async function FactoryPage() {
   let settings: Awaited<ReturnType<typeof prisma.appSettings.findFirst>> = null;
   let ingestions: Awaited<ReturnType<typeof prisma.ingestionRecord.findMany>> = [];
   let threadsAccounts: Awaited<ReturnType<typeof prisma.platformAccount.findMany>> = [];
+  let automationLogs: Array<{
+    id: string;
+    actionType: string;
+    status: string;
+    postId: string | null;
+    detail: string | null;
+    executedAt: Date;
+    account: {
+      platformUsername: string;
+    } | null;
+  }> = [];
   let drafts: Array<
     Awaited<ReturnType<typeof prisma.post.findMany<{ include: { account: true } }>>>[number]
   > = [];
 
   try {
-    [settings, ingestions, drafts, threadsAccounts] = await Promise.all([
+    [settings, ingestions, drafts, threadsAccounts, automationLogs] = await Promise.all([
       prisma.appSettings.findFirst(),
       prisma.ingestionRecord.findMany({
         orderBy: { createdAt: "desc" },
@@ -29,9 +48,51 @@ export default async function FactoryPage() {
       prisma.platformAccount.findMany({
         where: { platform: "threads", isActive: true },
         orderBy: [{ isActive: "desc" }, { createdAt: "asc" }]
+      }),
+      prisma.automationLog.findMany({
+        where: {
+          actionType: {
+            in: ["daily_persona_autopilot", "optimization_flywheel", "auto_wordpress_expansion"]
+          }
+        },
+        include: {
+          account: {
+            select: {
+              platformUsername: true
+            }
+          }
+        },
+        orderBy: {
+          executedAt: "desc"
+        },
+        take: 12
       })
     ]);
   } catch {}
+
+  const fourteenDaysAgo = getRecentWindowStart(14);
+  const recentFactoryRuns = automationLogs.filter((log) => log.executedAt >= fourteenDaysAgo);
+  const autopilotRuns = recentFactoryRuns.filter((log) => log.actionType === "daily_persona_autopilot" && log.status !== "failed").length;
+  const optimizationRuns = recentFactoryRuns.filter((log) => log.actionType === "optimization_flywheel" && log.status !== "failed").length;
+  const wordpressRuns = recentFactoryRuns.filter((log) => log.actionType === "auto_wordpress_expansion" && log.status !== "failed").length;
+  const recentFactoryFeed = automationLogs.slice(0, 6).map((log) => ({
+    id: log.id,
+    title:
+      log.actionType === "daily_persona_autopilot"
+        ? "AI 自動產文"
+        : log.actionType === "optimization_flywheel"
+          ? "14 天優化飛輪"
+          : "WordPress 自動沉澱",
+    accountLabel: log.account ? `@${log.account.platformUsername}` : "站台級任務",
+    executedAt: log.executedAt.toLocaleString("zh-TW", { hour12: false }),
+    detail: log.detail ?? "已完成背景任務",
+    href:
+      log.postId && log.actionType === "auto_wordpress_expansion"
+        ? `/posts/${log.postId}`
+        : log.postId
+          ? `/review/${log.postId}`
+          : "/review"
+  }));
 
   return (
     <div className="space-y-6">
@@ -60,6 +121,56 @@ export default async function FactoryPage() {
             <p className="mt-3 text-sm leading-7 text-[var(--foreground)]">{card.detail}</p>
           </article>
         ))}
+      </section>
+
+      <section className="grid gap-4 xl:grid-cols-4">
+        {[
+          { label: "14 天自動產文", value: String(autopilotRuns), detail: "persona autopilot 成功執行次數" },
+          { label: "14 天優化飛輪", value: String(optimizationRuns), detail: "舊文觀察後自動生成的優化稿" },
+          { label: "14 天沉長文", value: String(wordpressRuns), detail: "強表現 Threads 自動送進 WordPress" },
+          { label: "待處理工廠草稿", value: String(drafts.length), detail: "最近產出的 Threads / WordPress 草稿" }
+        ].map((card) => (
+          <article key={card.label} className="metric-card">
+            <p className="text-xs uppercase tracking-[0.24em] text-[var(--muted)]">{card.label}</p>
+            <p className="mt-3 text-3xl font-semibold">{card.value}</p>
+            <p className="mt-2 text-sm text-[var(--muted)]">{card.detail}</p>
+          </article>
+        ))}
+      </section>
+
+      <section className="glass-panel rounded-[2rem] border border-[var(--border)] p-6">
+          <div className="flex items-end justify-between gap-4">
+            <div>
+              <p className="text-[11px] uppercase tracking-[0.24em] text-[var(--muted)]">Factory Feed</p>
+              <h2 className="mt-2 text-2xl font-semibold">系統最近自己做了哪些事</h2>
+            </div>
+            <Link href="/review" className="text-sm font-medium text-[var(--accent)]">
+              去待拍板台
+            </Link>
+          </div>
+        <div className="mt-5 grid gap-3 xl:grid-cols-2">
+          {recentFactoryFeed.length ? (
+            recentFactoryFeed.map((item) => (
+              <article key={item.id} className="rounded-[1.4rem] border border-[var(--border)] bg-white/82 p-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">{item.title}</p>
+                  <span className="pill-tag">{item.executedAt}</span>
+                </div>
+                <p className="mt-3 text-sm font-medium text-[var(--foreground)]">{item.accountLabel}</p>
+                <p className="mt-2 text-sm text-[var(--muted)]">{item.detail}</p>
+                <div className="mt-4">
+                  <a href={item.href} className="rounded-full border border-[var(--border)] bg-white px-4 py-2 text-sm font-medium">
+                    去看結果
+                  </a>
+                </div>
+              </article>
+            ))
+          ) : (
+            <p className="rounded-[1.4rem] border border-dashed border-[var(--border)] px-4 py-5 text-sm text-[var(--muted)]">
+              工廠最近還沒有新的背景任務紀錄。等 autopilot、優化飛輪與長文飛輪開始持續運轉後，這裡會直接像營運 feed 一樣顯示。
+            </p>
+          )}
+        </div>
       </section>
 
       <ContentEngineForm

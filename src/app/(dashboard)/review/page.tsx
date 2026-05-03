@@ -1,12 +1,51 @@
 import { PageIntro } from "@/components/dashboard/page-intro";
 import { PostsList } from "@/components/dashboard/posts-list";
 import { SyncWordPressButton } from "@/components/dashboard/sync-wordpress-button";
+import { prisma } from "@/lib/prisma";
 import { getPostSummaries, getWordPressExpansionCandidates } from "@/lib/dashboard-data";
 
 export const dynamic = "force-dynamic";
 
 export default async function ReviewBoardPage() {
-  const [posts, expansionCandidates] = await Promise.all([getPostSummaries(), getWordPressExpansionCandidates()]);
+  const [posts, expansionCandidates, optimizationDrafts, expansionLogs] = await Promise.all([
+    getPostSummaries(),
+    getWordPressExpansionCandidates(),
+    prisma.post.findMany({
+      where: {
+        account: {
+          platform: "threads"
+        },
+        status: {
+          in: ["draft", "scheduled", "awaiting_approval", "approval_rejected"]
+        },
+        topicTag: {
+          startsWith: "optimize:"
+        }
+      },
+      include: {
+        account: true
+      },
+      orderBy: {
+        createdAt: "desc"
+      },
+      take: 6
+    }).catch(() => []),
+    prisma.automationLog.findMany({
+      where: {
+        actionType: "auto_wordpress_expansion",
+        status: {
+          not: "failed"
+        }
+      },
+      include: {
+        account: true
+      },
+      orderBy: {
+        executedAt: "desc"
+      },
+      take: 5
+    }).catch(() => [])
+  ]);
   const pendingReviewPosts = posts.filter(
     (post) =>
       post.platform === "threads" &&
@@ -14,6 +53,27 @@ export default async function ReviewBoardPage() {
   );
   const directPosts = pendingReviewPosts.filter((post) => post.reviewLane === "direct");
   const reviewPosts = pendingReviewPosts.filter((post) => post.reviewLane !== "direct");
+  const optimizationCandidates = optimizationDrafts.map((post) => ({
+    id: post.id,
+    title: post.title ?? post.textContent ?? "未命名優化稿",
+    text: post.textContent ?? "",
+    accountLabel: `@${post.account.platformUsername}`,
+    statusLabel:
+      post.status === "scheduled"
+        ? "已自動排程"
+        : post.status === "awaiting_approval"
+          ? "待拍板"
+          : "待確認",
+    detail: post.excerpt ?? "14 天觀察後自動產出的優化稿。",
+    href: `/review/${post.id}`
+  }));
+  const wordpressExpansionFeed = expansionLogs.map((log) => ({
+    id: log.id,
+    accountLabel: log.account ? `@${log.account.platformUsername}` : "未知帳號",
+    detail: log.detail ?? "系統已自動擴寫強表現 Threads。",
+    executedAt: log.executedAt.toLocaleString("zh-TW", { hour12: false }),
+    href: log.postId ? `/posts/${log.postId}` : "/wordpress"
+  }));
 
   return (
     <div className="space-y-6">
@@ -35,6 +95,77 @@ export default async function ReviewBoardPage() {
             <p className="mt-2 text-sm text-[var(--muted)]">{card.detail}</p>
           </article>
         ))}
+      </section>
+
+      <section className="grid gap-4 xl:grid-cols-2">
+        <article className="glass-panel rounded-[2rem] border border-[var(--border)] p-6">
+          <div className="flex items-end justify-between gap-4">
+            <div>
+              <p className="text-[11px] uppercase tracking-[0.24em] text-[var(--muted)]">Optimization Track</p>
+              <h2 className="mt-2 text-2xl font-semibold">14 天觀察後，系統已先幫你產好的優化稿</h2>
+            </div>
+            <span className="rounded-full bg-[var(--accent-soft)] px-3 py-1 text-xs text-[var(--foreground)]">
+              {optimizationCandidates.length} 篇
+            </span>
+          </div>
+          <div className="mt-5 space-y-3">
+            {optimizationCandidates.length ? (
+              optimizationCandidates.map((post) => (
+                <article key={post.id} className="rounded-[1.4rem] border border-[var(--border)] bg-white/82 p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">{post.accountLabel}</p>
+                    <span className="pill-tag">{post.statusLabel}</span>
+                  </div>
+                  <p className="mt-3 text-sm font-medium leading-7">{post.title}</p>
+                  <p className="mt-3 text-sm text-[var(--muted)]">{post.detail}</p>
+                  <div className="mt-4">
+                    <a href={post.href} className="rounded-full border border-[var(--border)] bg-white px-4 py-2 text-sm font-medium">
+                      進確認區
+                    </a>
+                  </div>
+                </article>
+              ))
+            ) : (
+              <p className="rounded-[1.4rem] border border-dashed border-[var(--border)] px-4 py-5 text-sm text-[var(--muted)]">
+                目前還沒有進入 14 天優化軌的稿件。等已發布 Threads 累積到觀察窗後，這裡會先幫你準備好下一版。
+              </p>
+            )}
+          </div>
+        </article>
+
+        <article className="glass-panel rounded-[2rem] border border-[var(--border)] p-6">
+          <div className="flex items-end justify-between gap-4">
+            <div>
+              <p className="text-[11px] uppercase tracking-[0.24em] text-[var(--muted)]">Longform Flywheel</p>
+              <h2 className="mt-2 text-2xl font-semibold">系統最近自動送進 WordPress 的強表現內容</h2>
+            </div>
+            <a href="/wordpress" className="text-sm font-medium text-[var(--accent)]">
+              去長文台
+            </a>
+          </div>
+          <div className="mt-5 space-y-3">
+            {wordpressExpansionFeed.length ? (
+              wordpressExpansionFeed.map((item) => (
+                <article key={item.id} className="rounded-[1.4rem] border border-[var(--border)] bg-white/82 p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">{item.accountLabel}</p>
+                    <span className="pill-tag">{item.executedAt}</span>
+                  </div>
+                  <p className="mt-3 text-sm text-[var(--foreground)]">{item.detail}</p>
+                  <div className="mt-4">
+                    <a href={item.href} className="rounded-full border border-[var(--border)] bg-white px-4 py-2 text-sm font-medium">
+                      看來源 Threads
+                    </a>
+                  </div>
+                </article>
+              ))
+            ) : (
+              <p className="rounded-[1.4rem] border border-dashed border-[var(--border)] px-4 py-5 text-sm text-[var(--muted)]">
+                目前還沒有新的自動長文擴寫紀錄。等 Threads 強表現稿件累積到足夠訊號後，這裡會開始顯示自動沉澱結果。
+              </p>
+            )}
+          </div>
+        </article>
       </section>
 
       {expansionCandidates.length > 0 ? (
