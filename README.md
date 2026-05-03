@@ -46,7 +46,7 @@ Open `http://localhost:3000`.
   - `Google OAuth 使用者模式`：設定 `GOOGLE_OAUTH_CLIENT_ID`、`GOOGLE_OAUTH_CLIENT_SECRET`、`GOOGLE_OAUTH_REFRESH_TOKEN`
   - `service account 模式`：設定 `GA4_CLIENT_EMAIL`、`GA4_PRIVATE_KEY`
 - 若要在 `Analytics` 看自然搜尋表現，另外設定 `GSC_SITE_URL`，必要時也可另外指定 `GSC_CLIENT_EMAIL`、`GSC_PRIVATE_KEY`
-- 若要收到 Telegram 每日日報，另外設定 `TELEGRAM_BOT_TOKEN`、`TELEGRAM_CHAT_ID`；系統會在背景自動彙整過去 24 小時的 Threads / WordPress / SEO 自動營運結果
+- 若要收到每日日報，優先可設定 `DISCORD_DAILY_WEBHOOK_URL`；也支援 `TELEGRAM_BOT_TOKEN`、`TELEGRAM_CHAT_ID` 作為備援。系統會在背景自動彙整過去 24 小時的 Threads / WordPress / SEO 自動營運結果
 - 如果你是自己用，優先建議 `Google OAuth 使用者模式`；只要你自己的 Google 帳號本來就看得到 GA4 / Search Console，就不需要再額外處理 service account 權限
 - 若 GSC 共用同一組 service account，可只補 `GSC_SITE_URL`
 - 若要讓排程、metrics、keywords 與 automation 自動執行，另外設定 `INNGEST_EVENT_KEY`、`INNGEST_SIGNING_KEY`、`INNGEST_SERVE_ORIGIN`

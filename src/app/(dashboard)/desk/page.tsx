@@ -443,15 +443,32 @@ export default async function DeskPage({
           <div className="flex items-end justify-between gap-4">
             <div>
               <p className="text-[11px] uppercase tracking-[0.3em] text-[var(--muted)]">Search Growth</p>
-              <h2 className="mt-2 text-3xl font-semibold">Search Console 已經在替你指出下一批該補的頁面</h2>
+              <h2 className="mt-2 text-3xl font-semibold">下一批搜尋機會</h2>
             </div>
             <Link href="/review" className="text-sm font-medium text-[var(--accent)]">
               去 SEO 拍板
             </Link>
           </div>
-          <div className="mt-5 space-y-3">
+          <div className="mt-5 grid gap-3 sm:grid-cols-3">
+            <article className="rounded-[1.2rem] border border-[var(--border)] bg-white/82 p-4">
+              <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">高信心</p>
+              <p className="mt-3 text-3xl font-semibold">{gscOpportunities.items.filter((item) => item.confidence === "high").length}</p>
+              <p className="mt-2 text-sm text-[var(--muted)]">可直接進優化飛輪</p>
+            </article>
+            <article className="rounded-[1.2rem] border border-[var(--border)] bg-white/82 p-4">
+              <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">待補頁</p>
+              <p className="mt-3 text-3xl font-semibold">{gscOpportunities.items.length}</p>
+              <p className="mt-2 text-sm text-[var(--muted)]">今天最值得補的 GSC 機會</p>
+            </article>
+            <article className="rounded-[1.2rem] border border-[var(--border)] bg-white/82 p-4">
+              <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">主機會</p>
+              <p className="mt-3 text-base font-semibold leading-7">{gscOpportunities.items[0]?.query ?? gscOpportunities.items[0]?.page ?? "暫無"}</p>
+              <p className="mt-2 text-sm text-[var(--muted)]">{gscOpportunities.items[0]?.label ?? "等待新的搜尋訊號"}</p>
+            </article>
+          </div>
+          <div className="mt-4 space-y-3">
             {gscOpportunities.items.length ? (
-              gscOpportunities.items.slice(0, 3).map((item) => (
+              gscOpportunities.items.slice(0, 2).map((item) => (
                 <article key={item.id} className="rounded-[1.35rem] border border-[var(--border)] bg-white/82 p-4">
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">{item.label}</p>
@@ -473,22 +490,6 @@ export default async function DeskPage({
             )}
           </div>
         </article>
-
-        <article className="rounded-[2rem] bg-[var(--card-dark)] p-5 text-white shadow-[0_24px_60px_rgba(15,10,7,0.22)]">
-          <p className="text-[11px] uppercase tracking-[0.3em] text-white/55">Search Rule</p>
-          <h2 className="mt-2 text-3xl font-semibold">搜尋層現在也進自動飛輪了</h2>
-          <div className="mt-5 space-y-3 text-sm text-white/78">
-            <p className="rounded-[1.2rem] border border-white/10 bg-white/5 px-4 py-3">
-              曝光夠高但 CTR 低的頁面，系統會更偏向先補 title / desc / CTA，而不是直接重寫整篇。
-            </p>
-            <p className="rounded-[1.2rem] border border-white/10 bg-white/5 px-4 py-3">
-              排名卡在第 4 到 15 名的頁面，系統會更偏向沉長文、補 FAQ、補內鏈與延伸段落。
-            </p>
-            <p className="rounded-[1.2rem] border border-white/10 bg-white/5 px-4 py-3">
-              查詢已經有曝光但站上還缺直接承接頁時，Factory 會把它當成新的 WordPress / Threads 題目來源。
-            </p>
-          </div>
-        </article>
       </section>
 
       <section className="grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">
@@ -496,13 +497,30 @@ export default async function DeskPage({
           <div className="flex items-end justify-between gap-4">
             <div>
               <p className="text-[11px] uppercase tracking-[0.3em] text-[var(--muted)]">Exception Desk</p>
-              <h2 className="mt-2 text-3xl font-semibold">你只要介入這幾件事</h2>
+              <h2 className="mt-2 text-3xl font-semibold">只看例外</h2>
             </div>
             <Link href="/review" className="text-sm font-medium text-[var(--accent)]">
               去拍板台
             </Link>
           </div>
-          <div className="mt-5 space-y-3">
+          <div className="mt-5 grid gap-3 sm:grid-cols-3">
+            <article className="rounded-[1.2rem] border border-[var(--border)] bg-white/82 p-4">
+              <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">待拍板</p>
+              <p className="mt-3 text-3xl font-semibold">{pendingApprovalCount}</p>
+              <p className="mt-2 text-sm text-[var(--muted)]">系統不想自己定案的稿</p>
+            </article>
+            <article className="rounded-[1.2rem] border border-[var(--border)] bg-white/82 p-4">
+              <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">背景失敗</p>
+              <p className="mt-3 text-3xl font-semibold">{failedAutomationCount14d}</p>
+              <p className="mt-2 text-sm text-[var(--muted)]">需要修復的飛輪斷點</p>
+            </article>
+            <article className="rounded-[1.2rem] border border-[var(--border)] bg-white/82 p-4">
+              <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">Token</p>
+              <p className="mt-3 text-3xl font-semibold">{expiringAccountCount}</p>
+              <p className="mt-2 text-sm text-[var(--muted)]">7 天內到期的 Threads 帳號</p>
+            </article>
+          </div>
+          <div className="mt-4 space-y-3">
             {interventionAlerts.length ? (
               interventionAlerts.map((item) => (
                 <article key={item.label} className="rounded-[1.35rem] border border-[var(--border)] bg-white/78 p-4">
@@ -522,22 +540,6 @@ export default async function DeskPage({
                 目前沒有明顯例外。系統可以繼續自動找題、寫文、排程、沉長文，你只要定期看 Review 就好。
               </article>
             )}
-          </div>
-        </article>
-
-        <article className="rounded-[2rem] bg-[var(--card-dark)] p-5 text-white shadow-[0_24px_60px_rgba(15,10,7,0.22)]">
-          <p className="text-[11px] uppercase tracking-[0.3em] text-white/55">Hands-Off Rule</p>
-          <h2 className="mt-2 text-3xl font-semibold">你不是每天來操作，你是來處理例外</h2>
-          <div className="mt-5 space-y-3 text-sm text-white/78">
-            <p className="rounded-[1.2rem] border border-white/10 bg-white/5 px-4 py-3">
-              正常情況下，系統會自己找題、產稿、排程與沉長文；你不需要每天進來點每一篇。
-            </p>
-            <p className="rounded-[1.2rem] border border-white/10 bg-white/5 px-4 py-3">
-              只有當 token、mission、失敗任務或待拍板稿件出現時，才代表有值得你介入的地方。
-            </p>
-            <p className="rounded-[1.2rem] border border-white/10 bg-white/5 px-4 py-3">
-              這一塊就是站台的例外面板。沒有例外時，放著讓系統跑，回頭看數字就好。
-            </p>
           </div>
         </article>
       </section>

@@ -172,13 +172,30 @@ export default async function ReviewBoardPage() {
           <div className="flex items-end justify-between gap-4">
             <div>
               <p className="text-[11px] uppercase tracking-[0.3em] text-[var(--muted)]">Intervention Queue</p>
-              <h2 className="mt-2 text-3xl font-semibold">這裡才是你真的要處理的事</h2>
+              <h2 className="mt-2 text-3xl font-semibold">真正要你出手的只有這些</h2>
             </div>
             <a href="/factory" className="text-sm font-medium text-[var(--accent)]">
               去工廠紀錄
             </a>
           </div>
-          <div className="mt-5 space-y-3">
+          <div className="mt-5 grid gap-3 sm:grid-cols-3">
+            <article className="rounded-[1.2rem] border border-[var(--border)] bg-white/82 p-4">
+              <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">待拍板</p>
+              <p className="mt-3 text-3xl font-semibold">{reviewPosts.length}</p>
+              <p className="mt-2 text-sm text-[var(--muted)]">灰色地帶稿件</p>
+            </article>
+            <article className="rounded-[1.2rem] border border-[var(--border)] bg-white/82 p-4">
+              <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">高信心</p>
+              <p className="mt-3 text-3xl font-semibold">{directPosts.length}</p>
+              <p className="mt-2 text-sm text-[var(--muted)]">只差最後一眼</p>
+            </article>
+            <article className="rounded-[1.2rem] border border-[var(--border)] bg-white/82 p-4">
+              <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">失敗任務</p>
+              <p className="mt-3 text-3xl font-semibold">{failedLogs.length}</p>
+              <p className="mt-2 text-sm text-[var(--muted)]">自動飛輪的斷點</p>
+            </article>
+          </div>
+          <div className="mt-4 space-y-3">
             {interventionCards.length ? (
               interventionCards.map((item) => (
                 <article key={item.label} className="rounded-[1.35rem] border border-[var(--border)] bg-white/82 p-4">
@@ -198,22 +215,6 @@ export default async function ReviewBoardPage() {
                 目前沒有明顯例外。Review 這邊只剩例行抽查，系統可以自己往下跑。
               </article>
             )}
-          </div>
-        </article>
-
-        <article className="rounded-[2rem] bg-[var(--card-dark)] p-5 text-white shadow-[0_24px_60px_rgba(15,10,7,0.22)]">
-          <p className="text-[11px] uppercase tracking-[0.3em] text-white/55">Review Rule</p>
-          <h2 className="mt-2 text-3xl font-semibold">Review 是例外台，不是日常操作台</h2>
-          <div className="mt-5 space-y-3 text-sm text-white/78">
-            <p className="rounded-[1.2rem] border border-white/10 bg-white/5 px-4 py-3">
-              真正正常的高信心稿，系統會自己排程或自己沉長文；你來這裡主要是拍板灰色地帶。
-            </p>
-            <p className="rounded-[1.2rem] border border-white/10 bg-white/5 px-4 py-3">
-              如果某批稿件沒有清楚來源理由、mission 對齊不高、或優化方向不夠穩，就會先進這裡。
-            </p>
-            <p className="rounded-[1.2rem] border border-white/10 bg-white/5 px-4 py-3">
-              你的角色是處理例外、修方向、看高價值決策，而不是每天手動跑完整內容流程。
-            </p>
           </div>
         </article>
       </section>

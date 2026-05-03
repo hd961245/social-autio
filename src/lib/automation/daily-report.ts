@@ -1,7 +1,7 @@
 import { getGaOverview } from "@/lib/ga";
 import { getGscOpportunityQueue, getGscOverview } from "@/lib/gsc";
+import { isDailyDigestConfigured, sendDailyDigest } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
-import { isTelegramConfigured, sendTelegramMessage } from "@/lib/telegram";
 import { env } from "@/lib/env";
 
 const REPORT_TIMEZONE = "Asia/Taipei";
@@ -71,12 +71,12 @@ function compactDetail(detail?: string | null, max = 110) {
 }
 
 export async function runDailyOpsDigest(now = new Date(), mode: DailyReportMode = "scheduled") {
-  if (!isTelegramConfigured()) {
+  if (!isDailyDigestConfigured()) {
     return {
       ok: false,
       status: "skipped" as const,
-      reason: "telegram_not_configured",
-      message: "Telegram 尚未設定，暫時不發每日日報。"
+      reason: "daily_digest_not_configured",
+      message: "尚未設定 Discord 或 Telegram，暫時不發每日日報。"
     };
   }
 
@@ -256,7 +256,7 @@ export async function runDailyOpsDigest(now = new Date(), mode: DailyReportMode 
         ]
       : undefined;
 
-    await sendTelegramMessage({
+    const delivery = await sendDailyDigest({
       text: lines.join("\n"),
       buttons
     });
@@ -265,14 +265,14 @@ export async function runDailyOpsDigest(now = new Date(), mode: DailyReportMode 
       data: {
         actionType: "daily_ops_digest",
         status: "executed",
-        detail: `已送出 ${dateKey} 每日日報｜AI ${autopilotDrafts}｜Threads 發布 ${publishedThreads}｜WordPress ${wordpressExpansions}｜例外 ${interventionLines.join(" / ")}`
+        detail: `已透過 ${delivery.channel === "discord" ? "Discord" : "Telegram"} 送出 ${dateKey} 每日日報｜AI ${autopilotDrafts}｜Threads 發布 ${publishedThreads}｜WordPress ${wordpressExpansions}｜例外 ${interventionLines.join(" / ")}`
       }
     });
 
     return {
       ok: true,
       status: "executed" as const,
-      message: `已送出 ${dateKey} 每日日報。`
+      message: `已透過 ${delivery.channel === "discord" ? "Discord" : "Telegram"} 送出 ${dateKey} 每日日報。`
     };
   } catch (error) {
     const detail = error instanceof Error ? error.message : "Daily ops digest failed";
