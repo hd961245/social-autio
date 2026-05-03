@@ -178,8 +178,8 @@ export default async function FactoryPage() {
         <div className="flex items-end justify-between gap-4">
           <div>
             <p className="text-[11px] uppercase tracking-[0.24em] text-[var(--muted)]">SEO Input Queue</p>
-            <h2 className="mt-2 text-2xl font-semibold">Search Console 開始成為工廠輸入層</h2>
-          </div>
+              <h2 className="mt-2 text-2xl font-semibold">Search Console 開始成為工廠輸入層</h2>
+            </div>
           <Link href="/analytics" className="text-sm font-medium text-[var(--accent)]">
             看搜尋層
           </Link>
@@ -195,11 +195,19 @@ export default async function FactoryPage() {
                 <p className="mt-3 text-sm font-medium leading-7">{item.query ?? item.page}</p>
                 <p className="mt-2 text-sm leading-7 text-[var(--muted)]">{item.reason}</p>
                 <p className="mt-3 text-sm text-[var(--accent-strong)]">{item.action}</p>
+                <p className="mt-3 text-sm text-[var(--muted)]">
+                  {item.confidence === "high"
+                    ? "這筆會優先進系統自動處理層，WordPress 自動模式開著時可直接被發布。"
+                    : item.confidence === "medium"
+                      ? "這筆會先轉成 WordPress 優化稿，讓你在 Review 最後拍板。"
+                      : "這筆先留在觀察池，等自然搜尋訊號更明顯再啟動。"}
+                </p>
                 <div className="mt-4">
                   <SeoOpportunityDraftButton
                     page={item.page}
                     query={item.query}
                     lane={item.lane}
+                    confidence={item.confidence}
                     reason={item.reason}
                     action={item.action}
                   />

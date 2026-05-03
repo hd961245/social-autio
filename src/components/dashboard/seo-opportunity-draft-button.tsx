@@ -6,14 +6,16 @@ type Props = {
   page: string;
   query?: string;
   lane: "refresh" | "expand" | "capture";
+  confidence: "high" | "medium" | "low";
   reason: string;
   action: string;
 };
 
-export function SeoOpportunityDraftButton({ page, query, lane, reason, action }: Props) {
+export function SeoOpportunityDraftButton({ page, query, lane, confidence, reason, action }: Props) {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [href, setHref] = useState<string | null>(null);
+  const [linkLabel, setLinkLabel] = useState<string | null>(null);
 
   return (
     <div className="space-y-2">
@@ -35,6 +37,7 @@ export function SeoOpportunityDraftButton({ page, query, lane, reason, action }:
                 page,
                 query,
                 lane,
+                confidence,
                 reason,
                 action
               })
@@ -47,22 +50,31 @@ export function SeoOpportunityDraftButton({ page, query, lane, reason, action }:
             }
 
             setMessage(result.message ?? "已建立 WordPress SEO 優化稿。");
-            if (result.postId) {
-              setHref(`/compose?postId=${result.postId}`);
+            if (result.href) {
+              setHref(result.href);
+              setLinkLabel(
+                result.route === "published"
+                  ? "看 WordPress 結果"
+                  : result.route === "review"
+                    ? "去 Review 看待拍板"
+                    : result.route === "observed"
+                      ? "回 Analytics 觀察"
+                      : "打開 WordPress 草稿"
+              );
             }
           } finally {
             setBusy(false);
           }
         }}
       >
-        {busy ? "生成中..." : "生成 WP 優化稿"}
+        {busy ? "處理中..." : confidence === "high" ? "自動處理 SEO 稿" : "建立 WP 優化稿"}
       </button>
       {message ? (
         <div className="text-sm text-[var(--muted)]">
           <p>{message}</p>
           {href ? (
             <a href={href} className="inline-flex font-medium text-[var(--accent)] underline underline-offset-4">
-              打開 WordPress 草稿
+              {linkLabel ?? "打開 WordPress 草稿"}
             </a>
           ) : null}
         </div>

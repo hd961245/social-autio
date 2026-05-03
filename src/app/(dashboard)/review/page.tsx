@@ -259,6 +259,13 @@ export default async function ReviewBoardPage() {
                     <span className="rounded-full bg-white px-4 py-2">Impressions {item.impressions}</span>
                     <span className="rounded-full bg-white px-4 py-2">CTR {(item.ctr * 100).toFixed(1)}%</span>
                   </div>
+                  <p className="mt-3 text-sm text-[var(--muted)]">
+                    {item.confidence === "high"
+                      ? "高信心機會：站台若開 near full auto + WordPress auto publish，系統可直接處理。"
+                      : item.confidence === "medium"
+                        ? "中信心機會：系統會先起 WordPress 優化稿，保留給你最後拍板。"
+                        : "低信心機會：預設先留在觀察池，不急著自動建稿。"}
+                  </p>
                   <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
                     <p className="text-sm text-[var(--accent-strong)]">{item.action}</p>
                     <div className="flex flex-wrap gap-2">
@@ -266,6 +273,7 @@ export default async function ReviewBoardPage() {
                         page={item.page}
                         query={item.query}
                         lane={item.lane}
+                        confidence={item.confidence}
                         reason={item.reason}
                         action={item.action}
                       />
