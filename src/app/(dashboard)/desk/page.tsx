@@ -55,6 +55,7 @@ export default async function DeskPage({
   let ingestions: Awaited<ReturnType<typeof prisma.ingestionRecord.findMany>> = [];
   let threadsAccounts: Awaited<ReturnType<typeof prisma.platformAccount.findMany>> = [];
   let autopilotLogs: Awaited<ReturnType<typeof prisma.automationLog.findMany>> = [];
+  let flywheelLogs: Awaited<ReturnType<typeof prisma.automationLog.findMany>> = [];
   let drafts: Array<
     Awaited<ReturnType<typeof prisma.post.findMany<{ include: { account: true } }>>>[number]
   > = [];
@@ -73,7 +74,7 @@ export default async function DeskPage({
   const reviewFirstDraftPicks = todayDraftPicks.filter((post) => post.reviewLane !== "direct");
 
   try {
-    [sourceItems, settings, ingestions, drafts, threadsAccounts, autopilotLogs] = await Promise.all([
+    [sourceItems, settings, ingestions, drafts, threadsAccounts, autopilotLogs, flywheelLogs] = await Promise.all([
       prisma.sourceWatch.findMany({
         orderBy: [{ updatedAt: "desc" }, { createdAt: "desc" }]
       }),
@@ -100,6 +101,17 @@ export default async function DeskPage({
           executedAt: "desc"
         },
         take: 24
+      }),
+      prisma.automationLog.findMany({
+        where: {
+          actionType: {
+            in: ["optimization_flywheel", "auto_wordpress_expansion"]
+          }
+        },
+        orderBy: {
+          executedAt: "desc"
+        },
+        take: 30
       })
     ]);
   } catch {}
@@ -213,17 +225,20 @@ export default async function DeskPage({
     const timestamp = new Date(post.scheduledAt).getTime();
     return post.status === "published" && !Number.isNaN(timestamp) && timestamp >= fourteenDaysAgo.getTime();
   }).length;
+  const optimizationCreated14d = flywheelLogs.filter((log) => log.actionType === "optimization_flywheel" && log.status !== "failed" && log.executedAt >= fourteenDaysAgo).length;
+  const wordpressExpanded14d = flywheelLogs.filter((log) => log.actionType === "auto_wordpress_expansion" && log.status !== "failed" && log.executedAt >= fourteenDaysAgo).length;
   const optimizationSnapshot = [
     { label: "14 天 autopilot 執行", value: String(recentAutopilotLogs.length), detail: "自動產文與排程補跑次數" },
     { label: "14 天已發布", value: String(publishedIn14Days), detail: "Threads 已完成發布的數量" },
-    { label: "今日待拍板", value: String(pendingApprovalCount), detail: "需要先進 Review 決定 assignment 的稿件" },
-    { label: "今日可直發", value: String(readyToShipCount), detail: "高信心稿，適合最後確認後送出" }
+    { label: "14 天優化稿", value: String(optimizationCreated14d), detail: "系統自動產出的舊文優化候選" },
+    { label: "14 天沉長文", value: String(wordpressExpanded14d), detail: "系統自動送進 WordPress 的強表現內容" }
   ];
 
   const summaryCards = [
     { label: "高價值來源", value: String(highValueSourceCount), detail: "今天最值得先寫的來源數" },
     { label: "AI 今日產文", value: String(aiGeneratedToday), detail: "autopilot + AI 工廠新產出的草稿" },
     { label: "待你拍板", value: String(pendingApprovalCount), detail: "需要先進 Review 決定 assignment" },
+    { label: "可直接發", value: String(readyToShipCount), detail: "高信心可直接最後確認的內容" },
     { label: "追蹤來源", value: String(trackedSources.length), detail: "固定觀察中的 RSS / URL / site 名單" }
   ];
 

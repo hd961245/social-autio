@@ -6,6 +6,7 @@ import { scanKeywordMatches } from "@/lib/keywords/monitor";
 import { collectMetricsSnapshots, refreshExpiringTokens } from "@/lib/metrics-service";
 import { runScheduledPosts } from "@/lib/scheduler/engine";
 import { refreshAllSourceWatches, runDailySourceImports } from "@/lib/sources-service";
+import { runAutoWordPressExpansion, runOptimizationFlywheel } from "@/lib/automation/flywheel";
 
 export const schedulerFunction = inngest.createFunction(
   { id: "publish-scheduled-posts", retries: 1, triggers: [cron("* * * * *")] },
@@ -62,6 +63,19 @@ export const dailyPersonaAutopilotFunction = inngest.createFunction(
   }
 );
 
+export const optimizationFlywheelFunction = inngest.createFunction(
+  { id: "optimization-flywheel", retries: 1, triggers: [cron("15 1 * * *")] },
+  async ({ step }) => {
+    const optimization = await step.run("generate-optimization-drafts", async () => runOptimizationFlywheel());
+    const wordpress = await step.run("auto-wordpress-expansion", async () => runAutoWordPressExpansion());
+
+    return {
+      optimization,
+      wordpress
+    };
+  }
+);
+
 export const inngestFunctions = [
   schedulerFunction,
   metricsFunction,
@@ -69,5 +83,6 @@ export const inngestFunctions = [
   automationFunction,
   sourceWatchRefreshFunction,
   dailySourceImportFunction,
-  dailyPersonaAutopilotFunction
+  dailyPersonaAutopilotFunction,
+  optimizationFlywheelFunction
 ];
