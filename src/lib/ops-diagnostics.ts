@@ -91,6 +91,8 @@ export async function getOpsDiagnostics(): Promise<OpsDiagnostics> {
     checkEnv("THREADS_APP_SECRET", process.env.THREADS_APP_SECRET),
     checkEnv("THREADS_REDIRECT_URI", process.env.THREADS_REDIRECT_URI),
     checkEnv("TOKEN_ENCRYPTION_KEY", process.env.TOKEN_ENCRYPTION_KEY),
+    checkEnv("TELEGRAM_BOT_TOKEN", process.env.TELEGRAM_BOT_TOKEN),
+    checkEnv("TELEGRAM_CHAT_ID", process.env.TELEGRAM_CHAT_ID),
     checkEnv("GOOGLE_OAUTH_CLIENT_ID", process.env.GOOGLE_OAUTH_CLIENT_ID),
     checkEnv("GOOGLE_OAUTH_CLIENT_SECRET", process.env.GOOGLE_OAUTH_CLIENT_SECRET),
     checkEnv("GOOGLE_OAUTH_REFRESH_TOKEN", process.env.GOOGLE_OAUTH_REFRESH_TOKEN),
@@ -226,6 +228,14 @@ export async function getOpsDiagnostics(): Promise<OpsDiagnostics> {
             : process.env.GA4_CLIENT_EMAIL && process.env.GA4_PRIVATE_KEY
               ? "已設定 service account 憑證，可讀 GA4 / Search Console。"
               : "尚未設定 Google OAuth 或 service account 憑證。"
+      },
+      {
+        label: "每日日報 / Telegram",
+        status: process.env.TELEGRAM_BOT_TOKEN && process.env.TELEGRAM_CHAT_ID ? "pass" : "check",
+        detail:
+          process.env.TELEGRAM_BOT_TOKEN && process.env.TELEGRAM_CHAT_ID
+            ? "Telegram 已設定，每日日報可以自動送出。"
+            : "尚未設定 Telegram，系統仍可自動跑，但你不會收到每日日報。"
       },
       {
         label: "Inngest / 排程",
