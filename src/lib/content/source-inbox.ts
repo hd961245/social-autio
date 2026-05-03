@@ -1,3 +1,5 @@
+import { applyMissionToSourceScores, type MissionContext } from "@/lib/mission-scoring";
+
 export type SourceInboxScore = {
   threadsScore: number;
   wordpressScore: number;
@@ -100,6 +102,7 @@ export function scoreSourceItem(input: {
   skipCount?: number;
   threadsPickCount?: number;
   wordpressPickCount?: number;
+  mission?: MissionContext | null;
 }): SourceInboxScore {
   const text = `${input.title} ${input.excerpt}`.trim();
   const length = text.length;
@@ -157,6 +160,21 @@ export function scoreSourceItem(input: {
   wordpressScore += memory.wordpressBias;
   commercialScore += memory.commercialBias;
 
+  const missionAdjusted = applyMissionToSourceScores({
+    mission: input.mission,
+    title: input.title,
+    excerpt: input.excerpt,
+    threadsScore,
+    wordpressScore,
+    commercialScore,
+    reasons
+  });
+
+  threadsScore = missionAdjusted.threadsScore;
+  wordpressScore = missionAdjusted.wordpressScore;
+  commercialScore = missionAdjusted.commercialScore;
+  const enrichedReasons = missionAdjusted.reasons;
+
   threadsScore = clamp(threadsScore, 0, 100);
   wordpressScore = clamp(wordpressScore, 0, 100);
   commercialScore = clamp(commercialScore, 0, 100);
@@ -185,7 +203,7 @@ export function scoreSourceItem(input: {
     qualityTier,
     qualityLabel,
     recommendation,
-    reasons: reasons.slice(0, 3),
+    reasons: enrichedReasons.slice(0, 3),
     memoryNote: memory.note
   };
 }

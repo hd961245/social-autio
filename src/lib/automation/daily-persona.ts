@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { buildAccountStyleMemory } from "@/lib/ai/style-memory";
 import { buildEditorialMemoryPrompt } from "@/lib/content/editorial-presets";
 import { classifySourceKnowledgeLane, scoreSourceItem } from "@/lib/content/source-inbox";
+import { deriveMissionSignals, type MissionContext } from "@/lib/mission-scoring";
 import { getPlatformAdapter } from "@/lib/platforms";
 
 const AUTOMATION_TIMEZONE = "Asia/Taipei";
@@ -198,7 +199,7 @@ async function buildAutopilotFeedbackMemory(input: {
     .join("\n\n");
 }
 
-async function buildRecentSourceMemory(userId: string): Promise<{
+async function buildRecentSourceMemory(userId: string, mission?: MissionContext | null): Promise<{
   prompt: string;
   rationale: string;
   topicTag: "news" | "opinion" | "howto";
@@ -243,7 +244,8 @@ async function buildRecentSourceMemory(userId: string): Promise<{
         importCount: item.importCount,
         skipCount: item.skipCount,
         threadsPickCount: item.threadsPickCount,
-        wordpressPickCount: item.wordpressPickCount
+        wordpressPickCount: item.wordpressPickCount,
+        mission
       });
       const lane = classifySourceKnowledgeLane({
         title,
@@ -477,7 +479,16 @@ async function generateDailyPersonaPost(params: {
   const styleMemory = await buildAccountStyleMemory(account.id, {
     concise: true
   });
-  const sourceMemory = await buildRecentSourceMemory(account.userId);
+  const missionContext = {
+    title: settings?.missionTitle,
+    goal: settings?.editorialGoal,
+    direction: settings?.editorialDirection,
+    unit: settings?.missionUnit,
+    currentValue: settings?.missionCurrentValue,
+    targetValue: settings?.missionTargetValue
+  };
+  const missionSignals = deriveMissionSignals(missionContext);
+  const sourceMemory = await buildRecentSourceMemory(account.userId, missionContext);
   const feedbackMemory = await buildAutopilotFeedbackMemory({
     accountId: account.id,
     accountUsername: account.platformUsername,
@@ -528,7 +539,8 @@ async function generateDailyPersonaPost(params: {
     siteAutopilotMode === "auto_schedule"
       ? sourceMemory.confidence === "high"
       : siteAutopilotMode === "near_full_auto"
-        ? sourceMemory.confidence !== "low"
+        ? sourceMemory.confidence === "high" ||
+          (sourceMemory.confidence === "medium" && (missionSignals.focusTraffic || missionSignals.focusSearch || missionSignals.focusKnowledge))
         : false;
   const status =
     siteAutopilotMode === "review_only" || account.autoGenerateMode === "draft" || !canScheduleBySource

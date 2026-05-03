@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { getPlatformAdapter } from "@/lib/platforms";
 import { inferBestScheduleTime } from "@/lib/automation/autopilot-timing";
+import { getMissionDraftBoost, getMissionLongformBoost, type MissionContext } from "@/lib/mission-scoring";
 
 export type AccountSummary = {
   id: string;
@@ -464,6 +465,8 @@ function scoreDraftForReview(input: {
   topicTag?: string | null;
   createdAt: Date;
   personaLabel?: string | null;
+  excerpt?: string | null;
+  mission?: MissionContext | null;
 }) {
   const title = input.title?.trim() ?? "";
   const text = (input.text ?? "").trim();
@@ -483,7 +486,15 @@ function scoreDraftForReview(input: {
   const ageHours = Math.max(0, (Date.now() - input.createdAt.getTime()) / (1000 * 60 * 60));
   score += Math.max(0, 12 - ageHours);
 
-  return Math.round(clamp(score, 0, 100));
+  const missionBoost = getMissionDraftBoost({
+    mission: input.mission,
+    title: input.title,
+    text: input.text,
+    topicTag: input.topicTag,
+    excerpt: input.excerpt
+  });
+
+  return Math.round(clamp(score + missionBoost.scoreDelta, 0, 100));
 }
 
 function getTokenStatus(tokenExpiresAt: Date) {
@@ -1041,30 +1052,41 @@ export async function getPostSummaries(): Promise<PostSummary[]> {
       day: "2-digit"
     });
     const todayKey = dayFormatter.format(new Date());
-    const posts = await prisma.post.findMany({
-      include: {
-        account: true
-      },
-      orderBy: {
-        createdAt: "desc"
-      },
-      take: 20
-    });
-    const ingestions = await prisma.ingestionRecord.findMany({
-      where: {
-        generatedPostIds: {
-          not: null
+    const [posts, ingestions, settings] = await Promise.all([
+      prisma.post.findMany({
+        include: {
+          account: true
+        },
+        orderBy: {
+          createdAt: "desc"
+        },
+        take: 20
+      }),
+      prisma.ingestionRecord.findMany({
+        where: {
+          generatedPostIds: {
+            not: null
+          }
+        },
+        orderBy: {
+          createdAt: "desc"
+        },
+        take: 80,
+        select: {
+          generatedPostIds: true,
+          notes: true
         }
-      },
-      orderBy: {
-        createdAt: "desc"
-      },
-      take: 80,
-      select: {
-        generatedPostIds: true,
-        notes: true
-      }
-    });
+      }),
+      prisma.appSettings.findFirst()
+    ]);
+    const missionContext = {
+      title: settings?.missionTitle,
+      goal: settings?.editorialGoal,
+      direction: settings?.editorialDirection,
+      unit: settings?.missionUnit,
+      currentValue: settings?.missionCurrentValue,
+      targetValue: settings?.missionTargetValue
+    };
     const rationaleByPostId = new Map<string, string>();
 
     for (const ingestion of ingestions) {
@@ -1143,12 +1165,14 @@ export async function getPostSummaries(): Promise<PostSummary[]> {
         post.account.platform === "threads" &&
         ["draft", "awaiting_approval", "approval_rejected"].includes(post.status)
           ? scoreDraftForReview({
-              title: post.title,
-              text: post.textContent ?? post.title,
-              topicTag: normalizedTopicTag,
-              createdAt: post.createdAt,
-              personaLabel: post.account.personaLabel
-            })
+            title: post.title,
+            text: post.textContent ?? post.title,
+            topicTag: normalizedTopicTag,
+            createdAt: post.createdAt,
+            personaLabel: post.account.personaLabel,
+            excerpt: post.excerpt,
+            mission: missionContext
+          })
           : undefined;
       const reviewLane = getReviewLane({
         platform: post.account.platform,
@@ -1319,29 +1343,40 @@ export async function getThreadPostDeepDive(postId: string): Promise<ThreadPostD
 
 export async function getWordPressExpansionCandidates(): Promise<WordPressExpansionCandidate[]> {
   try {
-    const posts = await prisma.post.findMany({
-      where: {
-        status: "published",
-        account: {
-          platform: "threads"
-        },
-        platformPostId: {
-          not: null
-        }
-      },
-      include: {
-        account: true,
-        metrics: {
-          orderBy: {
-            capturedAt: "asc"
+    const [posts, settings] = await Promise.all([
+      prisma.post.findMany({
+        where: {
+          status: "published",
+          account: {
+            platform: "threads"
+          },
+          platformPostId: {
+            not: null
           }
-        }
-      },
-      orderBy: {
-        publishedAt: "desc"
-      },
-      take: 12
-    });
+        },
+        include: {
+          account: true,
+          metrics: {
+            orderBy: {
+              capturedAt: "asc"
+            }
+          }
+        },
+        orderBy: {
+          publishedAt: "desc"
+        },
+        take: 12
+      }),
+      prisma.appSettings.findFirst()
+    ]);
+    const missionContext = {
+      title: settings?.missionTitle,
+      goal: settings?.editorialGoal,
+      direction: settings?.editorialDirection,
+      unit: settings?.missionUnit,
+      currentValue: settings?.missionCurrentValue,
+      targetValue: settings?.missionTargetValue
+    };
 
     const platformPostIds = posts.map((post) => post.platformPostId).filter(Boolean) as string[];
     const existingDrafts = platformPostIds.length
@@ -1384,12 +1419,19 @@ export async function getWordPressExpansionCandidates(): Promise<WordPressExpans
             shares: metric.shares
           }))
         });
+        const missionBoost = getMissionLongformBoost({
+          mission: missionContext,
+          text: `${post.title ?? ""} ${post.textContent ?? ""}`.trim(),
+          views: latestMetrics.views,
+          replies: latestMetrics.replies
+        });
         const eligible =
           health.engagementRate >= 0.06 ||
           health.conversationRate >= 0.018 ||
           health.amplificationRate >= 0.012 ||
           health.momentum === "spiking" ||
-          latestMetrics.replies >= 8;
+          latestMetrics.replies >= 8 ||
+          missionBoost.eligibleBias >= 2;
 
         return {
           id: post.id,
@@ -1405,12 +1447,12 @@ export async function getWordPressExpansionCandidates(): Promise<WordPressExpans
           amplificationRate: health.amplificationRate,
           momentumLabel: health.momentumLabel,
           longformScore: Math.round(
-            (health.engagementRate * 1000 + health.conversationRate * 1600 + health.amplificationRate * 1300) *
+            ((health.engagementRate * 1000 + health.conversationRate * 1600 + health.amplificationRate * 1300 + missionBoost.scoreDelta * 10)) *
               (health.momentum === "spiking" ? 1.12 : 1)
           ),
           suggestedTitle: `從「${(post.title ?? post.textContent ?? "這則 Threads").replace(/^\[[^\]]+\]\s*/, "").slice(0, 28)}」延伸：把短觀點整理成可收藏的完整文章`,
           reason: eligible
-            ? `互動率 ${(health.engagementRate * 100).toFixed(1)}%、對話率 ${(health.conversationRate * 100).toFixed(1)}%，已經有足夠訊號支撐成長文。`
+            ? `互動率 ${(health.engagementRate * 100).toFixed(1)}%、對話率 ${(health.conversationRate * 100).toFixed(1)}%，再加上 mission 偏長文 / 搜尋沉澱，已經有足夠訊號支撐成長文。`
             : `這篇雖然有曝光，但目前更適合先當短內容觀察樣本。`,
           recommendation:
             health.momentum === "spiking"

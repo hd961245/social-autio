@@ -1,5 +1,12 @@
 import { rewriteContentWithAi } from "@/lib/ai/gateway";
 import { inferBestScheduleTime } from "@/lib/automation/autopilot-timing";
+import {
+  deriveMissionSignals,
+  getMissionDraftBoost,
+  getMissionLongformBoost,
+  getMissionOptimizationBoost,
+  type MissionContext
+} from "@/lib/mission-scoring";
 import { prisma } from "@/lib/prisma";
 import { getPlatformAdapter } from "@/lib/platforms";
 import { syncPostToWordPress } from "@/lib/workflows/sync-to-wordpress";
@@ -41,17 +48,17 @@ function isLongformEligible(metric: {
   reposts: number;
   quotes: number;
   shares: number;
-}) {
+}, missionBoost = 0) {
   const engagement = engagementScore(metric);
   const conversation = conversationScore(metric);
   const amplification = amplificationScore(metric);
 
   return (
-    engagement >= 0.06 ||
-    conversation >= 0.018 ||
-    amplification >= 0.012 ||
+    engagement >= 0.06 - missionBoost * 0.003 ||
+    conversation >= 0.018 - missionBoost * 0.0015 ||
+    amplification >= 0.012 - missionBoost * 0.001 ||
     metric.replies >= 8 ||
-    metric.views >= 800
+    metric.views >= Math.max(500, 800 - missionBoost * 90)
   );
 }
 
@@ -62,15 +69,16 @@ function getOptimizationConfidence(metric: {
   reposts: number;
   quotes: number;
   shares: number;
-}) {
+}, missionBoost = 0) {
   const engagement = engagementScore(metric);
   const conversation = conversationScore(metric);
+  const adjustedViews = metric.views + missionBoost * 80;
 
-  if (engagement >= 0.1 || conversation >= 0.03 || metric.views >= 1500) {
+  if (engagement >= 0.1 - missionBoost * 0.002 || conversation >= 0.03 - missionBoost * 0.001 || adjustedViews >= 1500) {
     return "high" as const;
   }
 
-  if (engagement >= 0.05 || conversation >= 0.015 || metric.views >= 600) {
+  if (engagement >= 0.05 - missionBoost * 0.001 || conversation >= 0.015 - missionBoost * 0.0006 || adjustedViews >= 600) {
     return "medium" as const;
   }
 
@@ -111,6 +119,7 @@ function scoreDraftForAutomation(input: {
   topicTag?: string | null;
   excerpt?: string | null;
   createdAt: Date;
+  mission?: MissionContext | null;
 }) {
   const title = input.title?.trim() ?? "";
   const text = (input.text ?? "").trim();
@@ -131,11 +140,28 @@ function scoreDraftForAutomation(input: {
   const ageHours = Math.max(0, (Date.now() - input.createdAt.getTime()) / (1000 * 60 * 60));
   score += Math.max(0, 12 - ageHours);
 
-  return Math.round(Math.min(Math.max(score, 0), 100));
+  const missionBoost = getMissionDraftBoost({
+    mission: input.mission,
+    title: input.title,
+    text: input.text,
+    topicTag: input.topicTag,
+    excerpt: input.excerpt
+  });
+
+  return Math.round(Math.min(Math.max(score + missionBoost.scoreDelta, 0), 100));
 }
 
 export async function runAutoPromoteDirectDrafts(now = new Date()) {
   const settings = await prisma.appSettings.findFirst();
+  const missionContext = {
+    title: settings?.missionTitle,
+    goal: settings?.editorialGoal,
+    direction: settings?.editorialDirection,
+    unit: settings?.missionUnit,
+    currentValue: settings?.missionCurrentValue,
+    targetValue: settings?.missionTargetValue
+  };
+  const missionSignals = deriveMissionSignals(missionContext);
 
   if (settings?.automationPaused || settings?.autopilotMode === "review_only") {
     return { checked: 0, promoted: 0, skipped: 0, paused: true };
@@ -195,9 +221,15 @@ export async function runAutoPromoteDirectDrafts(now = new Date()) {
       text: draft.textContent,
       topicTag: draft.topicTag,
       excerpt: draft.excerpt,
-      createdAt: draft.createdAt
+      createdAt: draft.createdAt,
+      mission: missionContext
     });
-    const threshold = settings?.autopilotMode === "near_full_auto" ? 78 : 88;
+    const threshold =
+      settings?.autopilotMode === "near_full_auto"
+        ? missionSignals.focusTraffic || missionSignals.focusSearch || missionSignals.focusKnowledge
+          ? 72
+          : 78
+        : 86;
 
     if (score < threshold) {
       skipped += 1;
@@ -250,6 +282,14 @@ export async function runAutoPromoteDirectDrafts(now = new Date()) {
 
 export async function runAutoWordPressExpansion(now = new Date()) {
   const settings = await prisma.appSettings.findFirst();
+  const missionContext = {
+    title: settings?.missionTitle,
+    goal: settings?.editorialGoal,
+    direction: settings?.editorialDirection,
+    unit: settings?.missionUnit,
+    currentValue: settings?.missionCurrentValue,
+    targetValue: settings?.missionTargetValue
+  };
 
   if (settings?.automationPaused || settings?.autopilotMode === "review_only") {
     return { checked: 0, created: 0, skipped: 0, paused: true };
@@ -311,7 +351,14 @@ export async function runAutoWordPressExpansion(now = new Date()) {
       continue;
     }
 
-    if (!isLongformEligible(metric)) {
+    const missionBoost = getMissionLongformBoost({
+      mission: missionContext,
+      text: `${post.title ?? ""} ${post.textContent ?? ""}`.trim(),
+      views: metric.views,
+      replies: metric.replies
+    });
+
+    if (!isLongformEligible(metric, missionBoost.eligibleBias)) {
       skipped += 1;
       continue;
     }
@@ -353,6 +400,15 @@ export async function runAutoWordPressExpansion(now = new Date()) {
 
 export async function runOptimizationFlywheel(now = new Date()) {
   const settings = await prisma.appSettings.findFirst();
+  const missionContext = {
+    title: settings?.missionTitle,
+    goal: settings?.editorialGoal,
+    direction: settings?.editorialDirection,
+    unit: settings?.missionUnit,
+    currentValue: settings?.missionCurrentValue,
+    targetValue: settings?.missionTargetValue
+  };
+  const missionSignals = deriveMissionSignals(missionContext);
 
   if (settings?.automationPaused) {
     return { checked: 0, created: 0, skipped: 0, paused: true };
@@ -441,7 +497,12 @@ export async function runOptimizationFlywheel(now = new Date()) {
       continue;
     }
 
-    const confidence = getOptimizationConfidence(metric);
+    const missionBoost = getMissionOptimizationBoost({
+      mission: missionContext,
+      text: `${post.title ?? ""} ${post.textContent ?? ""}`.trim(),
+      replies: metric.replies
+    });
+    const confidence = getOptimizationConfidence(metric, missionBoost.scoreDelta / 6);
     if (confidence === "low" && settings?.autopilotMode !== "near_full_auto") {
       skipped += 1;
       continue;
@@ -483,7 +544,7 @@ export async function runOptimizationFlywheel(now = new Date()) {
 
       const canSchedule =
         settings?.autopilotMode === "near_full_auto"
-          ? confidence !== "low"
+          ? confidence !== "low" || missionSignals.focusTraffic || missionSignals.focusSearch
           : settings?.autopilotMode === "auto_schedule"
             ? confidence === "high"
             : false;
