@@ -7,6 +7,7 @@ import { SourceInbox } from "@/components/dashboard/source-inbox";
 import { SourceWatchlist, type SourceItem as SourceWatchItem } from "@/components/dashboard/source-watchlist";
 import { getAccountSummaries, getAnalyticsOverview, getDashboardStats, getKeywordHitSummaries, getPostSummaries } from "@/lib/dashboard-data";
 import { classifySourceKnowledgeLane, routeSourceToPersona, scoreSourceItem } from "@/lib/content/source-inbox";
+import { summarizeMissionStrategy } from "@/lib/mission-scoring";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -215,6 +216,14 @@ export default async function DeskPage({
   const missionDeadline = settings?.missionDeadline
     ? settings.missionDeadline.toLocaleDateString("zh-TW")
     : null;
+  const missionStrategy = summarizeMissionStrategy({
+    title: settings?.missionTitle,
+    goal: settings?.editorialGoal,
+    direction: settings?.editorialDirection,
+    unit: settings?.missionUnit,
+    currentValue: settings?.missionCurrentValue,
+    targetValue: settings?.missionTargetValue
+  });
   const autopilotModeLabel =
     settings?.autopilotMode === "review_only"
       ? "只進待拍板"
@@ -280,6 +289,22 @@ export default async function DeskPage({
                 ? `當前站台方向：${settings.editorialDirection.trim().slice(0, 110)}${settings.editorialDirection.trim().length > 110 ? "…" : ""}`
                 : "目前尚未設定站台級內容方向，建議先去 Config / Accounts 補上 PM mission 與 editorial direction。"}
             </p>
+          </div>
+          <div className="mt-4 grid gap-3 md:grid-cols-3">
+            <div className="rounded-[1.1rem] border border-white/10 bg-white/5 px-4 py-4">
+              <p className="text-[11px] uppercase tracking-[0.22em] text-white/55">主軸</p>
+              <p className="mt-2 text-sm leading-7 text-white/78">{missionStrategy.primaryFocus}</p>
+            </div>
+            <div className="rounded-[1.1rem] border border-white/10 bg-white/5 px-4 py-4">
+              <p className="text-[11px] uppercase tracking-[0.22em] text-white/55">Threads 分流</p>
+              <p className="mt-2 text-sm leading-7 text-white/78">{missionStrategy.threadBias}</p>
+            </div>
+            <div className="rounded-[1.1rem] border border-white/10 bg-white/5 px-4 py-4">
+              <p className="text-[11px] uppercase tracking-[0.22em] text-white/55">WordPress / 優化</p>
+              <p className="mt-2 text-sm leading-7 text-white/78">
+                {missionStrategy.wordpressBias} {missionStrategy.optimizationBias}
+              </p>
+            </div>
           </div>
         </article>
 
@@ -613,6 +638,11 @@ export default async function DeskPage({
                         {post.candidateRationale}
                       </p>
                     ) : null}
+                    {post.laneReason ? (
+                      <p className="mt-3 rounded-[1.1rem] border border-emerald-200 bg-white/90 px-4 py-3 text-sm leading-7 text-[var(--muted)]">
+                        {post.laneReason}
+                      </p>
+                    ) : null}
                     {(post.suggestedScheduleLabel || post.suggestedCta) ? (
                       <div className="mt-3 flex flex-wrap gap-2 text-sm">
                         {post.suggestedScheduleLabel ? (
@@ -666,6 +696,11 @@ export default async function DeskPage({
                         這篇目前沒有來源理由摘要，但因為分數和新鮮度較高，仍被排在今日候選前段。
                       </p>
                     )}
+                    {post.laneReason ? (
+                      <p className="mt-3 rounded-[1.1rem] border border-[var(--border)] bg-white/86 px-4 py-3 text-sm leading-7 text-[var(--muted)]">
+                        {post.laneReason}
+                      </p>
+                    ) : null}
                     <div className="mt-4 flex flex-wrap gap-2">
                       <a href={`/review/${post.id}`} className="rounded-full border border-[var(--border)] bg-white px-4 py-2 text-sm">
                         進確認區

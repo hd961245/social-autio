@@ -396,6 +396,11 @@ export function PostsList({ posts }: { posts: PostSummary[] }) {
                       {truncateSoft(post.candidateRationale, 170)}
                     </p>
                   ) : null}
+                  {post.laneReason ? (
+                    <p className="mt-2 line-clamp-3 text-xs leading-6 text-[var(--muted)]">
+                      {truncateSoft(post.laneReason, 185)}
+                    </p>
+                  ) : null}
                   <div className="mt-2 flex flex-wrap items-center gap-2">
                     {post.personaLabel ? (
                       <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--muted)]">{post.personaLabel}</p>

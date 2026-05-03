@@ -1,13 +1,14 @@
 import { PageIntro } from "@/components/dashboard/page-intro";
 import { PostsList } from "@/components/dashboard/posts-list";
 import { SyncWordPressButton } from "@/components/dashboard/sync-wordpress-button";
+import { summarizeMissionStrategy } from "@/lib/mission-scoring";
 import { prisma } from "@/lib/prisma";
 import { getPostSummaries, getWordPressExpansionCandidates } from "@/lib/dashboard-data";
 
 export const dynamic = "force-dynamic";
 
 export default async function ReviewBoardPage() {
-  const [posts, expansionCandidates, optimizationDrafts, expansionLogs] = await Promise.all([
+  const [posts, expansionCandidates, optimizationDrafts, expansionLogs, settings] = await Promise.all([
     getPostSummaries(),
     getWordPressExpansionCandidates(),
     prisma.post.findMany({
@@ -44,8 +45,17 @@ export default async function ReviewBoardPage() {
         executedAt: "desc"
       },
       take: 5
-    }).catch(() => [])
+    }).catch(() => []),
+    prisma.appSettings.findFirst().catch(() => null)
   ]);
+  const missionStrategy = summarizeMissionStrategy({
+    title: settings?.missionTitle,
+    goal: settings?.editorialGoal,
+    direction: settings?.editorialDirection,
+    unit: settings?.missionUnit,
+    currentValue: settings?.missionCurrentValue,
+    targetValue: settings?.missionTargetValue
+  });
   const pendingReviewPosts = posts.filter(
     (post) =>
       post.platform === "threads" &&
@@ -93,6 +103,19 @@ export default async function ReviewBoardPage() {
             <p className="text-xs uppercase tracking-[0.24em] text-[var(--muted)]">{card.label}</p>
             <p className="mt-3 text-3xl font-semibold">{card.value}</p>
             <p className="mt-2 text-sm text-[var(--muted)]">{card.detail}</p>
+          </article>
+        ))}
+      </section>
+
+      <section className="grid gap-4 xl:grid-cols-3">
+        {[
+          { label: "這輪主軸", detail: missionStrategy.primaryFocus },
+          { label: "Threads 判法", detail: missionStrategy.threadBias },
+          { label: "長文 / 優化判法", detail: `${missionStrategy.wordpressBias} ${missionStrategy.optimizationBias}` }
+        ].map((item) => (
+          <article key={item.label} className="rounded-[1.4rem] border border-[var(--border)] bg-white/82 p-4">
+            <p className="text-[11px] uppercase tracking-[0.2em] text-[var(--muted)]">{item.label}</p>
+            <p className="mt-3 text-sm leading-7 text-[var(--foreground)]">{item.detail}</p>
           </article>
         ))}
       </section>
@@ -190,6 +213,9 @@ export default async function ReviewBoardPage() {
                 </div>
                 <p className="mt-3 text-sm font-medium leading-7">{post.text}</p>
                 <p className="mt-3 text-sm text-[var(--muted)]">{post.reason}</p>
+                <p className="mt-3 rounded-[1.1rem] border border-[var(--border)] bg-[rgba(255,252,248,0.86)] px-4 py-3 text-sm leading-7 text-[var(--accent-strong)]">
+                  {post.missionReason}
+                </p>
                 <div className="mt-3 flex flex-wrap gap-2 text-sm">
                   <span className="rounded-full bg-white px-4 py-2">Views {post.views}</span>
                   <span className="rounded-full bg-white px-4 py-2">Replies {post.replies}</span>

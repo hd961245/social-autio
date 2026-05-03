@@ -1,7 +1,12 @@
 import { prisma } from "@/lib/prisma";
 import { getPlatformAdapter } from "@/lib/platforms";
 import { inferBestScheduleTime } from "@/lib/automation/autopilot-timing";
-import { getMissionDraftBoost, getMissionLongformBoost, type MissionContext } from "@/lib/mission-scoring";
+import {
+  getMissionDraftBoost,
+  getMissionLongformBoost,
+  summarizeMissionStrategy,
+  type MissionContext
+} from "@/lib/mission-scoring";
 
 export type AccountSummary = {
   id: string;
@@ -26,6 +31,8 @@ export type PostSummary = {
   isFreshToday?: boolean;
   reviewScore?: number;
   reviewLane?: "direct" | "review";
+  laneReason?: string | null;
+  missionReason?: string | null;
   suggestedScheduleLabel?: string | null;
   suggestedCta?: string | null;
   status: string;
@@ -209,6 +216,7 @@ export type WordPressExpansionCandidate = {
   suggestedTitle: string;
   reason: string;
   recommendation: string;
+  missionReason: string;
 };
 
 function clamp(value: number, min: number, max: number) {
@@ -562,6 +570,70 @@ function getSuggestedCta(input: {
   }
 
   return "留一句你的看法，我接著寫下一篇";
+}
+
+function getTopicFlowReason(topicTag?: string | null) {
+  if (topicTag === "news") {
+    return "這篇比較像快訊 / 市場結論，系統先走 Threads 驗證觸達。";
+  }
+
+  if (topicTag === "howto") {
+    return "這篇偏教學或流程題，先用 Threads 測需求，再決定要不要沉成長文。";
+  }
+
+  if (topicTag === "opinion") {
+    return "這篇偏觀點與立場表達，先用 Threads 測互動與討論會比較有效。";
+  }
+
+  return "這篇先進 Threads 做題目驗證，後面再依表現決定是否擴寫。";
+}
+
+function buildDraftDecisionReason(input: {
+  reviewLane: "direct" | "review";
+  reviewScore?: number;
+  candidateRationale?: string | null;
+  mission?: MissionContext | null;
+  title?: string | null;
+  text?: string | null;
+  topicTag?: string | null;
+  excerpt?: string | null;
+}) {
+  const missionBoost = getMissionDraftBoost({
+    mission: input.mission,
+    title: input.title,
+    text: input.text,
+    topicTag: input.topicTag,
+    excerpt: input.excerpt
+  });
+  const overlapText = missionBoost.overlap.length ? ` mission 關鍵詞命中 ${missionBoost.overlap.slice(0, 3).join(" / ")}` : "";
+
+  if (input.reviewLane === "direct") {
+    return `這篇屬於高信心稿，分數 ${input.reviewScore ?? 0}，而且有明確來源理由；再加上${overlapText || " mission 方向也支持先衝短內容"}，所以先升到可直接最後確認。`;
+  }
+
+  if (!input.candidateRationale) {
+    return `這篇先進待拍板，因為目前缺少清楚來源理由；你先補 assignment，再決定要不要發。${overlapText ? `另外，${overlapText.trim()}。` : ""}`;
+  }
+
+  return `這篇先進待拍板，因為雖然來源理由成立，但分數 ${input.reviewScore ?? 0} 還沒高到可直接送出；你先看 assignment 與收法。${overlapText ? `另外，${overlapText.trim()}。` : ""}`;
+}
+
+function buildLongformMissionReason(input: {
+  mission?: MissionContext | null;
+  text: string;
+  views: number;
+  replies: number;
+}) {
+  const boost = getMissionLongformBoost(input);
+  if (boost.overlap.length) {
+    return `這篇和 mission 的長文方向更接近：${boost.overlap.slice(0, 3).join(" / ")}，所以系統更願意把它沉成 WordPress。`;
+  }
+
+  if (boost.eligibleBias >= 2) {
+    return "雖然這篇不一定是最高互動，但 mission 現在偏搜尋 / 長文沉澱，所以系統放寬了送進 WordPress 的門檻。";
+  }
+
+  return summarizeMissionStrategy(input.mission).wordpressBias;
 }
 
 export async function getAccountSummaries(): Promise<AccountSummary[]> {
@@ -1193,6 +1265,23 @@ export async function getPostSummaries(): Promise<PostSummary[]> {
               personaLabel: post.account.personaLabel
             })
           : null;
+      const laneReason =
+        post.account.platform === "threads"
+          ? buildDraftDecisionReason({
+              reviewLane,
+              reviewScore,
+              candidateRationale,
+              mission: missionContext,
+              title: post.title,
+              text: post.textContent ?? post.title,
+              topicTag: normalizedTopicTag,
+              excerpt: post.excerpt
+            })
+          : null;
+      const missionReason =
+        post.account.platform === "threads"
+          ? getTopicFlowReason(normalizedTopicTag)
+          : "這篇屬於長文承接層，主要負責知識沉澱與 SEO / CTA 承接。";
 
       return {
       id: post.id,
@@ -1205,6 +1294,8 @@ export async function getPostSummaries(): Promise<PostSummary[]> {
       isFreshToday: dayFormatter.format(post.createdAt) === todayKey,
       reviewScore,
       reviewLane,
+      laneReason,
+      missionReason,
       suggestedScheduleLabel: timingSuggestion?.label ?? null,
       suggestedCta,
       status: post.status,
@@ -1458,6 +1549,12 @@ export async function getWordPressExpansionCandidates(): Promise<WordPressExpans
             health.momentum === "spiking"
               ? "趁熱把這篇的核心觀點補成背景、案例和反例，先起一版 WordPress 草稿。"
               : "把這篇的觀點拆成脈絡、數據與可操作建議，做成比較完整的長文版本。",
+          missionReason: buildLongformMissionReason({
+            mission: missionContext,
+            text: `${post.title ?? ""} ${post.textContent ?? ""}`.trim(),
+            views: latestMetrics.views,
+            replies: latestMetrics.replies
+          }),
           eligible
         };
       })
@@ -1481,7 +1578,8 @@ export async function getWordPressExpansionCandidates(): Promise<WordPressExpans
         longformScore: post.longformScore,
         suggestedTitle: post.suggestedTitle,
         reason: post.reason,
-        recommendation: post.recommendation
+        recommendation: post.recommendation,
+        missionReason: post.missionReason
       }));
   } catch {
     return [];
