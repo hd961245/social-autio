@@ -8,7 +8,7 @@ import { getPostSummaries, getWordPressExpansionCandidates } from "@/lib/dashboa
 export const dynamic = "force-dynamic";
 
 export default async function ReviewBoardPage() {
-  const [posts, expansionCandidates, optimizationDrafts, expansionLogs, settings] = await Promise.all([
+  const [posts, expansionCandidates, optimizationDrafts, expansionLogs, settings, failedLogs] = await Promise.all([
     getPostSummaries(),
     getWordPressExpansionCandidates(),
     prisma.post.findMany({
@@ -46,7 +46,26 @@ export default async function ReviewBoardPage() {
       },
       take: 5
     }).catch(() => []),
-    prisma.appSettings.findFirst().catch(() => null)
+    prisma.appSettings.findFirst().catch(() => null),
+    prisma.automationLog.findMany({
+      where: {
+        status: "failed",
+        actionType: {
+          in: ["daily_persona_generation", "optimization_flywheel", "auto_wordpress_expansion", "auto_promote_review_draft"]
+        }
+      },
+      include: {
+        account: {
+          select: {
+            platformUsername: true
+          }
+        }
+      },
+      orderBy: {
+        executedAt: "desc"
+      },
+      take: 5
+    }).catch(() => [])
   ]);
   const missionStrategy = summarizeMissionStrategy({
     title: settings?.missionTitle,
@@ -84,6 +103,32 @@ export default async function ReviewBoardPage() {
     executedAt: log.executedAt.toLocaleString("zh-TW", { hour12: false }),
     href: log.postId ? `/posts/${log.postId}` : "/wordpress"
   }));
+  const interventionCards = [
+    reviewPosts.length > 0
+      ? {
+          label: `待拍板 ${reviewPosts.length}`,
+          detail: "這些稿件是系統還不想自己定案的內容，你只要處理這些例外。",
+          href: "#review-queue",
+          action: "看待拍板"
+        }
+      : null,
+    directPosts.length > 0
+      ? {
+          label: `可直接最後確認 ${directPosts.length}`,
+          detail: "這批是高信心稿，你只要最後掃一眼就能讓系統繼續跑。",
+          href: "#review-queue",
+          action: "看高信心稿"
+        }
+      : null,
+    failedLogs.length > 0
+      ? {
+          label: `背景失敗 ${failedLogs.length}`,
+          detail: "有背景任務失敗，這會讓自動飛輪斷掉，是最該優先處理的例外。",
+          href: "/factory",
+          action: "去工廠紀錄"
+        }
+      : null
+  ].filter(Boolean) as Array<{ label: string; detail: string; href: string; action: string }>;
 
   return (
     <div className="space-y-6">
@@ -105,6 +150,57 @@ export default async function ReviewBoardPage() {
             <p className="mt-2 text-sm text-[var(--muted)]">{card.detail}</p>
           </article>
         ))}
+      </section>
+
+      <section className="grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">
+        <article className="glass-panel rounded-[2rem] border border-[var(--border)] p-5">
+          <div className="flex items-end justify-between gap-4">
+            <div>
+              <p className="text-[11px] uppercase tracking-[0.3em] text-[var(--muted)]">Intervention Queue</p>
+              <h2 className="mt-2 text-3xl font-semibold">這裡才是你真的要處理的事</h2>
+            </div>
+            <a href="/factory" className="text-sm font-medium text-[var(--accent)]">
+              去工廠紀錄
+            </a>
+          </div>
+          <div className="mt-5 space-y-3">
+            {interventionCards.length ? (
+              interventionCards.map((item) => (
+                <article key={item.label} className="rounded-[1.35rem] border border-[var(--border)] bg-white/82 p-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-semibold">{item.label}</p>
+                      <p className="mt-2 text-sm leading-7 text-[var(--muted)]">{item.detail}</p>
+                    </div>
+                    <a href={item.href} className="rounded-full border border-[var(--border)] bg-white px-4 py-2 text-sm">
+                      {item.action}
+                    </a>
+                  </div>
+                </article>
+              ))
+            ) : (
+              <article className="rounded-[1.35rem] border border-dashed border-[var(--border)] p-4 text-sm text-[var(--muted)]">
+                目前沒有明顯例外。Review 這邊只剩例行抽查，系統可以自己往下跑。
+              </article>
+            )}
+          </div>
+        </article>
+
+        <article className="rounded-[2rem] bg-[var(--card-dark)] p-5 text-white shadow-[0_24px_60px_rgba(15,10,7,0.22)]">
+          <p className="text-[11px] uppercase tracking-[0.3em] text-white/55">Review Rule</p>
+          <h2 className="mt-2 text-3xl font-semibold">Review 是例外台，不是日常操作台</h2>
+          <div className="mt-5 space-y-3 text-sm text-white/78">
+            <p className="rounded-[1.2rem] border border-white/10 bg-white/5 px-4 py-3">
+              真正正常的高信心稿，系統會自己排程或自己沉長文；你來這裡主要是拍板灰色地帶。
+            </p>
+            <p className="rounded-[1.2rem] border border-white/10 bg-white/5 px-4 py-3">
+              如果某批稿件沒有清楚來源理由、mission 對齊不高、或優化方向不夠穩，就會先進這裡。
+            </p>
+            <p className="rounded-[1.2rem] border border-white/10 bg-white/5 px-4 py-3">
+              你的角色是處理例外、修方向、看高價值決策，而不是每天手動跑完整內容流程。
+            </p>
+          </div>
+        </article>
       </section>
 
       <section className="grid gap-4 xl:grid-cols-3">
@@ -230,7 +326,7 @@ export default async function ReviewBoardPage() {
         </section>
       ) : null}
 
-      <section className="glass-panel rounded-[2rem] border border-[var(--border)] p-6">
+      <section id="review-queue" className="glass-panel rounded-[2rem] border border-[var(--border)] p-6">
         <div className="mb-6">
           <p className="text-sm text-[var(--muted)]">這裡預設先看待拍板 Threads。高信心稿仍然先給你最後確認，不直接把你推進發布表單。</p>
           <p className="mt-1 text-xs text-[var(--muted)]">如果你只想處理最後一哩，就先看「可直接發」那層；如果要給 AI assignment，就進確認區。</p>

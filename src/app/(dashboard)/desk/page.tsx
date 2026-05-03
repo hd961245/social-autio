@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { ContentEngineForm } from "@/components/dashboard/content-engine-form";
 import { AutopilotHeartbeat } from "@/components/dashboard/autopilot-heartbeat";
 import { PageIntro } from "@/components/dashboard/page-intro";
@@ -236,6 +238,52 @@ export default async function DeskPage({
   }).length;
   const optimizationCreated14d = flywheelLogs.filter((log) => log.actionType === "optimization_flywheel" && log.status !== "failed" && log.executedAt >= fourteenDaysAgo).length;
   const wordpressExpanded14d = flywheelLogs.filter((log) => log.actionType === "auto_wordpress_expansion" && log.status !== "failed" && log.executedAt >= fourteenDaysAgo).length;
+  const failedAutomationCount14d = [...recentAutopilotLogs, ...flywheelLogs.filter((log) => log.executedAt >= fourteenDaysAgo)].filter(
+    (log) => log.status === "failed"
+  ).length;
+  const expiringAccountCount = accountSummaries.filter((account) => account.tokenStatus === "expiring").length;
+  const interventionAlerts = [
+    settings?.automationPaused
+      ? {
+          label: "自動化已暫停",
+          detail: "站台目前是暫停狀態，系統不會自己繼續找題、排程或沉長文。",
+          href: "/config",
+          action: "去恢復"
+        }
+      : null,
+    failedAutomationCount14d > 0
+      ? {
+          label: `14 天失敗任務 ${failedAutomationCount14d}`,
+          detail: "有背景任務失敗，這是最值得你先看的例外，不然飛輪會有缺口。",
+          href: "/factory",
+          action: "看工廠紀錄"
+        }
+      : null,
+    expiringAccountCount > 0
+      ? {
+          label: `Token 快到期 ${expiringAccountCount}`,
+          detail: "有 Threads 帳號 token 即將到期，這是會直接影響自動發布的例外。",
+          href: "/accounts",
+          action: "去處理帳號"
+        }
+      : null,
+    pendingApprovalCount > 0
+      ? {
+          label: `待拍板 ${pendingApprovalCount}`,
+          detail: "這些稿件是系統還不想自己決定的內容，你只需要拍板這一層。",
+          href: "/review",
+          action: "去 Review"
+        }
+      : null,
+    !settings?.editorialDirection?.trim()
+      ? {
+          label: "缺站台方向",
+          detail: "沒有 editorial direction 時，系統雖然能自動跑，但 mission 會不夠聚焦。",
+          href: "/config",
+          action: "去補方向"
+        }
+      : null
+  ].filter(Boolean) as Array<{ label: string; detail: string; href: string; action: string }>;
   const optimizationSnapshot = [
     { label: "14 天 autopilot 執行", value: String(recentAutopilotLogs.length), detail: "自動產文與排程補跑次數" },
     { label: "14 天已發布", value: String(publishedIn14Days), detail: "Threads 已完成發布的數量" },
@@ -377,6 +425,57 @@ export default async function DeskPage({
             </article>
           ))}
         </div>
+      </section>
+
+      <section className="grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">
+        <article className="glass-panel rounded-[2rem] border border-[var(--border)] p-5">
+          <div className="flex items-end justify-between gap-4">
+            <div>
+              <p className="text-[11px] uppercase tracking-[0.3em] text-[var(--muted)]">Exception Desk</p>
+              <h2 className="mt-2 text-3xl font-semibold">你只要介入這幾件事</h2>
+            </div>
+            <Link href="/review" className="text-sm font-medium text-[var(--accent)]">
+              去拍板台
+            </Link>
+          </div>
+          <div className="mt-5 space-y-3">
+            {interventionAlerts.length ? (
+              interventionAlerts.map((item) => (
+                <article key={item.label} className="rounded-[1.35rem] border border-[var(--border)] bg-white/78 p-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-semibold">{item.label}</p>
+                      <p className="mt-2 text-sm leading-7 text-[var(--muted)]">{item.detail}</p>
+                    </div>
+                    <a href={item.href} className="rounded-full border border-[var(--border)] bg-white px-4 py-2 text-sm">
+                      {item.action}
+                    </a>
+                  </div>
+                </article>
+              ))
+            ) : (
+              <article className="rounded-[1.35rem] border border-dashed border-[var(--border)] p-4 text-sm text-[var(--muted)]">
+                目前沒有明顯例外。系統可以繼續自動找題、寫文、排程、沉長文，你只要定期看 Review 就好。
+              </article>
+            )}
+          </div>
+        </article>
+
+        <article className="rounded-[2rem] bg-[var(--card-dark)] p-5 text-white shadow-[0_24px_60px_rgba(15,10,7,0.22)]">
+          <p className="text-[11px] uppercase tracking-[0.3em] text-white/55">Hands-Off Rule</p>
+          <h2 className="mt-2 text-3xl font-semibold">你不是每天來操作，你是來處理例外</h2>
+          <div className="mt-5 space-y-3 text-sm text-white/78">
+            <p className="rounded-[1.2rem] border border-white/10 bg-white/5 px-4 py-3">
+              正常情況下，系統會自己找題、產稿、排程與沉長文；你不需要每天進來點每一篇。
+            </p>
+            <p className="rounded-[1.2rem] border border-white/10 bg-white/5 px-4 py-3">
+              只有當 token、mission、失敗任務或待拍板稿件出現時，才代表有值得你介入的地方。
+            </p>
+            <p className="rounded-[1.2rem] border border-white/10 bg-white/5 px-4 py-3">
+              這一塊就是站台的例外面板。沒有例外時，放著讓系統跑，回頭看數字就好。
+            </p>
+          </div>
+        </article>
       </section>
 
       <section className="grid gap-4 xl:grid-cols-[1.08fr_0.92fr]">
