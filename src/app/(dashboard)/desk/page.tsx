@@ -318,7 +318,7 @@ export default async function DeskPage({
         description="這裡是唯一首頁。先看經營目標、今日待拍板與高價值來源，再把內容送進 Review、Compose、Threads 或 WordPress。"
       />
 
-      <section className="grid gap-4 2xl:grid-cols-[minmax(0,1.08fr)_minmax(320px,0.92fr)]">
+      <section className="grid gap-4">
         <article className="min-w-0 rounded-[2rem] bg-[var(--card-dark)] p-5 text-white shadow-[0_24px_60px_rgba(15,10,7,0.22)] xl:p-6">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="min-w-0 flex-1">
@@ -349,7 +349,7 @@ export default async function DeskPage({
                 : "目前尚未設定站台級內容方向，建議先去 Config / Accounts 補上 PM mission 與 editorial direction。"}
             </p>
           </div>
-          <div className="mt-4 grid gap-3 xl:grid-cols-3">
+          <div className="mt-4 grid gap-3 2xl:grid-cols-3">
             <div className="min-w-0 rounded-[1.1rem] border border-white/10 bg-white/5 px-4 py-4">
               <p className="text-[11px] uppercase tracking-[0.22em] text-white/55">主軸</p>
               <p className="mt-2 text-sm leading-7 text-white/78">{missionStrategy.primaryFocus}</p>
@@ -382,7 +382,7 @@ export default async function DeskPage({
         </article>
       </section>
 
-      <section className="grid gap-4 2xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
+      <section className="grid gap-4">
         <article className="min-w-0 glass-panel rounded-[2rem] border border-[var(--border)] p-5 xl:p-6">
           <div className="flex items-end justify-between gap-4">
             <div>
@@ -427,7 +427,7 @@ export default async function DeskPage({
         <div className="mb-4 flex justify-end">
           <AutopilotHeartbeat compact />
         </div>
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-4">
           {summaryCards.map((card) => (
             <article key={card.label} className="metric-card">
               <p className="text-xs uppercase tracking-[0.24em] text-[var(--muted)]">{card.label}</p>
@@ -438,7 +438,7 @@ export default async function DeskPage({
         </div>
       </section>
 
-      <section className="grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">
+      <section className="grid gap-4">
         <article className="glass-panel rounded-[2rem] border border-[var(--border)] p-5">
           <div className="flex items-end justify-between gap-4">
             <div>
@@ -492,7 +492,7 @@ export default async function DeskPage({
         </article>
       </section>
 
-      <section className="grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">
+      <section className="grid gap-4">
         <article className="glass-panel rounded-[2rem] border border-[var(--border)] p-5">
           <div className="flex items-end justify-between gap-4">
             <div>
@@ -544,7 +544,7 @@ export default async function DeskPage({
         </article>
       </section>
 
-      <section className="grid gap-4 xl:grid-cols-[1.08fr_0.92fr]">
+      <section className="grid gap-4">
         <article className="glass-panel rounded-[2rem] border border-[var(--border)] p-5">
           <div className="flex items-end justify-between gap-4">
             <div>
@@ -555,7 +555,7 @@ export default async function DeskPage({
               看完整分析
             </a>
           </div>
-          <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          <div className="mt-5 grid gap-3 md:grid-cols-2 2xl:grid-cols-3">
             {operatingSnapshot.map((item) => (
               <article key={item.label} className="rounded-[1.4rem] border border-[var(--border)] bg-white/72 p-4">
                 <p className="text-xs uppercase tracking-[0.24em] text-[var(--muted)]">{item.label}</p>
@@ -583,7 +583,7 @@ export default async function DeskPage({
         </article>
       </section>
 
-      <section className="grid gap-4 xl:grid-cols-3">
+      <section className="grid gap-4 2xl:grid-cols-3">
         {[
           {
             label: "快節奏新聞題",
@@ -615,7 +615,7 @@ export default async function DeskPage({
         ))}
       </section>
 
-      <section className="grid gap-4 xl:grid-cols-[1.08fr_0.92fr]">
+      <section className="grid gap-4">
         <article className="glass-panel rounded-[2rem] border border-[var(--border)] p-5">
           <div className="flex items-end justify-between gap-4">
             <div>
@@ -688,7 +688,7 @@ export default async function DeskPage({
         </article>
       </section>
 
-      <section className="grid gap-4 xl:grid-cols-[1.02fr_0.98fr]">
+      <section className="grid gap-4">
         <article className="glass-panel rounded-[2rem] border border-[var(--border)] p-5">
           <div className="flex items-end justify-between gap-4">
             <div>
@@ -765,7 +765,7 @@ export default async function DeskPage({
         </article>
       </section>
 
-      <section className="grid gap-4 xl:grid-cols-[1.02fr_0.98fr]">
+      <section className="grid gap-4">
         <article className="glass-panel rounded-[2rem] border border-[var(--border)] p-5">
           <div className="flex items-end justify-between gap-4">
             <div>
@@ -927,7 +927,7 @@ export default async function DeskPage({
       </section>
 
       {activeTab === "overview" ? (
-        <div className="grid gap-4 xl:grid-cols-[1.04fr_0.96fr]">
+        <div className="grid gap-4">
           <section className="glass-panel rounded-[2rem] border border-[var(--border)] p-6">
             <div className="mb-6 flex items-center justify-between gap-4">
               <div>
