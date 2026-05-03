@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ContentEngineForm } from "@/components/dashboard/content-engine-form";
 import { HelpSheet } from "@/components/dashboard/help-sheet";
 import { PageIntro } from "@/components/dashboard/page-intro";
+import { getGscOpportunityQueue } from "@/lib/gsc";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -31,9 +32,14 @@ export default async function FactoryPage() {
   let drafts: Array<
     Awaited<ReturnType<typeof prisma.post.findMany<{ include: { account: true } }>>>[number]
   > = [];
+  let gscOpportunities: Awaited<ReturnType<typeof getGscOpportunityQueue>> = {
+    configured: false,
+    items: [],
+    message: "目前還讀不到 Search Console 機會隊列。"
+  };
 
   try {
-    [settings, ingestions, drafts, threadsAccounts, automationLogs] = await Promise.all([
+    [settings, ingestions, drafts, threadsAccounts, automationLogs, gscOpportunities] = await Promise.all([
       prisma.appSettings.findFirst(),
       prisma.ingestionRecord.findMany({
         orderBy: { createdAt: "desc" },
@@ -66,7 +72,8 @@ export default async function FactoryPage() {
           executedAt: "desc"
         },
         take: 12
-      })
+      }),
+      getGscOpportunityQueue()
     ]);
   } catch {}
 
@@ -92,10 +99,35 @@ export default async function FactoryPage() {
     href:
       log.postId && log.actionType === "auto_wordpress_expansion"
         ? `/posts/${log.postId}`
-        : log.postId
+          : log.postId
           ? `/review/${log.postId}`
           : "/review"
   }));
+  const autoHandledItems = recentFactoryFeed.filter((item) =>
+    ["高信心稿自動排程", "WordPress 自動沉澱"].includes(item.title)
+  );
+  const interventionItems = recentFactoryFeed.filter((item) =>
+    ["AI 自動產文", "14 天優化飛輪"].includes(item.title)
+  );
+  const failedItems = automationLogs
+    .filter((log) => log.status === "failed")
+    .slice(0, 6)
+    .map((log) => ({
+      id: log.id,
+      title:
+        log.actionType === "daily_persona_generation"
+          ? "自動產文失敗"
+          : log.actionType === "optimization_flywheel"
+            ? "優化飛輪失敗"
+            : log.actionType === "auto_promote_review_draft"
+              ? "自動排程失敗"
+              : "長文沉澱失敗",
+      accountLabel: log.account ? `@${log.account.platformUsername}` : "站台級任務",
+      executedAt: log.executedAt.toLocaleString("zh-TW", { hour12: false }),
+      detail: log.detail ?? "背景任務失敗",
+      href: log.postId ? `/review/${log.postId}` : "/ops"
+    }));
+  const interventionCount = drafts.filter((draft) => draft.account.platform === "threads" && draft.status === "draft").length;
 
   return (
     <div className="space-y-6">
@@ -142,6 +174,138 @@ export default async function FactoryPage() {
       </section>
 
       <section className="glass-panel rounded-[2rem] border border-[var(--border)] p-6">
+        <div className="flex items-end justify-between gap-4">
+          <div>
+            <p className="text-[11px] uppercase tracking-[0.24em] text-[var(--muted)]">SEO Input Queue</p>
+            <h2 className="mt-2 text-2xl font-semibold">Search Console 開始成為工廠輸入層</h2>
+          </div>
+          <Link href="/analytics" className="text-sm font-medium text-[var(--accent)]">
+            看搜尋層
+          </Link>
+        </div>
+        <div className="mt-5 grid gap-3 xl:grid-cols-3">
+          {gscOpportunities.items.length ? (
+            gscOpportunities.items.slice(0, 3).map((item) => (
+              <article key={item.id} className="rounded-[1.35rem] border border-[var(--border)] bg-white/82 p-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">{item.label}</p>
+                  <span className="pill-tag">{item.confidence === "high" ? "高信心" : item.confidence === "medium" ? "中信心" : "觀察中"}</span>
+                </div>
+                <p className="mt-3 text-sm font-medium leading-7">{item.query ?? item.page}</p>
+                <p className="mt-2 text-sm leading-7 text-[var(--muted)]">{item.reason}</p>
+                <p className="mt-3 text-sm text-[var(--accent-strong)]">{item.action}</p>
+              </article>
+            ))
+          ) : (
+            <p className="rounded-[1.35rem] border border-dashed border-[var(--border)] px-4 py-5 text-sm text-[var(--muted)] xl:col-span-3">
+              {gscOpportunities.message}
+            </p>
+          )}
+        </div>
+      </section>
+
+      <section className="grid gap-4 xl:grid-cols-3">
+        <article className="glass-panel rounded-[2rem] border border-[var(--border)] p-5">
+          <div className="flex items-end justify-between gap-4">
+            <div>
+              <p className="text-[11px] uppercase tracking-[0.24em] text-[var(--muted)]">Auto-Handled</p>
+              <h2 className="mt-2 text-2xl font-semibold">系統已自行處理</h2>
+            </div>
+            <span className="pill-tag">{autoHandledItems.length} 筆</span>
+          </div>
+          <div className="mt-5 space-y-3">
+            {autoHandledItems.length ? (
+              autoHandledItems.map((item) => (
+                <article key={item.id} className="rounded-[1.35rem] border border-[var(--border)] bg-white/82 p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">{item.title}</p>
+                    <span className="pill-tag">{item.executedAt}</span>
+                  </div>
+                  <p className="mt-3 text-sm font-medium">{item.accountLabel}</p>
+                  <p className="mt-2 text-sm leading-7 text-[var(--muted)]">{item.detail}</p>
+                  <div className="mt-4">
+                    <Link href={item.href} className="rounded-full border border-[var(--border)] bg-white px-4 py-2 text-sm font-medium">
+                      看結果
+                    </Link>
+                  </div>
+                </article>
+              ))
+            ) : (
+              <p className="rounded-[1.35rem] border border-dashed border-[var(--border)] px-4 py-5 text-sm text-[var(--muted)]">
+                目前還沒有明顯的自動完成紀錄。等高信心稿自己排程、強文自己沉長文後，這裡會先顯示。
+              </p>
+            )}
+          </div>
+        </article>
+
+        <article className="glass-panel rounded-[2rem] border border-[var(--border)] p-5">
+          <div className="flex items-end justify-between gap-4">
+            <div>
+              <p className="text-[11px] uppercase tracking-[0.24em] text-[var(--muted)]">Needs Intervention</p>
+              <h2 className="mt-2 text-2xl font-semibold">等待你介入</h2>
+            </div>
+            <span className="pill-tag">{Math.max(interventionItems.length, interventionCount)} 筆</span>
+          </div>
+          <div className="mt-5 space-y-3">
+            {interventionItems.length ? (
+              interventionItems.map((item) => (
+                <article key={item.id} className="rounded-[1.35rem] border border-[var(--border)] bg-white/82 p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">{item.title}</p>
+                    <span className="pill-tag">{item.executedAt}</span>
+                  </div>
+                  <p className="mt-3 text-sm font-medium">{item.accountLabel}</p>
+                  <p className="mt-2 text-sm leading-7 text-[var(--muted)]">{item.detail}</p>
+                  <div className="mt-4">
+                    <Link href={item.href} className="rounded-full border border-[var(--border)] bg-white px-4 py-2 text-sm font-medium">
+                      去拍板
+                    </Link>
+                  </div>
+                </article>
+              ))
+            ) : (
+              <p className="rounded-[1.35rem] border border-dashed border-[var(--border)] px-4 py-5 text-sm text-[var(--muted)]">
+                目前沒有新的待拍板工廠稿。系統最近產出的內容大多已自己處理或自己排程。
+              </p>
+            )}
+          </div>
+        </article>
+
+        <article className="glass-panel rounded-[2rem] border border-[var(--border)] p-5">
+          <div className="flex items-end justify-between gap-4">
+            <div>
+              <p className="text-[11px] uppercase tracking-[0.24em] text-[var(--muted)]">Failed / Repair</p>
+              <h2 className="mt-2 text-2xl font-semibold">失敗待修復</h2>
+            </div>
+            <span className="pill-tag">{failedItems.length} 筆</span>
+          </div>
+          <div className="mt-5 space-y-3">
+            {failedItems.length ? (
+              failedItems.map((item) => (
+                <article key={item.id} className="rounded-[1.35rem] border border-rose-200 bg-rose-50/70 p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <p className="text-xs uppercase tracking-[0.2em] text-rose-700">{item.title}</p>
+                    <span className="rounded-full bg-white px-3 py-1 text-xs text-rose-700">{item.executedAt}</span>
+                  </div>
+                  <p className="mt-3 text-sm font-medium">{item.accountLabel}</p>
+                  <p className="mt-2 text-sm leading-7 text-[var(--muted)]">{item.detail}</p>
+                  <div className="mt-4">
+                    <Link href={item.href} className="rounded-full border border-rose-200 bg-white px-4 py-2 text-sm font-medium text-rose-700">
+                      去處理
+                    </Link>
+                  </div>
+                </article>
+              ))
+            ) : (
+              <p className="rounded-[1.35rem] border border-dashed border-[var(--border)] px-4 py-5 text-sm text-[var(--muted)]">
+                目前沒有新的背景失敗紀錄。這代表自動寫文、優化與長文沉澱最近都在正常運轉。
+              </p>
+            )}
+          </div>
+        </article>
+      </section>
+
+      <section className="glass-panel rounded-[2rem] border border-[var(--border)] p-6">
           <div className="flex items-end justify-between gap-4">
             <div>
               <p className="text-[11px] uppercase tracking-[0.24em] text-[var(--muted)]">Factory Feed</p>
@@ -162,9 +326,9 @@ export default async function FactoryPage() {
                 <p className="mt-3 text-sm font-medium text-[var(--foreground)]">{item.accountLabel}</p>
                 <p className="mt-2 text-sm text-[var(--muted)]">{item.detail}</p>
                 <div className="mt-4">
-                  <a href={item.href} className="rounded-full border border-[var(--border)] bg-white px-4 py-2 text-sm font-medium">
+                  <Link href={item.href} className="rounded-full border border-[var(--border)] bg-white px-4 py-2 text-sm font-medium">
                     去看結果
-                  </a>
+                  </Link>
                 </div>
               </article>
             ))

@@ -9,6 +9,7 @@ import { SourceInbox } from "@/components/dashboard/source-inbox";
 import { SourceWatchlist, type SourceItem as SourceWatchItem } from "@/components/dashboard/source-watchlist";
 import { getAccountSummaries, getAnalyticsOverview, getDashboardStats, getKeywordHitSummaries, getPostSummaries } from "@/lib/dashboard-data";
 import { classifySourceKnowledgeLane, routeSourceToPersona, scoreSourceItem } from "@/lib/content/source-inbox";
+import { getGscOpportunityQueue } from "@/lib/gsc";
 import { summarizeMissionStrategy } from "@/lib/mission-scoring";
 import { prisma } from "@/lib/prisma";
 
@@ -59,6 +60,11 @@ export default async function DeskPage({
   let threadsAccounts: Awaited<ReturnType<typeof prisma.platformAccount.findMany>> = [];
   let autopilotLogs: Awaited<ReturnType<typeof prisma.automationLog.findMany>> = [];
   let flywheelLogs: Awaited<ReturnType<typeof prisma.automationLog.findMany>> = [];
+  let gscOpportunities: Awaited<ReturnType<typeof getGscOpportunityQueue>> = {
+    configured: false,
+    items: [],
+    message: "目前還讀不到 Search Console 機會隊列。"
+  };
   let drafts: Array<
     Awaited<ReturnType<typeof prisma.post.findMany<{ include: { account: true } }>>>[number]
   > = [];
@@ -77,7 +83,7 @@ export default async function DeskPage({
   const reviewFirstDraftPicks = todayDraftPicks.filter((post) => post.reviewLane !== "direct");
 
   try {
-    [sourceItems, settings, ingestions, drafts, threadsAccounts, autopilotLogs, flywheelLogs] = await Promise.all([
+    [sourceItems, settings, ingestions, drafts, threadsAccounts, autopilotLogs, flywheelLogs, gscOpportunities] = await Promise.all([
       prisma.sourceWatch.findMany({
         orderBy: [{ updatedAt: "desc" }, { createdAt: "desc" }]
       }),
@@ -115,7 +121,8 @@ export default async function DeskPage({
           executedAt: "desc"
         },
         take: 30
-      })
+      }),
+      getGscOpportunityQueue()
     ]);
   } catch {}
 
@@ -296,7 +303,11 @@ export default async function DeskPage({
     { label: "AI 今日產文", value: String(aiGeneratedToday), detail: "autopilot + AI 工廠新產出的草稿" },
     { label: "待你拍板", value: String(pendingApprovalCount), detail: "需要先進 Review 決定 assignment" },
     { label: "可直接發", value: String(readyToShipCount), detail: "高信心可直接最後確認的內容" },
-    { label: "追蹤來源", value: String(trackedSources.length), detail: "固定觀察中的 RSS / URL / site 名單" }
+    {
+      label: "搜尋機會",
+      value: String(gscOpportunities.items.filter((item) => item.confidence !== "low").length),
+      detail: "GSC 指出的高價值 SEO / 長文優化機會"
+    }
   ];
 
   return (
@@ -425,6 +436,59 @@ export default async function DeskPage({
             </article>
           ))}
         </div>
+      </section>
+
+      <section className="grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">
+        <article className="glass-panel rounded-[2rem] border border-[var(--border)] p-5">
+          <div className="flex items-end justify-between gap-4">
+            <div>
+              <p className="text-[11px] uppercase tracking-[0.3em] text-[var(--muted)]">Search Growth</p>
+              <h2 className="mt-2 text-3xl font-semibold">Search Console 已經在替你指出下一批該補的頁面</h2>
+            </div>
+            <Link href="/review" className="text-sm font-medium text-[var(--accent)]">
+              去 SEO 拍板
+            </Link>
+          </div>
+          <div className="mt-5 space-y-3">
+            {gscOpportunities.items.length ? (
+              gscOpportunities.items.slice(0, 3).map((item) => (
+                <article key={item.id} className="rounded-[1.35rem] border border-[var(--border)] bg-white/82 p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">{item.label}</p>
+                    <span className="pill-tag">{item.query ? "Query" : `Pos ${item.position.toFixed(1)}`}</span>
+                  </div>
+                  <p className="mt-3 text-sm font-medium leading-7">{item.query ?? item.page}</p>
+                  <p className="mt-2 text-sm leading-7 text-[var(--muted)]">{item.reason}</p>
+                  <div className="mt-3 flex flex-wrap gap-2 text-sm">
+                    <span className="rounded-full bg-white px-4 py-2">Clicks {item.clicks}</span>
+                    <span className="rounded-full bg-white px-4 py-2">Impressions {item.impressions}</span>
+                    <span className="rounded-full bg-white px-4 py-2">CTR {(item.ctr * 100).toFixed(1)}%</span>
+                  </div>
+                </article>
+              ))
+            ) : (
+              <p className="rounded-[1.35rem] border border-dashed border-[var(--border)] px-4 py-5 text-sm text-[var(--muted)]">
+                {gscOpportunities.message}
+              </p>
+            )}
+          </div>
+        </article>
+
+        <article className="rounded-[2rem] bg-[var(--card-dark)] p-5 text-white shadow-[0_24px_60px_rgba(15,10,7,0.22)]">
+          <p className="text-[11px] uppercase tracking-[0.3em] text-white/55">Search Rule</p>
+          <h2 className="mt-2 text-3xl font-semibold">搜尋層現在也進自動飛輪了</h2>
+          <div className="mt-5 space-y-3 text-sm text-white/78">
+            <p className="rounded-[1.2rem] border border-white/10 bg-white/5 px-4 py-3">
+              曝光夠高但 CTR 低的頁面，系統會更偏向先補 title / desc / CTA，而不是直接重寫整篇。
+            </p>
+            <p className="rounded-[1.2rem] border border-white/10 bg-white/5 px-4 py-3">
+              排名卡在第 4 到 15 名的頁面，系統會更偏向沉長文、補 FAQ、補內鏈與延伸段落。
+            </p>
+            <p className="rounded-[1.2rem] border border-white/10 bg-white/5 px-4 py-3">
+              查詢已經有曝光但站上還缺直接承接頁時，Factory 會把它當成新的 WordPress / Threads 題目來源。
+            </p>
+          </div>
+        </article>
       </section>
 
       <section className="grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">

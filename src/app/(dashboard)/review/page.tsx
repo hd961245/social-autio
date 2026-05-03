@@ -1,6 +1,7 @@
 import { PageIntro } from "@/components/dashboard/page-intro";
 import { PostsList } from "@/components/dashboard/posts-list";
 import { SyncWordPressButton } from "@/components/dashboard/sync-wordpress-button";
+import { getGscOpportunityQueue } from "@/lib/gsc";
 import { summarizeMissionStrategy } from "@/lib/mission-scoring";
 import { prisma } from "@/lib/prisma";
 import { getPostSummaries, getWordPressExpansionCandidates } from "@/lib/dashboard-data";
@@ -8,7 +9,7 @@ import { getPostSummaries, getWordPressExpansionCandidates } from "@/lib/dashboa
 export const dynamic = "force-dynamic";
 
 export default async function ReviewBoardPage() {
-  const [posts, expansionCandidates, optimizationDrafts, expansionLogs, settings, failedLogs] = await Promise.all([
+  const [posts, expansionCandidates, optimizationDrafts, expansionLogs, settings, failedLogs, gscOpportunities] = await Promise.all([
     getPostSummaries(),
     getWordPressExpansionCandidates(),
     prisma.post.findMany({
@@ -65,7 +66,12 @@ export default async function ReviewBoardPage() {
         executedAt: "desc"
       },
       take: 5
-    }).catch(() => [])
+    }).catch(() => []),
+    getGscOpportunityQueue().catch(() => ({
+      configured: false,
+      items: [],
+      message: "目前還讀不到 Search Console 機會隊列。"
+    }))
   ]);
   const missionStrategy = summarizeMissionStrategy({
     title: settings?.missionTitle,
@@ -126,6 +132,14 @@ export default async function ReviewBoardPage() {
           detail: "有背景任務失敗，這會讓自動飛輪斷掉，是最該優先處理的例外。",
           href: "/factory",
           action: "去工廠紀錄"
+        }
+      : null,
+    gscOpportunities.items.length > 0
+      ? {
+          label: `SEO 機會 ${gscOpportunities.items.length}`,
+          detail: "Search Console 已經指出自然搜尋最值得補的頁面與查詢，這些是 WordPress 增長層最值得優先看的例外。",
+          href: "#seo-opportunity-queue",
+          action: "看 SEO 機會"
         }
       : null
   ].filter(Boolean) as Array<{ label: string; detail: string; href: string; action: string }>;
@@ -217,6 +231,49 @@ export default async function ReviewBoardPage() {
       </section>
 
       <section className="grid gap-4 xl:grid-cols-2">
+        <article id="seo-opportunity-queue" className="glass-panel rounded-[2rem] border border-[var(--border)] p-6">
+          <div className="flex items-end justify-between gap-4">
+            <div>
+              <p className="text-[11px] uppercase tracking-[0.24em] text-[var(--muted)]">SEO Opportunity Queue</p>
+              <h2 className="mt-2 text-2xl font-semibold">Search Console 告訴你現在最該補哪幾頁</h2>
+            </div>
+            <a href="/analytics" className="text-sm font-medium text-[var(--accent)]">
+              看流量層
+            </a>
+          </div>
+          <div className="mt-5 space-y-3">
+            {gscOpportunities.items.length ? (
+              gscOpportunities.items.map((item) => (
+                <article key={item.id} className="rounded-[1.4rem] border border-[var(--border)] bg-white/82 p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">{item.label}</p>
+                    <span className="pill-tag">
+                      {item.query ? `Query ${item.query}` : `Pos ${item.position.toFixed(1)}`}
+                    </span>
+                  </div>
+                  <p className="mt-3 text-sm font-medium leading-7">{item.query ?? item.page}</p>
+                  <p className="mt-2 text-sm text-[var(--muted)]">{item.reason}</p>
+                  <div className="mt-3 flex flex-wrap gap-2 text-sm">
+                    <span className="rounded-full bg-white px-4 py-2">Clicks {item.clicks}</span>
+                    <span className="rounded-full bg-white px-4 py-2">Impressions {item.impressions}</span>
+                    <span className="rounded-full bg-white px-4 py-2">CTR {(item.ctr * 100).toFixed(1)}%</span>
+                  </div>
+                  <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+                    <p className="text-sm text-[var(--accent-strong)]">{item.action}</p>
+                    <a href={item.href} className="rounded-full border border-[var(--border)] bg-white px-4 py-2 text-sm font-medium">
+                      去處理
+                    </a>
+                  </div>
+                </article>
+              ))
+            ) : (
+              <p className="rounded-[1.4rem] border border-dashed border-[var(--border)] px-4 py-5 text-sm text-[var(--muted)]">
+                {gscOpportunities.message}
+              </p>
+            )}
+          </div>
+        </article>
+
         <article className="glass-panel rounded-[2rem] border border-[var(--border)] p-6">
           <div className="flex items-end justify-between gap-4">
             <div>

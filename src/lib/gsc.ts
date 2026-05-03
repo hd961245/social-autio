@@ -28,6 +28,22 @@ export type GscOverview = {
   message: string;
 };
 
+export type GscOpportunity = {
+  id: string;
+  page: string;
+  query?: string;
+  clicks: number;
+  impressions: number;
+  ctr: number;
+  position: number;
+  lane: "refresh" | "expand" | "capture";
+  label: string;
+  reason: string;
+  action: string;
+  confidence: "high" | "medium" | "low";
+  href: string;
+};
+
 type SearchConsoleRow = {
   keys?: string[];
   clicks?: number;
@@ -174,5 +190,111 @@ export async function getGscOverview(): Promise<GscOverview> {
       source === "oauth_user"
         ? "已用你的 Google OAuth 帳號連上 Search Console，顯示近 28 天自然搜尋表現。"
         : "已連上 Search Console，顯示近 28 天自然搜尋表現。"
+  };
+}
+
+export async function getGscOpportunityQueue(): Promise<{
+  configured: boolean;
+  items: GscOpportunity[];
+  message: string;
+}> {
+  const overview = await getGscOverview();
+
+  if (!overview.configured) {
+    return {
+      configured: false,
+      items: [],
+      message: overview.message
+    };
+  }
+
+  const pageItems = overview.topPages.map((page, index) => {
+    const lowCtrHighImpression = page.impressions >= 80 && page.ctr <= 0.025;
+    const rankingOpportunity = page.position >= 4 && page.position <= 15;
+    const expansionOpportunity = page.clicks >= 12 && page.position >= 8;
+
+    let lane: GscOpportunity["lane"] = "refresh";
+    let label = "舊文更新";
+    let action = "補 title / desc / CTA";
+    let confidence: GscOpportunity["confidence"] = "medium";
+    const reasons: string[] = [];
+
+    if (lowCtrHighImpression) {
+      reasons.push("曝光夠高，但 CTR 偏低，適合先改 title / desc。");
+      confidence = "high";
+    }
+
+    if (rankingOpportunity) {
+      reasons.push("排名卡在第 4 到 15 名，最值得補內容結構與內鏈。");
+    }
+
+    if (expansionOpportunity) {
+      lane = "expand";
+      label = "長文擴寫";
+      action = "補段落 / FAQ / 內鏈";
+      reasons.push("已經有點擊基礎，適合加長文與更多搜尋承接。");
+    }
+
+    if (!lowCtrHighImpression && !rankingOpportunity && !expansionOpportunity) {
+      lane = "capture";
+      label = "關鍵字佔位";
+      action = "觀察後決定是否寫 follow-up";
+      confidence = "low";
+      reasons.push("目前已有搜尋訊號，但還不夠強，先收進觀察池。");
+    }
+
+    return {
+      id: `page-${index}-${page.page}`,
+      page: page.page,
+      clicks: page.clicks,
+      impressions: page.impressions,
+      ctr: page.ctr,
+      position: page.position,
+      lane,
+      label,
+      reason: reasons[0] ?? "這頁已有自然搜尋訊號，可納入 SEO 優化飛輪。",
+      action,
+      confidence,
+      href: "/wordpress"
+    } satisfies GscOpportunity;
+  });
+
+  const queryItems = overview.topQueries
+    .filter((query) => query.impressions >= 60 && query.position >= 4 && query.position <= 20)
+    .slice(0, 3)
+    .map((query, index) => {
+      const confidence: GscOpportunity["confidence"] = query.impressions >= 120 ? "high" : "medium";
+
+      return {
+        id: `query-${index}-${query.query}`,
+        page: "(query opportunity)",
+        query: query.query,
+        clicks: query.clicks,
+        impressions: query.impressions,
+        ctr: query.ctr,
+        position: query.position,
+        lane: "capture" as const,
+        label: "新題佔位",
+        reason: "查詢本身有曝光，但站上還可能缺更直接承接這個搜尋意圖的內容。",
+        action: "產新的 WordPress / Threads 題目",
+        confidence,
+        href: "/factory"
+      } satisfies GscOpportunity;
+    });
+
+  const items = [...pageItems, ...queryItems]
+    .sort((left, right) => {
+      const leftScore = left.impressions + left.clicks * 4 - left.position * 5 + (left.confidence === "high" ? 80 : left.confidence === "medium" ? 40 : 0);
+      const rightScore = right.impressions + right.clicks * 4 - right.position * 5 + (right.confidence === "high" ? 80 : right.confidence === "medium" ? 40 : 0);
+      return rightScore - leftScore;
+    })
+    .slice(0, 6);
+
+  return {
+    configured: true,
+    items,
+    message: items.length
+      ? "已根據 Search Console 整理出最值得先補的 SEO 機會頁與關鍵字。"
+      : "目前還沒有足夠明顯的 GSC 機會頁，先繼續累積搜尋訊號。"
   };
 }
