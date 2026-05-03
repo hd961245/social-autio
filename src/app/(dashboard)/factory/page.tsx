@@ -231,7 +231,7 @@ export default async function FactoryPage() {
             </div>
             <span className="pill-tag">{autoHandledItems.length} 筆</span>
           </div>
-          <div className="mt-5 space-y-3">
+          <div className="mt-5 max-h-[22rem] space-y-3 overflow-y-auto pr-1">
             {autoHandledItems.length ? (
               autoHandledItems.map((item) => (
                 <article key={item.id} className="rounded-[1.35rem] border border-[var(--border)] bg-white/82 p-4">
@@ -240,7 +240,7 @@ export default async function FactoryPage() {
                     <span className="pill-tag">{item.executedAt}</span>
                   </div>
                   <p className="mt-3 text-sm font-medium">{item.accountLabel}</p>
-                  <p className="mt-2 text-sm leading-7 text-[var(--muted)]">{item.detail}</p>
+                  <p className="mt-2 break-words text-sm leading-7 text-[var(--muted)]">{item.detail}</p>
                   <div className="mt-4">
                     <Link href={item.href} className="rounded-full border border-[var(--border)] bg-white px-4 py-2 text-sm font-medium">
                       看結果
@@ -264,7 +264,7 @@ export default async function FactoryPage() {
             </div>
             <span className="pill-tag">{Math.max(interventionItems.length, interventionCount)} 筆</span>
           </div>
-          <div className="mt-5 space-y-3">
+          <div className="mt-5 max-h-[22rem] space-y-3 overflow-y-auto pr-1">
             {interventionItems.length ? (
               interventionItems.map((item) => (
                 <article key={item.id} className="rounded-[1.35rem] border border-[var(--border)] bg-white/82 p-4">
@@ -273,7 +273,7 @@ export default async function FactoryPage() {
                     <span className="pill-tag">{item.executedAt}</span>
                   </div>
                   <p className="mt-3 text-sm font-medium">{item.accountLabel}</p>
-                  <p className="mt-2 text-sm leading-7 text-[var(--muted)]">{item.detail}</p>
+                  <p className="mt-2 break-words text-sm leading-7 text-[var(--muted)]">{item.detail}</p>
                   <div className="mt-4">
                     <Link href={item.href} className="rounded-full border border-[var(--border)] bg-white px-4 py-2 text-sm font-medium">
                       去拍板
@@ -297,7 +297,7 @@ export default async function FactoryPage() {
             </div>
             <span className="pill-tag">{failedItems.length} 筆</span>
           </div>
-          <div className="mt-5 space-y-3">
+          <div className="mt-5 max-h-[22rem] space-y-3 overflow-y-auto pr-1">
             {failedItems.length ? (
               failedItems.map((item) => (
                 <article key={item.id} className="rounded-[1.35rem] border border-rose-200 bg-rose-50/70 p-4">
@@ -306,7 +306,7 @@ export default async function FactoryPage() {
                     <span className="rounded-full bg-white px-3 py-1 text-xs text-rose-700">{item.executedAt}</span>
                   </div>
                   <p className="mt-3 text-sm font-medium">{item.accountLabel}</p>
-                  <p className="mt-2 text-sm leading-7 text-[var(--muted)]">{item.detail}</p>
+                  <p className="mt-2 break-all text-sm leading-7 text-[var(--muted)]">{item.detail}</p>
                   <div className="mt-4">
                     <Link href={item.href} className="rounded-full border border-rose-200 bg-white px-4 py-2 text-sm font-medium text-rose-700">
                       去處理
