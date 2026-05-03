@@ -91,6 +91,9 @@ export async function getOpsDiagnostics(): Promise<OpsDiagnostics> {
     checkEnv("THREADS_APP_SECRET", process.env.THREADS_APP_SECRET),
     checkEnv("THREADS_REDIRECT_URI", process.env.THREADS_REDIRECT_URI),
     checkEnv("TOKEN_ENCRYPTION_KEY", process.env.TOKEN_ENCRYPTION_KEY),
+    checkEnv("GOOGLE_OAUTH_CLIENT_ID", process.env.GOOGLE_OAUTH_CLIENT_ID),
+    checkEnv("GOOGLE_OAUTH_CLIENT_SECRET", process.env.GOOGLE_OAUTH_CLIENT_SECRET),
+    checkEnv("GOOGLE_OAUTH_REFRESH_TOKEN", process.env.GOOGLE_OAUTH_REFRESH_TOKEN),
     checkEnv("GSC_SITE_URL", process.env.GSC_SITE_URL),
     checkEnv("GSC_CLIENT_EMAIL", process.env.GSC_CLIENT_EMAIL ?? process.env.GA4_CLIENT_EMAIL),
     checkEnv("INNGEST_EVENT_KEY", process.env.INNGEST_EVENT_KEY),
@@ -205,6 +208,24 @@ export async function getOpsDiagnostics(): Promise<OpsDiagnostics> {
             : Boolean(process.env.OPENAI_API_KEY) || Boolean(process.env.ANTHROPIC_API_KEY)
               ? "Gemini 健康檢查未過，但仍有其他 AI provider 可作為備援。"
               : "目前沒有可用的 AI provider。"
+      },
+      {
+        label: "GA4 / GSC 讀取憑證",
+        status:
+          (process.env.GOOGLE_OAUTH_CLIENT_ID &&
+            process.env.GOOGLE_OAUTH_CLIENT_SECRET &&
+            process.env.GOOGLE_OAUTH_REFRESH_TOKEN) ||
+          (process.env.GA4_CLIENT_EMAIL && process.env.GA4_PRIVATE_KEY)
+            ? "pass"
+            : "check",
+        detail:
+          process.env.GOOGLE_OAUTH_CLIENT_ID &&
+          process.env.GOOGLE_OAUTH_CLIENT_SECRET &&
+          process.env.GOOGLE_OAUTH_REFRESH_TOKEN
+            ? "已設定 Google OAuth 使用者憑證，可直接讀 GA4 / Search Console。"
+            : process.env.GA4_CLIENT_EMAIL && process.env.GA4_PRIVATE_KEY
+              ? "已設定 service account 憑證，可讀 GA4 / Search Console。"
+              : "尚未設定 Google OAuth 或 service account 憑證。"
       },
       {
         label: "Inngest / 排程",

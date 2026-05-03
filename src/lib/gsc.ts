@@ -1,5 +1,5 @@
-import { createSign } from "node:crypto";
 import { env } from "@/lib/env";
+import { getGoogleAccessToken } from "@/lib/google-auth";
 
 export type GscOverview = {
   configured: boolean;
@@ -35,62 +35,6 @@ type SearchConsoleRow = {
   ctr?: number;
   position?: number;
 };
-
-function base64UrlEncode(input: string | Buffer) {
-  return Buffer.from(input)
-    .toString("base64")
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/g, "");
-}
-
-function createJwt(clientEmail: string, privateKey: string) {
-  const now = Math.floor(Date.now() / 1000);
-  const header = { alg: "RS256", typ: "JWT" };
-  const payload = {
-    iss: clientEmail,
-    scope: "https://www.googleapis.com/auth/webmasters.readonly",
-    aud: "https://oauth2.googleapis.com/token",
-    exp: now + 3600,
-    iat: now
-  };
-
-  const encodedHeader = base64UrlEncode(JSON.stringify(header));
-  const encodedPayload = base64UrlEncode(JSON.stringify(payload));
-  const unsignedToken = `${encodedHeader}.${encodedPayload}`;
-  const signer = createSign("RSA-SHA256");
-  signer.update(unsignedToken);
-  signer.end();
-  const signature = signer.sign(privateKey);
-
-  return `${unsignedToken}.${base64UrlEncode(signature)}`;
-}
-
-async function getGoogleAccessToken() {
-  const clientEmail = env.gscClientEmail();
-  const privateKey = env.gscPrivateKey();
-
-  if (!clientEmail || !privateKey) {
-    throw new Error("Missing Search Console service account credentials");
-  }
-
-  const response = await fetch("https://oauth2.googleapis.com/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
-      assertion: createJwt(clientEmail, privateKey)
-    })
-  });
-
-  if (!response.ok) {
-    const detail = await response.text();
-    throw new Error(`GSC token error (${response.status}): ${detail.slice(0, 400)}`);
-  }
-
-  const data = (await response.json()) as { access_token: string };
-  return data.access_token;
-}
 
 async function runSearchConsoleQuery(accessToken: string, siteUrl: string, body: Record<string, unknown>) {
   const response = await fetch(
@@ -145,8 +89,11 @@ function formatDateInput(date: Date) {
 
 export async function getGscOverview(): Promise<GscOverview> {
   const siteUrl = env.gscSiteUrl();
+  const hasOauthUserCredentials =
+    Boolean(env.googleOauthClientId()) && Boolean(env.googleOauthClientSecret()) && Boolean(env.googleOauthRefreshToken());
+  const hasServiceAccountCredentials = Boolean(env.gscClientEmail()) && Boolean(env.gscPrivateKey());
 
-  if (!siteUrl || !env.gscClientEmail() || !env.gscPrivateKey()) {
+  if (!siteUrl || (!hasOauthUserCredentials && !hasServiceAccountCredentials)) {
     return {
       configured: false,
       siteUrl,
@@ -159,11 +106,17 @@ export async function getGscOverview(): Promise<GscOverview> {
       },
       topPages: [],
       topQueries: [],
-      message: "尚未設定 Search Console。先補 GSC_SITE_URL，並確認 service account 有這個 property 的讀取權限。"
+      message:
+        "尚未設定 Search Console。可用 service account，或 Google OAuth 使用者憑證（GOOGLE_OAUTH_CLIENT_ID、GOOGLE_OAUTH_CLIENT_SECRET、GOOGLE_OAUTH_REFRESH_TOKEN），並確認該帳號對 property 有讀取權限。"
     };
   }
 
-  const accessToken = await getGoogleAccessToken();
+  const { accessToken, source } = await getGoogleAccessToken({
+    scope: "https://www.googleapis.com/auth/webmasters.readonly",
+    serviceAccountEmail: env.gscClientEmail(),
+    serviceAccountPrivateKey: env.gscPrivateKey(),
+    serviceAccountLabel: "Search Console service account credentials"
+  });
   const endDate = new Date();
   endDate.setDate(endDate.getDate() - 1);
   const startDate = new Date(endDate);
@@ -201,7 +154,7 @@ export async function getGscOverview(): Promise<GscOverview> {
   return {
     configured: true,
     siteUrl,
-    source: "gsc",
+    source,
     totals,
     topPages: topPagesRows.map((row) => ({
       page: row.keys?.[0] ?? "/",
@@ -217,6 +170,9 @@ export async function getGscOverview(): Promise<GscOverview> {
       ctr: row.ctr ?? 0,
       position: row.position ?? 0
     })),
-    message: "已連上 Search Console，顯示近 28 天自然搜尋表現。"
+    message:
+      source === "oauth_user"
+        ? "已用你的 Google OAuth 帳號連上 Search Console，顯示近 28 天自然搜尋表現。"
+        : "已連上 Search Console，顯示近 28 天自然搜尋表現。"
   };
 }

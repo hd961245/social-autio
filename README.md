@@ -41,9 +41,13 @@ Open `http://localhost:3000`.
 - 若你只想走 Gemini，可設定 `GEMINI_API_KEY` 與 `GEMINI_MODEL`，預設會用 `gemini-2.5-flash-lite`
 - AI provider 可在內容引擎中選擇 `Auto / Gemini / Claude / OpenAI`
 - 若要使用 Threads 排程前 Telegram 確認，另外設定 `TELEGRAM_BOT_TOKEN`、`TELEGRAM_CHAT_ID`、`APP_BASE_URL`
-- 若要在 `Analytics` 看網站流量總覽，另外設定 `GA4_PROPERTY_ID`、`GA4_CLIENT_EMAIL`、`GA4_PRIVATE_KEY`
+- 若要在 `Analytics` 看網站流量總覽，至少設定 `GA4_PROPERTY_ID`
+- Google 流量讀取現在支援兩種方式：
+  - `Google OAuth 使用者模式`：設定 `GOOGLE_OAUTH_CLIENT_ID`、`GOOGLE_OAUTH_CLIENT_SECRET`、`GOOGLE_OAUTH_REFRESH_TOKEN`
+  - `service account 模式`：設定 `GA4_CLIENT_EMAIL`、`GA4_PRIVATE_KEY`
 - 若要在 `Analytics` 看自然搜尋表現，另外設定 `GSC_SITE_URL`，必要時也可另外指定 `GSC_CLIENT_EMAIL`、`GSC_PRIVATE_KEY`
-- `GA4_CLIENT_EMAIL` / `GA4_PRIVATE_KEY` 來自 Google Cloud service account，並且該帳號需要加入 GA4 property 權限；若 GSC 共用同一組 service account，可只補 `GSC_SITE_URL`
+- 如果你是自己用，優先建議 `Google OAuth 使用者模式`；只要你自己的 Google 帳號本來就看得到 GA4 / Search Console，就不需要再額外處理 service account 權限
+- 若 GSC 共用同一組 service account，可只補 `GSC_SITE_URL`
 - 若要讓排程、metrics、keywords 與 automation 自動執行，另外設定 `INNGEST_EVENT_KEY`、`INNGEST_SIGNING_KEY`、`INNGEST_SERVE_ORIGIN`
 - `THREADS_REDIRECT_URI` 應設為 `https://social-audio.zeabur.app/api/threads/callback`
 - 首次部署後執行一次 `npm run db:push`
