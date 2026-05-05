@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { PageIntro } from "@/components/dashboard/page-intro";
 import { PostsList } from "@/components/dashboard/posts-list";
 import { SeoOpportunityDraftButton } from "@/components/dashboard/seo-opportunity-draft-button";
@@ -108,8 +110,98 @@ export default async function ReviewBoardPage() {
     accountLabel: log.account ? `@${log.account.platformUsername}` : "未知帳號",
     detail: log.detail ?? "系統已自動擴寫強表現 Threads。",
     executedAt: log.executedAt.toLocaleString("zh-TW", { hour12: false }),
-    href: log.postId ? `/posts/${log.postId}` : "/wordpress"
+      href: log.postId ? `/posts/${log.postId}` : "/wordpress"
   }));
+  const accountExceptionRows = new Map<
+    string,
+    {
+      accountLabel: string;
+      reviewCount: number;
+      directCount: number;
+      optimizationCount: number;
+      failedCount: number;
+      seoCount: number;
+    }
+  >();
+
+  for (const post of reviewPosts) {
+    const key = post.account;
+    const current = accountExceptionRows.get(key) ?? {
+      accountLabel: key,
+      reviewCount: 0,
+      directCount: 0,
+      optimizationCount: 0,
+      failedCount: 0,
+      seoCount: 0
+    };
+    current.reviewCount += 1;
+    accountExceptionRows.set(key, current);
+  }
+
+  for (const post of directPosts) {
+    const key = post.account;
+    const current = accountExceptionRows.get(key) ?? {
+      accountLabel: key,
+      reviewCount: 0,
+      directCount: 0,
+      optimizationCount: 0,
+      failedCount: 0,
+      seoCount: 0
+    };
+    current.directCount += 1;
+    accountExceptionRows.set(key, current);
+  }
+
+  for (const draft of optimizationCandidates) {
+    const key = draft.accountLabel;
+    const current = accountExceptionRows.get(key) ?? {
+      accountLabel: key,
+      reviewCount: 0,
+      directCount: 0,
+      optimizationCount: 0,
+      failedCount: 0,
+      seoCount: 0
+    };
+    current.optimizationCount += 1;
+    accountExceptionRows.set(key, current);
+  }
+
+  for (const log of failedLogs) {
+    const key = log.account?.platformUsername ? `@${log.account.platformUsername}` : "站台級";
+    const current = accountExceptionRows.get(key) ?? {
+      accountLabel: key,
+      reviewCount: 0,
+      directCount: 0,
+      optimizationCount: 0,
+      failedCount: 0,
+      seoCount: 0
+    };
+    current.failedCount += 1;
+    accountExceptionRows.set(key, current);
+  }
+
+  if (gscOpportunities.items.length) {
+    const current = accountExceptionRows.get("WordPress / SEO") ?? {
+      accountLabel: "WordPress / SEO",
+      reviewCount: 0,
+      directCount: 0,
+      optimizationCount: 0,
+      failedCount: 0,
+      seoCount: 0
+    };
+    current.seoCount += gscOpportunities.items.length;
+    accountExceptionRows.set("WordPress / SEO", current);
+  }
+
+  const accountExceptions = Array.from(accountExceptionRows.values())
+    .sort((left, right) => {
+      const leftScore =
+        left.reviewCount * 4 + left.failedCount * 5 + left.optimizationCount * 2 + left.seoCount * 3 + left.directCount;
+      const rightScore =
+        right.reviewCount * 4 + right.failedCount * 5 + right.optimizationCount * 2 + right.seoCount * 3 + right.directCount;
+      return rightScore - leftScore;
+    })
+    .slice(0, 6);
   const interventionCards = [
     reviewPosts.length > 0
       ? {
@@ -149,8 +241,8 @@ export default async function ReviewBoardPage() {
     <div className="space-y-6">
       <PageIntro
         eyebrow="Review"
-        title="所有需要你拍板的內容，都先進這裡"
-        description="Review 是唯一拍板台。來源、自動產稿、強表現貼文衍生出的候選稿，都先在這裡決定 Assignment、是否直接發、或轉成長文。"
+        title="這裡只留真正需要你出手的例外"
+        description="Review 不再承接日常主流程。正常狀況下系統自己找題、寫文、排程與沉長文；這裡只收低信心、高風險、SEO 機會與需要你最後拍板的少數內容。"
       />
 
       <section className="grid gap-4 xl:grid-cols-3">
@@ -167,16 +259,59 @@ export default async function ReviewBoardPage() {
         ))}
       </section>
 
-      <section className="grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">
+      <section className="grid gap-4 xl:grid-cols-[0.95fr_1.05fr]">
+        <article className="glass-panel rounded-[2rem] border border-[var(--border)] p-5">
+          <div className="flex items-end justify-between gap-4">
+            <div>
+              <p className="text-[11px] uppercase tracking-[0.24em] text-[var(--muted)]">By Account</p>
+              <h2 className="mt-2 text-3xl font-semibold">哪條營運線真的卡住了</h2>
+            </div>
+            <Link href="/accounts" className="text-sm font-medium text-[var(--accent)]">
+              去帳號總覽
+            </Link>
+          </div>
+          <div className="mt-5 max-h-[18rem] space-y-3 overflow-y-auto pr-1">
+            {accountExceptions.length ? (
+              accountExceptions.map((item) => (
+                <article key={item.accountLabel} className="rounded-[1.35rem] border border-[var(--border)] bg-white/82 p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <p className="text-sm font-semibold">{item.accountLabel}</p>
+                    <div className="flex flex-wrap gap-2 text-xs text-[var(--muted)]">
+                      {item.reviewCount ? <span className="pill-tag">待拍板 {item.reviewCount}</span> : null}
+                      {item.directCount ? <span className="pill-tag">高信心 {item.directCount}</span> : null}
+                      {item.optimizationCount ? <span className="pill-tag">優化 {item.optimizationCount}</span> : null}
+                      {item.seoCount ? <span className="pill-tag">SEO {item.seoCount}</span> : null}
+                      {item.failedCount ? <span className="pill-tag">失敗 {item.failedCount}</span> : null}
+                    </div>
+                  </div>
+                  <p className="mt-3 break-words text-sm leading-7 text-[var(--muted)]">
+                    {item.failedCount
+                      ? "這條營運線有背景任務失敗，應先確保自動飛輪恢復。"
+                      : item.reviewCount
+                        ? "這條營運線累積了需要你拍板的灰色地帶內容。"
+                        : item.seoCount
+                          ? "這條線主要卡在搜尋機會與長文承接，不在 Threads 日常。"
+                          : "這條線大多是高信心或優化型內容，你只要最後掃一眼。 "}
+                  </p>
+                </article>
+              ))
+            ) : (
+              <article className="rounded-[1.35rem] border border-dashed border-[var(--border)] p-4 text-sm text-[var(--muted)]">
+                目前沒有哪條帳號線累積到需要明顯介入的例外，系統多半能自己往下跑。
+              </article>
+            )}
+          </div>
+        </article>
+
         <article className="glass-panel rounded-[2rem] border border-[var(--border)] p-5">
           <div className="flex items-end justify-between gap-4">
             <div>
               <p className="text-[11px] uppercase tracking-[0.3em] text-[var(--muted)]">Intervention Queue</p>
               <h2 className="mt-2 text-3xl font-semibold">真正要你出手的只有這些</h2>
             </div>
-            <a href="/factory" className="text-sm font-medium text-[var(--accent)]">
+            <Link href="/factory" className="text-sm font-medium text-[var(--accent)]">
               去工廠紀錄
-            </a>
+            </Link>
           </div>
           <div className="mt-5 grid gap-3 sm:grid-cols-3">
             <article className="rounded-[1.2rem] border border-[var(--border)] bg-white/82 p-4">
@@ -204,9 +339,9 @@ export default async function ReviewBoardPage() {
                       <p className="text-sm font-semibold">{item.label}</p>
                       <p className="mt-2 break-words text-sm leading-7 text-[var(--muted)]">{item.detail}</p>
                     </div>
-                    <a href={item.href} className="rounded-full border border-[var(--border)] bg-white px-4 py-2 text-sm">
+                    <Link href={item.href} className="rounded-full border border-[var(--border)] bg-white px-4 py-2 text-sm">
                       {item.action}
-                    </a>
+                    </Link>
                   </div>
                 </article>
               ))
@@ -239,9 +374,9 @@ export default async function ReviewBoardPage() {
               <p className="text-[11px] uppercase tracking-[0.24em] text-[var(--muted)]">SEO Opportunity Queue</p>
               <h2 className="mt-2 text-2xl font-semibold">Search Console 告訴你現在最該補哪幾頁</h2>
             </div>
-            <a href="/analytics" className="text-sm font-medium text-[var(--accent)]">
+            <Link href="/analytics" className="text-sm font-medium text-[var(--accent)]">
               看流量層
-            </a>
+            </Link>
           </div>
           <div className="mt-5 max-h-[22rem] space-y-3 overflow-y-auto pr-1">
             {gscOpportunities.items.length ? (
@@ -278,9 +413,9 @@ export default async function ReviewBoardPage() {
                         reason={item.reason}
                         action={item.action}
                       />
-                      <a href={item.href} className="rounded-full border border-[var(--border)] bg-white px-4 py-2 text-sm font-medium">
+                      <Link href={item.href} className="rounded-full border border-[var(--border)] bg-white px-4 py-2 text-sm font-medium">
                         去處理
-                      </a>
+                      </Link>
                     </div>
                   </div>
                 </article>
@@ -312,11 +447,11 @@ export default async function ReviewBoardPage() {
                     <span className="pill-tag">{post.statusLabel}</span>
                   </div>
                   <p className="mt-3 text-sm font-medium leading-7">{post.title}</p>
-                  <p className="mt-3 break-words text-sm text-[var(--muted)]">{post.detail}</p>
+                    <p className="mt-3 break-words text-sm text-[var(--muted)]">{post.detail}</p>
                   <div className="mt-4">
-                    <a href={post.href} className="rounded-full border border-[var(--border)] bg-white px-4 py-2 text-sm font-medium">
+                    <Link href={post.href} className="rounded-full border border-[var(--border)] bg-white px-4 py-2 text-sm font-medium">
                       進確認區
-                    </a>
+                    </Link>
                   </div>
                 </article>
               ))
@@ -334,9 +469,9 @@ export default async function ReviewBoardPage() {
               <p className="text-[11px] uppercase tracking-[0.24em] text-[var(--muted)]">Longform Flywheel</p>
               <h2 className="mt-2 text-2xl font-semibold">系統最近自動送進 WordPress 的強表現內容</h2>
             </div>
-            <a href="/wordpress" className="text-sm font-medium text-[var(--accent)]">
+            <Link href="/wordpress" className="text-sm font-medium text-[var(--accent)]">
               去長文台
-            </a>
+            </Link>
           </div>
           <div className="mt-5 max-h-[18rem] space-y-3 overflow-y-auto pr-1">
             {wordpressExpansionFeed.length ? (
@@ -348,9 +483,9 @@ export default async function ReviewBoardPage() {
                   </div>
                   <p className="mt-3 break-words text-sm text-[var(--foreground)]">{item.detail}</p>
                   <div className="mt-4">
-                    <a href={item.href} className="rounded-full border border-[var(--border)] bg-white px-4 py-2 text-sm font-medium">
+                    <Link href={item.href} className="rounded-full border border-[var(--border)] bg-white px-4 py-2 text-sm font-medium">
                       看來源 Threads
-                    </a>
+                    </Link>
                   </div>
                 </article>
               ))
@@ -370,9 +505,9 @@ export default async function ReviewBoardPage() {
               <p className="text-[11px] uppercase tracking-[0.24em] text-[var(--muted)]">WordPress Expansion</p>
               <h2 className="mt-2 text-2xl font-semibold">強表現 Threads，先在這裡決定要不要沉成長文</h2>
             </div>
-            <a href="/wordpress" className="text-sm font-medium text-[var(--accent)]">
+            <Link href="/wordpress" className="text-sm font-medium text-[var(--accent)]">
               去 WordPress 草稿台
-            </a>
+            </Link>
           </div>
           <div className="mt-5 grid max-h-[22rem] gap-3 overflow-y-auto pr-1">
             {expansionCandidates.slice(0, 4).map((post) => (

@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { DatabaseBanner } from "@/components/dashboard/database-banner";
 import { PageIntro } from "@/components/dashboard/page-intro";
 import { getAnalyticsOverview, getDatabaseStatus } from "@/lib/dashboard-data";
@@ -54,6 +56,39 @@ export default async function AnalyticsPage({
   const bestPost = analytics.topPosts[0] ?? null;
   const strongestCandidate = analytics.viralCandidates[0] ?? null;
   const compactSnapshots = analytics.followerTrend.slice(-7).reverse();
+  const accountRollups = Array.from(
+    analytics.topPosts.reduce(
+      (map, post) => {
+        const current = map.get(post.account) ?? {
+          account: post.account,
+          personaLabel: post.personaLabel,
+          postCount: 0,
+          totalViews: 0,
+          totalReplies: 0,
+          totalShares: 0
+        };
+        current.postCount += 1;
+        current.totalViews += post.views;
+        current.totalReplies += post.replies + post.quotes;
+        current.totalShares += post.reposts + post.shares;
+        map.set(post.account, current);
+        return map;
+      },
+      new Map<
+        string,
+        {
+          account: string;
+          personaLabel?: string;
+          postCount: number;
+          totalViews: number;
+          totalReplies: number;
+          totalShares: number;
+        }
+      >()
+    ).values()
+  )
+    .sort((left, right) => right.totalViews + right.totalReplies * 20 - (left.totalViews + left.totalReplies * 20))
+    .slice(0, 6);
   const totalCards = [
     { label: "Views", value: analytics.totals.views },
     { label: "Likes", value: analytics.totals.likes },
@@ -67,8 +102,8 @@ export default async function AnalyticsPage({
     <div className="space-y-6">
       <PageIntro
         eyebrow="Analytics"
-        title="Threads 復盤板"
-        description="這裡把 Threads、GA4、Search Console 收成同一塊營運面。只保留對決策有用的數字、排名與下一步建議。"
+        title="營運數字只留對下一步有用的部分"
+        description="Analytics 不再只是 Threads 復盤。這裡把 GA4、Search Console 與帳號級內容表現收成同一層，讓你知道哪條營運線該被放大、哪個搜尋機會該補、哪篇內容值得沉長文。"
       />
       <DatabaseBanner status={databaseStatus} />
 
@@ -100,7 +135,7 @@ export default async function AnalyticsPage({
             const href = `/analytics?window=${option.id}&accountId=${analytics.filters.accountId}`;
 
             return (
-              <a
+              <Link
                 key={option.id}
                 href={href}
                 className={`rounded-full px-4 py-2 text-sm ${
@@ -110,7 +145,7 @@ export default async function AnalyticsPage({
                 }`}
               >
                 {option.label}
-              </a>
+              </Link>
             );
           })}
         </div>
@@ -257,6 +292,64 @@ export default async function AnalyticsPage({
         </article>
       </section>
 
+      <section className="grid gap-4 xl:grid-cols-[1.02fr_0.98fr]">
+        <article className="glass-panel rounded-[1.8rem] border border-[var(--border)] p-6">
+          <div className="flex items-end justify-between gap-4">
+            <div>
+              <p className="text-xs uppercase tracking-[0.24em] text-[var(--muted)]">By Account</p>
+              <h2 className="mt-3 text-3xl font-semibold">最近是哪幾條帳號線在帶動結果</h2>
+            </div>
+            <Link href="/accounts" className="text-sm font-medium text-[var(--accent)]">
+              去帳號營運線
+            </Link>
+          </div>
+          <div className="mt-5 max-h-[18rem] space-y-3 overflow-y-auto pr-1">
+            {accountRollups.length ? (
+              accountRollups.map((item) => (
+                <article key={item.account} className="rounded-[1.3rem] border border-[var(--border)] bg-white/72 px-4 py-3">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-medium">{item.account}</p>
+                      {item.personaLabel ? <p className="mt-1 text-xs text-[var(--muted)]">{item.personaLabel}</p> : null}
+                    </div>
+                    <div className="flex flex-wrap gap-2 text-xs">
+                      <span className="pill-tag">Views {item.totalViews}</span>
+                      <span className="pill-tag">對話 {item.totalReplies}</span>
+                      <span className="pill-tag">擴散 {item.totalShares}</span>
+                    </div>
+                  </div>
+                  <p className="mt-3 text-sm leading-7 text-[var(--muted)]">
+                    {item.totalReplies >= 10
+                      ? "這條線最近更吃討論與觀點型內容，可以多走 Threads 驗證與 follow-up。"
+                      : item.totalShares >= 8
+                        ? "這條線最近更像結論型與可被轉述的內容，適合做更俐落的短文輸出。"
+                        : "這條線還在累積期，先維持穩定發文與高可寫來源輸入。"}
+                  </p>
+                </article>
+              ))
+            ) : (
+              <p className="text-sm text-[var(--muted)]">等 Threads / WordPress / GA4 資料再多一點後，這裡會開始顯示帳號級排序與營運建議。</p>
+            )}
+          </div>
+        </article>
+
+        <article className="glass-panel rounded-[1.8rem] border border-[var(--border)] p-6">
+          <p className="text-xs uppercase tracking-[0.24em] text-[var(--muted)]">What This Means</p>
+          <h2 className="mt-3 text-3xl font-semibold">這輪數字比較像在告訴你什麼</h2>
+          <div className="mt-5 space-y-3 text-sm leading-7 text-[var(--muted)]">
+            <p className="rounded-[1.2rem] border border-[var(--border)] bg-white/72 px-4 py-3">
+              如果 GA4 與 GSC 在動，但 Threads 沒跟上，代表你該優先補 `搜尋承接 / 長文更新`，而不是一味加快短文輸出。
+            </p>
+            <p className="rounded-[1.2rem] border border-[var(--border)] bg-white/72 px-4 py-3">
+              如果 Threads 的對話與擴散很高，但 GSC 還沒起來，代表這批題目值得沉成 WordPress 與 SEO 草稿。
+            </p>
+            <p className="rounded-[1.2rem] border border-[var(--border)] bg-white/72 px-4 py-3">
+              如果兩邊都低，下一步不是進 Compose 亂改，而是回 `Sources / Factory` 補更好的輸入與 source lane。
+            </p>
+          </div>
+        </article>
+      </section>
+
       {analytics.personaSnapshot ? (
         <section className="grid gap-4 xl:grid-cols-[0.88fr_1.12fr]">
           <article className="rounded-[1.8rem] bg-[var(--card-dark)] p-6 text-white shadow-[0_24px_60px_rgba(15,10,7,0.22)]">
@@ -276,7 +369,7 @@ export default async function AnalyticsPage({
                 先用 account filter 切到單一 Threads 帳號，再看這塊，你會更清楚「這個人設最近是靠討論、靠轉發，還是靠短句結論」。
               </p>
               <p className="rounded-[1.2rem] border border-[var(--border)] bg-white/72 px-4 py-3">
-                接著回 `Compose`，把 Persona Assist 和 Persona Memory 一起用，會比只看總體帳號數字更貼近實際寫稿決策。
+                接著回 `Accounts` 或 `Review` 看這條營運線最近該走 Threads、長文，還是優化飛輪，會比只看總體數字更貼近實際決策。
               </p>
             </div>
           </article>
@@ -320,9 +413,9 @@ export default async function AnalyticsPage({
             </div>
           ) : null}
           {bestPost ? (
-            <a href={`/posts/${bestPost.id}`} className="mt-5 inline-flex text-sm font-medium text-[var(--accent)]">
+            <Link href={`/posts/${bestPost.id}`} className="mt-5 inline-flex text-sm font-medium text-[var(--accent)]">
               看這篇完整復盤
-            </a>
+            </Link>
           ) : null}
         </article>
         <article className="rounded-[1.8rem] bg-[var(--card-dark)] p-6 text-white shadow-[0_24px_60px_rgba(15,10,7,0.22)]">
@@ -341,9 +434,9 @@ export default async function AnalyticsPage({
               </div>
             ) : null}
           {strongestCandidate ? (
-            <a href={`/posts/${strongestCandidate.id}`} className="mt-5 inline-flex text-sm font-medium text-white">
+            <Link href={`/posts/${strongestCandidate.id}`} className="mt-5 inline-flex text-sm font-medium text-white">
               打開這篇完整指標
-            </a>
+            </Link>
           ) : null}
         </article>
       </section>
@@ -418,9 +511,9 @@ export default async function AnalyticsPage({
                 ))}
               </div>
               <p className="mt-4 text-sm text-[var(--muted)]">{post.suggestion}</p>
-              <a href={`/posts/${post.id}`} className="mt-4 inline-flex text-sm font-medium text-[var(--accent)]">
+              <Link href={`/posts/${post.id}`} className="mt-4 inline-flex text-sm font-medium text-[var(--accent)]">
                 看完整復盤
-              </a>
+              </Link>
             </article>
           ))}
           {analytics.viralCandidates.length === 0 ? (
@@ -447,9 +540,9 @@ export default async function AnalyticsPage({
                 <span className="pill-tag">Quotes {post.quotes}</span>
                 <span className="pill-tag">Shares {post.shares}</span>
               </div>
-              <a href={`/posts/${post.id}`} className="mt-4 inline-flex text-sm font-medium text-[var(--accent)]">
+              <Link href={`/posts/${post.id}`} className="mt-4 inline-flex text-sm font-medium text-[var(--accent)]">
                 看完整指標
-              </a>
+              </Link>
             </article>
           ))}
           {analytics.topPosts.length === 0 ? (

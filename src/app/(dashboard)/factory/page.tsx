@@ -129,13 +129,63 @@ export default async function FactoryPage() {
       href: log.postId ? `/review/${log.postId}` : "/ops"
     }));
   const interventionCount = drafts.filter((draft) => draft.account.platform === "threads" && draft.status === "draft").length;
+  const accountFactoryRollups = Array.from(
+    recentFactoryFeed.reduce(
+      (map, item) => {
+        const current = map.get(item.accountLabel) ?? {
+          accountLabel: item.accountLabel,
+          autoHandled: 0,
+          intervention: 0,
+          failed: 0
+        };
+
+        if (["高信心稿自動排程", "WordPress 自動沉澱"].includes(item.title)) {
+          current.autoHandled += 1;
+        } else {
+          current.intervention += 1;
+        }
+
+        map.set(item.accountLabel, current);
+        return map;
+      },
+      new Map<
+        string,
+        {
+          accountLabel: string;
+          autoHandled: number;
+          intervention: number;
+          failed: number;
+        }
+      >()
+    ).values()
+  );
+
+  for (const failed of failedItems) {
+    const existing = accountFactoryRollups.find((item) => item.accountLabel === failed.accountLabel);
+    if (existing) {
+      existing.failed += 1;
+    } else {
+      accountFactoryRollups.push({
+        accountLabel: failed.accountLabel,
+        autoHandled: 0,
+        intervention: 0,
+        failed: 1
+      });
+    }
+  }
+
+  accountFactoryRollups.sort((left, right) => {
+    const leftScore = left.failed * 4 + left.intervention * 2 + left.autoHandled;
+    const rightScore = right.failed * 4 + right.intervention * 2 + right.autoHandled;
+    return rightScore - leftScore;
+  });
 
   return (
     <div className="space-y-6">
       <PageIntro
         eyebrow="Content Factory"
-        title="AI 寫文工廠"
-        description="這裡統一處理來源轉稿、YouTube / transcript ingestion、persona autopilot 前置素材，以及長文擴寫原料。Compose 只保留最後確認與送出。"
+        title="背景工廠層只管系統自己做了什麼"
+        description="Factory 不承接日常決策。它只回答三件事：系統最近替哪些帳號做了什麼、哪些稿件還在等你補最後一刀、哪些背景任務真的壞掉了。"
         action={
           <div className="flex flex-wrap gap-3">
             <HelpSheet topic="content-engine" buttonLabel="查看工廠說明" />
@@ -172,6 +222,45 @@ export default async function FactoryPage() {
             <p className="mt-2 text-sm text-[var(--muted)]">{card.detail}</p>
           </article>
         ))}
+      </section>
+
+      <section className="glass-panel rounded-[2rem] border border-[var(--border)] p-6">
+        <div className="flex items-end justify-between gap-4">
+          <div>
+            <p className="text-[11px] uppercase tracking-[0.24em] text-[var(--muted)]">By Account</p>
+            <h2 className="mt-2 text-2xl font-semibold">每條營運線最近的工廠狀態</h2>
+          </div>
+          <Link href="/accounts" className="text-sm font-medium text-[var(--accent)]">
+            去帳號總覽
+          </Link>
+        </div>
+        <div className="mt-5 grid gap-3 xl:grid-cols-2">
+          {accountFactoryRollups.length ? (
+            accountFactoryRollups.slice(0, 6).map((item) => (
+              <article key={item.accountLabel} className="rounded-[1.35rem] border border-[var(--border)] bg-white/82 p-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <p className="text-sm font-semibold">{item.accountLabel}</p>
+                  <div className="flex flex-wrap gap-2 text-xs">
+                    <span className="pill-tag">已處理 {item.autoHandled}</span>
+                    <span className="pill-tag">待介入 {item.intervention}</span>
+                    <span className="pill-tag">失敗 {item.failed}</span>
+                  </div>
+                </div>
+                <p className="mt-3 break-words text-sm leading-7 text-[var(--muted)]">
+                  {item.failed
+                    ? "這條線有背景失敗，應優先檢查 token、來源或自動發布問題。"
+                    : item.intervention
+                      ? "這條線有中信心內容或優化稿，系統先留給你最後拍板。"
+                      : "這條線最近大多能自己完成排程、長文沉澱或 SEO 處理。 "}
+                </p>
+              </article>
+            ))
+          ) : (
+            <p className="rounded-[1.35rem] border border-dashed border-[var(--border)] px-4 py-5 text-sm text-[var(--muted)] xl:col-span-2">
+              目前還沒有足夠的工廠事件可彙總。等 autopilot 連續跑幾輪後，這裡會更像每帳號的背景作業條。
+            </p>
+          )}
+        </div>
       </section>
 
       <section className="glass-panel rounded-[2rem] border border-[var(--border)] p-6">
