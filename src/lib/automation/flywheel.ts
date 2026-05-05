@@ -226,10 +226,12 @@ export async function runAutoPromoteDirectDrafts(now = new Date()) {
     });
     const threshold =
       settings?.autopilotMode === "near_full_auto"
-        ? missionSignals.focusTraffic || missionSignals.focusSearch || missionSignals.focusKnowledge
-          ? 72
-          : 78
-        : 86;
+        ? missionSignals.focusTraffic || missionSignals.focusSearch || missionSignals.focusKnowledge || missionSignals.focusConversation
+          ? 64
+          : 70
+        : settings?.autopilotMode === "auto_schedule"
+          ? 78
+          : 86;
 
     if (score < threshold) {
       skipped += 1;
@@ -364,7 +366,9 @@ export async function runAutoWordPressExpansion(now = new Date()) {
     }
 
     try {
-      const result = await syncPostToWordPress(post.id);
+      const result = await syncPostToWordPress(post.id, {
+        forcePublish: settings?.autopilotMode === "near_full_auto"
+      });
       created += result.duplicated ? 0 : 1;
       if (!result.duplicated) {
         await prisma.automationLog.create({

@@ -105,7 +105,10 @@ function buildDailyIdeaBrief(params: {
     params.prompt?.trim() ? `今日方向：${params.prompt.trim()}` : "今日方向：不要空泛勵志，請提出一個明確觀點或洞察。",
     params.goal?.trim() ? `希望達成：${params.goal.trim()}` : "希望達成：提高留言意願與停留感。",
     variantHint ? `這一篇候選稿角度：${variantHint}` : "",
-    "請直接輸出可發佈的 Threads 內容，開頭要有停留感，中段要有觀點，結尾要有自然 CTA。"
+    "請直接輸出可發佈的 Threads 內容，開頭要有停留感，中段要有觀點，結尾要有自然 CTA。",
+    "寫法要像這個帳號本人在講，不要像 AI 幫忙整理資料或硬做懶人包。",
+    "避免『以下是』『首先其次最後』『總結來說』這種太像模型輸出的句型。",
+    "允許有點口語、有立場、有主觀判斷，但不要浮誇，也不要故意裝專家。"
   ]
     .filter(Boolean)
     .join("\n");
@@ -537,10 +540,13 @@ async function generateDailyPersonaPost(params: {
   const siteAutopilotMode = settings?.autopilotMode?.trim() || "near_full_auto";
   const canScheduleBySource =
     siteAutopilotMode === "auto_schedule"
-      ? sourceMemory.confidence === "high"
+      ? sourceMemory.confidence === "high" ||
+        (sourceMemory.confidence === "medium" && (missionSignals.focusTraffic || missionSignals.focusConversation))
       : siteAutopilotMode === "near_full_auto"
-        ? sourceMemory.confidence === "high" ||
-          (sourceMemory.confidence === "medium" && (missionSignals.focusTraffic || missionSignals.focusSearch || missionSignals.focusKnowledge))
+        ? sourceMemory.confidence !== "low" ||
+          missionSignals.focusTraffic ||
+          missionSignals.focusSearch ||
+          missionSignals.focusKnowledge
         : false;
   const status =
     siteAutopilotMode === "review_only" || account.autoGenerateMode === "draft" || !canScheduleBySource

@@ -106,7 +106,7 @@ function buildWordPressDraft(
   };
 }
 
-export async function syncPostToWordPress(postId: string, options?: { titleOverride?: string }) {
+export async function syncPostToWordPress(postId: string, options?: { titleOverride?: string; forcePublish?: boolean }) {
   const sourcePost = await prisma.post.findUnique({
     where: { id: postId },
     include: {
@@ -204,7 +204,10 @@ export async function syncPostToWordPress(postId: string, options?: { titleOverr
     }
   });
 
-  const wordpressRemoteStatus = settings?.wordpressPublishMode === "auto_publish" ? "publish" : "draft";
+  const wordpressRemoteStatus =
+    options?.forcePublish || settings?.wordpressPublishMode === "auto_publish" || settings?.autopilotMode === "near_full_auto"
+      ? "publish"
+      : "draft";
   const remoteResult = await publishToWordPress(
     wordpressAccount.id,
     {
