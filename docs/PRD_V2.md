@@ -1,6 +1,6 @@
 # Social Audio PRD v2
 
-> Version: v2.0  
+> Version: v2.1  
 > Updated: 2026-05-05  
 > Status: Current Product Direction  
 > Repo: https://github.com/hd961245/social-autio
@@ -20,6 +20,19 @@ Social Audio 是一個給 `自媒體創業者` 使用的 `多帳號 AI 內容營
 - 自動觀察、優化與回填學習
 
 讓使用者只在 `例外、方向、商業轉化` 時介入。
+
+### 1.4 目前已落地的營運飛輪
+
+目前主產品方向已經包含以下自動飛輪：
+
+- 自動探索來源與正文萃取
+- 自動產出 Threads 草稿
+- 高信心 Threads 自動排程 / 發布
+- 強表現 Threads 自動沉成 WordPress
+- GSC 機會自動轉成 SEO 優化稿
+- 14 天後自動生成優化稿
+- 每日日報自動送 Discord / Telegram
+- 學習結果回灌到帳號 autopilot prompt
 
 ### 1.2 核心目標
 
@@ -117,6 +130,8 @@ Portfolio scheduler 的角色是保證整站和全帳號都持續運轉：
 - persona prompt / playbook
 - 最近高表現內容
 - 留言訊號
+- AI brief / operating brief
+- learning update（hook / CTA / topic 偏好）
 - 長文與 SEO 機會
 
 ### 3.3 Exception Routing
@@ -135,6 +150,25 @@ Review 不是日常主流程，而是 `例外處理台`。
 
 `正常情況系統自己跑，只有例外才叫人`
 
+### 3.4 Explore -> Brief -> Build -> Validate -> Learn
+
+內容營運主線應收成以下迴圈：
+
+`探索 -> brief -> 開發 -> 驗證 -> 下一步`
+
+對應系統行為：
+
+- `探索`
+  自動吃來源、GSC 機會、強表現舊文與長期知識來源
+- `Brief`
+  先生成 operating brief，決定這篇要驗證什麼、先走 Threads 還是先沉 WordPress
+- `開發`
+  AI 根據帳號 persona、mission、learning prompt 產出內容
+- `驗證`
+  Threads / GA4 / GSC / 14 天觀察層回收數據與訊號
+- `下一步`
+  系統決定要 follow-up、優化、沉長文，還是回補 SEO 機會
+
 ## 4. Threads / WordPress / AI 三層角色
 
 ### 4.1 Threads
@@ -152,6 +186,7 @@ Threads 是第一增長曲線，負責：
 - 自動寫稿
 - 高信心可直排 / 直發
 - 每帳號每天至少一篇
+- 寫法更像真人，不像 AI 摘要機或公告機器
 
 ### 4.2 WordPress
 
@@ -161,6 +196,7 @@ WordPress 是第二增長曲線，負責：
 - SEO 承接
 - CTA / affiliate / referral 承接面
 - 強 Threads 內容的延伸擴寫
+- 舊文與高機會頁的更新放大
 
 它不再只是草稿池，而是：
 
@@ -240,6 +276,7 @@ AI 的成功標準不是「能寫」，而是：
   - 高信心 Threads 直接排程 / 發布
   - 中信心 Threads 可直接排程，除非觸發例外
   - 高信心 WordPress SEO / 長文稿可直接發布
+- 自動刷新來源、匯入正文、產文、排程、發布應串成同一條 scheduler / heartbeat 鏈
 - 低信心內容只進觀察池或 Review
 - Review 不能阻塞整體飛輪
 
@@ -251,6 +288,20 @@ AI 的成功標準不是「能寫」，而是：
 - 例外處理：失敗任務、低信心內容、高風險內容
 - 商業承接：CTA / affiliate / referral
 - 高價值拍板：要不要讓這篇進更大的放大飛輪
+
+### 6.4 每日日報原則
+
+產品應在固定時間主動回報：
+
+- 過去 24 小時自動產了幾篇 Threads
+- 自動發布了幾篇 Threads / WordPress
+- 哪些是高價值擴寫或 SEO 機會
+- 哪些失敗或例外真的需要人處理
+
+預設通知通道優先順序：
+
+- Discord webhook
+- Telegram
 
 ## 7. 擴張接口
 
@@ -300,6 +351,7 @@ AI 的成功標準不是「能寫」，而是：
 - 全帳號每日內容產出是否穩定
 - 全站自動化覆蓋率是否提升
 - PM Ops 是否能只剩少量例外
+- 每日日報是否足夠讓使用者不開站也知道系統在做什麼
 
 ### 8.2 帳號級
 
@@ -309,6 +361,7 @@ AI 的成功標準不是「能寫」，而是：
 - 每帳號近 14 天是否有穩定流量與內容回收
 - 每帳號是否有自己的 WordPress / SEO 增長承接
 - 每帳號是否有可運作的 source preference 與 autopilot
+- 每帳號的 learning update 是否實際影響下一輪生成
 
 ### 8.3 自動化級
 
@@ -320,6 +373,7 @@ AI 的成功標準不是「能寫」，而是：
 - 強內容沉長文率
 - SEO 機會處理率
 - 失敗任務是否能集中到少量 exception queue
+- brief / learning / experiment loop 是否持續在跑
 
 ## 9. 最終產品原則
 

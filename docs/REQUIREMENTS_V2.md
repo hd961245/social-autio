@@ -1,6 +1,6 @@
 # Social Audio Requirements v2
 
-> Version: v2.0  
+> Version: v2.1  
 > Updated: 2026-05-05  
 > Type: 功能需求清單 + 驗收標準
 
@@ -30,6 +30,7 @@
 - 顯示今天沒滿一篇的帳號提醒
 - 顯示最小例外清單
 - 顯示 Search Growth 與高價值來源 / 草稿訊號
+- 顯示 learning update 與系統下一輪打算怎麼改
 
 #### P1
 
@@ -72,6 +73,7 @@
   - Exceptions
 - 顯示帳號自己的 mission / source preference / lane hint
 - 顯示帳號自己的今日已發、已排程、待拍板、可直發、WordPress 放大數
+- 顯示帳號最近自動學到的題目焦點、hook、CTA 與下一輪優先事項
 
 #### P1
 
@@ -104,6 +106,7 @@ Review 只承接真正需要人工介入的內容，不再承接日常主流程�
 - 收高價值但需要最後拍板的內容
 - 收失敗任務例外
 - 顯示例外理由與下一步建議
+- 顯示 operating brief，說明這篇在驗什麼、下一步要做什麼
 
 #### P1
 
@@ -148,6 +151,7 @@ Factory 成為背景工廠層，集中呈現系統已處理、正在處理、失
   - seo opportunity handling
   - optimization rewrite
 - 顯示最近 14 天工廠輸出摘要
+- 顯示每日自動發布與自動沉長文摘要
 
 #### P1
 
@@ -179,6 +183,7 @@ Analytics 只保留營運決策需要的數字、排行、機會與例外。
 - Threads 內容表現回收
 - SEO opportunity queue
 - 帳號級 / 內容級高表現訊號
+- 顯示能回填到下一輪 autopilot 的 learning signals
 
 #### P1
 
@@ -212,6 +217,7 @@ Config 只放非日常營運設定，不承接日常操作。
 - WordPress publish defaults
 - distribution defaults
 - OAuth / env / connector 接線導引
+- Discord / Telegram 每日日報通道設定
 
 #### P1
 
@@ -252,6 +258,8 @@ Config 只放非日常營運設定，不承接日常操作。
   - 強內容沉 WordPress
   - SEO opportunity 分流
 - daily report 通知
+- operating brief 自動生成
+- learning update 自動回灌到下一輪 prompt
 - 例外進 Review，不阻塞其他帳號
 
 #### P1
@@ -310,6 +318,8 @@ Config 只放非日常營運設定，不承接日常操作。
 - 正常情況下，系統能自己找題、自己寫、自己分流、自己排程 / 發布
 - Review 只剩少量例外
 - WordPress 能承接長文與 SEO 增長線
+- 系統能產出 operating brief 並將 learning update 回灌到下一輪 autopilot
+- 使用者不開站也能從每日日報知道系統做了什麼
 
 ### P1 補強方向
 
