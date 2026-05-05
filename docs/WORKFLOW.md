@@ -1,5 +1,7 @@
 # Social Audio Workflow
 
+> Note: 這份文件保留為 `legacy workflow 補充`。最新產品主線請優先看 `docs/PRD_V2.md` 與 `docs/REQUIREMENTS_V2.md`。
+
 > Version: v1.0  
 > Updated: 2026-04-16  
 > Scope: Daily operating workflow for a self-media entrepreneur using multiple Threads personas and WordPress drafts

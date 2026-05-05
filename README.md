@@ -1,21 +1,26 @@
 # Social Audio
 
-Threads-first 自媒體創業者管理中台。
+Social Audio 是一個給自媒體創業者使用的多帳號 AI 內容營運中台，能自動找題、產文、分流 Threads / WordPress、觀察、優化與回填學習。
 
-## Current Status
+## Current v2
 
-- PRD: [docs/PRD.md](./docs/PRD.md)
-- Next-Stage Roadmap: [docs/ROADMAP.md](./docs/ROADMAP.md)
+- Product PRD v2: [docs/PRD_V2.md](./docs/PRD_V2.md)
+- Requirements v2: [docs/REQUIREMENTS_V2.md](./docs/REQUIREMENTS_V2.md)
+
+## Legacy References
+
+- PRD (legacy): [docs/PRD.md](./docs/PRD.md)
+- Workflow (legacy): [docs/WORKFLOW.md](./docs/WORKFLOW.md)
+- Roadmap (legacy): [docs/ROADMAP.md](./docs/ROADMAP.md)
+- User Workflow Spec (legacy support): [docs/USER_WORKFLOW_SPEC.md](./docs/USER_WORKFLOW_SPEC.md)
 - Bootstrap Guide: [docs/BOOTSTRAP.md](./docs/BOOTSTRAP.md)
 - Current State: [docs/STATE.md](./docs/STATE.md)
 - Product Map (ZH): [docs/PRODUCT_MAP_ZH.md](./docs/PRODUCT_MAP_ZH.md)
 - Handoff Notes: [docs/HANDOFF.md](./docs/HANDOFF.md)
 - Persistence + Automation: [docs/PERSISTENCE_AND_AUTOMATION.md](./docs/PERSISTENCE_AND_AUTOMATION.md)
 - Deploy / Recovery: [docs/ZEABUR.md](./docs/ZEABUR.md)
-- Workflow SOP: [docs/WORKFLOW.md](./docs/WORKFLOW.md)
-- User Workflow Spec: [docs/USER_WORKFLOW_SPEC.md](./docs/USER_WORKFLOW_SPEC.md)
 - Knowledge Ingestion Plan: [docs/KNOWLEDGE_INGESTION.md](./docs/KNOWLEDGE_INGESTION.md)
-- Current focus: Threads publishing + WordPress draft studio + Content Desk + Content Inventory
+- Current focus: PM Ops + account operating lanes + high-autonomy Threads / WordPress factory
 - Stack: Next.js App Router, TypeScript, Tailwind CSS, Prisma, PostgreSQL, Inngest
 
 ## Getting Started

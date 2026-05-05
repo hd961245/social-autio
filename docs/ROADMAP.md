@@ -1,5 +1,7 @@
 # Social Audio Roadmap
 
+> Note: 這份 roadmap 保留作為 `legacy milestone 參考`。v2 產品方向與需求主線請優先看 `docs/PRD_V2.md` 與 `docs/REQUIREMENTS_V2.md`。
+
 > Version: v2.0  
 > Updated: 2026-05-01  
 > Scope: milestone roadmap for evolving Social Audio into an AI operating console for self-media entrepreneurs

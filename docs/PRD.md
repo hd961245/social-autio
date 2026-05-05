@@ -1,5 +1,7 @@
 # Social Audio PRD
 
+> Note: 這份文件保留為 `legacy 主線參考`。目前產品主方向請優先看 `docs/PRD_V2.md` 與 `docs/REQUIREMENTS_V2.md`。
+
 > Version: v4.0  
 > Updated: 2026-05-01  
 > Status: Active Build  

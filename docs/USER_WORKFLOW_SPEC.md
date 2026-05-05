@@ -1,5 +1,7 @@
 # User Workflow Spec
 
+> Note: 這份文件保留作為 `legacy review / compose workflow spec`。最新產品主線請優先看 `docs/PRD_V2.md` 與 `docs/REQUIREMENTS_V2.md`。
+
 ## Purpose
 
 This document defines the intended end-to-end user workflow for a self-media entrepreneur using this platform to:
