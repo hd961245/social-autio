@@ -237,6 +237,20 @@ export type WordPressExpansionCandidate = {
   missionReason: string;
 };
 
+export type OperatingBrief = {
+  lane: string;
+  whyNow: string;
+  assignment: string;
+  successMetric: string;
+  nextStep: string;
+};
+
+export type LearningSignalSummary = {
+  label: string;
+  observation: string;
+  update: string;
+};
+
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
 }
@@ -626,6 +640,124 @@ function getTopicFlowReason(topicTag?: string | null) {
   }
 
   return "這篇先進 Threads 做題目驗證，後面再依表現決定是否擴寫。";
+}
+
+export function buildOperatingBrief(input: {
+  title?: string | null;
+  text?: string | null;
+  topicTag?: string | null;
+  candidateRationale?: string | null;
+  personaLabel?: string | null;
+  mission?: MissionContext | null;
+}) {
+  const strategy = summarizeMissionStrategy(input.mission);
+  const titleOrText = (input.title?.trim() || input.text?.trim() || "這篇題目").slice(0, 80);
+  const rationale = input.candidateRationale?.trim();
+  const lane =
+    input.topicTag === "news"
+      ? "快節奏快評"
+      : input.topicTag === "howto"
+        ? "長期沉澱"
+        : "深度拆解";
+  const whyNow = rationale
+    ? `系統先挑這篇，是因為 ${rationale}。`
+    : `系統先挑這篇，是因為它和目前 mission 更接近：${strategy.primaryFocus}`;
+  const assignment =
+    input.topicTag === "news"
+      ? `${titleOrText} 先走 Threads 驗證，重點是把結論壓到首屏，讓讀者快速知道現在該看什麼。`
+      : input.topicTag === "howto"
+        ? `${titleOrText} 先當可收藏題，Threads 負責驗需求，後面保留沉成 WordPress 長文的空間。`
+        : `${titleOrText} 先走觀點 Threads，測試討論感與留言意願，再決定要不要延伸系列。`;
+  const successMetric =
+    input.topicTag === "news"
+      ? "先看停留感、轉發與是否能順利被排程送出。"
+      : input.topicTag === "howto"
+        ? "先看收藏 / 搜尋承接潛力，再決定是否轉成長文。"
+        : "先看留言、引用與 follow-up 潛力。";
+  const nextStep =
+    input.topicTag === "howto"
+      ? `如果 Threads 有訊號，下一步直接進 WordPress lane；${strategy.wordpressBias}`
+      : input.topicTag === "news"
+        ? `如果 Threads 反應不錯，下一步補 follow-up 或沉成長文；${strategy.optimizationBias}`
+        : `如果這篇討論起來，下一步做 follow-up 或長文拆解；${strategy.threadBias}`;
+
+  return {
+    lane,
+    whyNow,
+    assignment,
+    successMetric,
+    nextStep
+  } satisfies OperatingBrief;
+}
+
+export function buildLearningSignals(input: {
+  bestPost?: {
+    text?: string | null;
+    views: number;
+    replies: number;
+    reposts: number;
+    shares: number;
+  } | null;
+  directDraftCount?: number;
+  optimizationCount?: number;
+  gscTopQuery?: {
+    query: string;
+    clicks: number;
+    impressions: number;
+  } | null;
+  accountsMissingCoverage?: string[];
+}) {
+  const items: LearningSignalSummary[] = [];
+
+  if (input.bestPost) {
+    const amplification = input.bestPost.reposts + input.bestPost.shares;
+    items.push({
+      label: "內容學習",
+      observation:
+        input.bestPost.replies >= amplification
+          ? "最近更吃討論型內容，留言訊號高於純擴散。"
+          : "最近更吃可轉述的結論型內容，擴散訊號高於對話。",
+      update:
+        input.bestPost.replies >= amplification
+          ? "下一輪 Threads 優先保留立場與問句，讓 AI 不要寫得太中性。"
+          : "下一輪 Threads 優先壓縮首屏，把結論寫得更可被直接帶走。"
+    });
+  }
+
+  if (typeof input.directDraftCount === "number" && typeof input.optimizationCount === "number") {
+    items.push({
+      label: "飛輪節奏",
+      observation:
+        input.optimizationCount > input.directDraftCount
+          ? "優化飛輪正在變重要，系統最近更多是在補舊內容。"
+          : "新題與新稿仍是主力，系統目前更像在擴張前線。",
+      update:
+        input.optimizationCount > input.directDraftCount
+          ? "下一輪優先看 14 天後的標題、hook、CTA 回補。"
+          : "下一輪優先讓高信心新稿更快進排程與發布。"
+    });
+  }
+
+  if (input.gscTopQuery) {
+    items.push({
+      label: "搜尋學習",
+      observation: `自然搜尋已經開始集中在「${input.gscTopQuery.query}」這類需求上。`,
+      update:
+        input.gscTopQuery.impressions > input.gscTopQuery.clicks * 10
+          ? "下一輪應優先補 WordPress 承接頁與 title / desc 優化，而不是只加 Threads。"
+          : "下一輪可直接把這個查詢延伸成更完整的長文群組與 CTA 承接。"
+    });
+  }
+
+  if (input.accountsMissingCoverage?.length) {
+    items.push({
+      label: "營運節奏",
+      observation: `${input.accountsMissingCoverage.join("、")} 這幾條線最近比較容易掉出每日最低一篇。`,
+      update: "下一輪 portfolio scheduler 應優先把高可寫來源往這幾條線補，避免流量斷層。"
+    });
+  }
+
+  return items.slice(0, 4);
 }
 
 function buildDraftDecisionReason(input: {

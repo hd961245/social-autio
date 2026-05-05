@@ -3,6 +3,8 @@ import Link from "next/link";
 import { AutopilotHeartbeat } from "@/components/dashboard/autopilot-heartbeat";
 import { PageIntro } from "@/components/dashboard/page-intro";
 import {
+  getAnalyticsOverview,
+  buildLearningSignals,
   getAccountOperatingSummaries,
   getKeywordHitSummaries,
   getPostSummaries
@@ -15,7 +17,7 @@ import { prisma } from "@/lib/prisma";
 export const dynamic = "force-dynamic";
 
 export default async function DeskPage() {
-  const [settings, accountSummaries, posts, keywordHits, sourceItems, gscOpportunities, failedLogs] =
+  const [settings, accountSummaries, posts, keywordHits, sourceItems, gscOpportunities, failedLogs, analyticsOverview] =
     await Promise.all([
       prisma.appSettings.findFirst(),
       getAccountOperatingSummaries(),
@@ -46,7 +48,8 @@ export default async function DeskPage() {
           executedAt: "desc"
         },
         take: 6
-      }).catch(() => [])
+      }).catch(() => []),
+      getAnalyticsOverview({ window: "30d", accountId: "all" }).catch(() => null)
     ]);
 
   const missionTitle = settings?.missionTitle?.trim() || "7 個月內，讓接入帳號進入台灣前 50 大理財內容流量級";
@@ -99,6 +102,27 @@ export default async function DeskPage() {
       return rightScore - leftScore;
     })
     .slice(0, 4);
+  const learningSignals = buildLearningSignals({
+    bestPost: analyticsOverview?.topPosts[0]
+      ? {
+          text: analyticsOverview.topPosts[0].text,
+          views: analyticsOverview.topPosts[0].views,
+          replies: analyticsOverview.topPosts[0].replies,
+          reposts: analyticsOverview.topPosts[0].reposts,
+          shares: analyticsOverview.topPosts[0].shares
+        }
+      : null,
+    directDraftCount: totalDirectDrafts,
+    optimizationCount: totalOptimization,
+    gscTopQuery: gscOpportunities.items[0]
+      ? {
+          query: gscOpportunities.items[0].query ?? gscOpportunities.items[0].page,
+          clicks: gscOpportunities.items[0].clicks,
+          impressions: gscOpportunities.items[0].impressions
+        }
+      : null,
+    accountsMissingCoverage: accountsNeedingCoverage.map((account) => account.username)
+  });
 
   const interventionItems = [
     settings?.automationPaused
@@ -330,6 +354,35 @@ export default async function DeskPage() {
             )}
           </div>
         </article>
+      </section>
+
+      <section className="glass-panel rounded-[2rem] border border-[var(--border)] p-6">
+        <div className="flex items-end justify-between gap-4">
+          <div>
+            <p className="text-[11px] uppercase tracking-[0.3em] text-[var(--muted)]">Learning Update</p>
+            <h2 className="mt-2 text-2xl font-semibold">系統最近學到什麼，下一輪準備怎麼改</h2>
+          </div>
+          <Link href="/analytics" className="text-sm font-medium text-[var(--accent)]">
+            看完整驗證層
+          </Link>
+        </div>
+        <div className="mt-5 grid gap-3 xl:grid-cols-2">
+          {learningSignals.length ? (
+            learningSignals.map((item) => (
+              <article key={item.label} className="rounded-[1.35rem] border border-[var(--border)] bg-white/82 p-4">
+                <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">{item.label}</p>
+                <p className="mt-3 text-sm leading-7 text-[var(--foreground)]">{item.observation}</p>
+                <p className="mt-3 rounded-[1rem] border border-[var(--border)] bg-[rgba(255,252,248,0.86)] px-4 py-3 text-sm leading-7 text-[var(--accent-strong)]">
+                  {item.update}
+                </p>
+              </article>
+            ))
+          ) : (
+            <article className="rounded-[1.35rem] border border-dashed border-[var(--border)] p-4 text-sm text-[var(--muted)] xl:col-span-2">
+              還在等第一輪足夠的 Threads / GA4 / GSC 訊號。等系統跑夠幾天後，這裡會開始像每日學習回填一樣告訴你它要怎麼改下一輪。
+            </article>
+          )}
+        </div>
       </section>
 
       <section className="grid gap-4">
