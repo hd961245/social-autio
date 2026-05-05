@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { PageIntro } from "@/components/dashboard/page-intro";
+import { buildAutopilotLearningGuide } from "@/lib/automation/autopilot-learning";
 import {
   getAccountOperatingSummaries,
   getPostSummaries,
@@ -191,6 +192,25 @@ export default async function AccountOperatingPage({
     .slice(0, 6);
 
   const seoCandidates = gscOpportunities.items.slice(0, 4);
+  const learningGuide = buildAutopilotLearningGuide({
+    posts: account.posts.map((post) => ({
+      text: post.textContent,
+      title: post.title,
+      metrics: post.metrics[0]
+        ? {
+            views: post.metrics[0].views,
+            likes: post.metrics[0].likes,
+            replies: post.metrics[0].replies,
+            reposts: post.metrics[0].reposts,
+            quotes: post.metrics[0].quotes,
+            shares: post.metrics[0].shares
+          }
+        : null
+    })),
+    topicFocus: account.topicFocus,
+    topQuery: seoCandidates[0]?.query ?? null,
+    personaLabel: summary.personaLabel || summary.username
+  });
 
   return (
     <div className="space-y-6">
@@ -232,7 +252,7 @@ export default async function AccountOperatingPage({
           <p className="text-[11px] uppercase tracking-[0.3em] text-[var(--muted)]">Account Mission</p>
           <h2 className="mt-2 text-3xl font-semibold">{summary.personaLabel || summary.username}</h2>
           <p className="mt-3 text-sm leading-7 text-[var(--muted)]">{summary.accountMission}</p>
-          <div className="mt-5 grid gap-3 xl:grid-cols-3">
+          <div className="mt-5 grid gap-3 xl:grid-cols-4">
             <article className="rounded-[1.2rem] border border-[var(--border)] bg-white/82 p-4">
               <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">Audience / focus</p>
               <p className="mt-3 text-sm leading-7">{summary.sourcePreference}</p>
@@ -244,6 +264,10 @@ export default async function AccountOperatingPage({
             <article className="rounded-[1.2rem] border border-[var(--border)] bg-white/82 p-4">
               <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">Site mission context</p>
               <p className="mt-3 text-sm leading-7">{missionStrategy.primaryFocus}</p>
+            </article>
+            <article className="rounded-[1.2rem] border border-[var(--border)] bg-white/82 p-4">
+              <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">Learning update</p>
+              <p className="mt-3 text-sm leading-7">{learningGuide.nextMove}</p>
             </article>
           </div>
         </article>
@@ -318,6 +342,24 @@ export default async function AccountOperatingPage({
               <p className="mt-2 text-sm text-[var(--muted)]">
                 目前有 {optimizationDrafts.length} 篇 14 天觀察後的優化稿，待你最後看是否值得再打一輪。
               </p>
+            </article>
+            <article className="rounded-[1.35rem] border border-[var(--border)] bg-white/82 p-4">
+              <p className="text-sm font-semibold">這條線最近學到的偏好</p>
+              <div className="mt-3 grid gap-3 lg:grid-cols-3">
+                <div>
+                  <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--muted)]">題目焦點</p>
+                  <p className="mt-2 text-sm leading-7">{learningGuide.focus}</p>
+                </div>
+                <div>
+                  <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--muted)]">Hook / CTA</p>
+                  <p className="mt-2 text-sm leading-7">{learningGuide.hook}</p>
+                  <p className="mt-2 text-sm leading-7 text-[var(--muted)]">{learningGuide.cta}</p>
+                </div>
+                <div>
+                  <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--muted)]">為什麼</p>
+                  <p className="mt-2 text-sm leading-7">{learningGuide.reason}</p>
+                </div>
+              </div>
             </article>
             <div className="max-h-[18rem] space-y-3 overflow-y-auto pr-1">
               {seoCandidates.map((item) => (

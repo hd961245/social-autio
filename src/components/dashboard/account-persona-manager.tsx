@@ -23,6 +23,11 @@ type AccountPersona = {
   lastAutopilotAt?: string;
   recommendedScheduleLabel?: string;
   recommendedScheduleDetail?: string;
+  learnedFocus: string;
+  learnedHook: string;
+  learnedCta: string;
+  learnedReason: string;
+  learnedNextMove: string;
   recentPublishedCount: number;
   recentAverageScore: number;
   autopilotRunCount: number;
@@ -193,6 +198,37 @@ export function AccountPersonaManager({ accounts }: { accounts: AccountPersona[]
                       </div>
                     </div>
                   </div>
+                </div>
+
+                <div className="mt-5 rounded-[1.4rem] border border-[var(--border)] bg-[var(--surface)]/70 p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-[11px] uppercase tracking-[0.2em] text-[var(--muted)]">Learning Update</p>
+                      <h4 className="mt-2 text-lg font-semibold">這條線最近自動學到了什麼</h4>
+                    </div>
+                    <p className="text-sm text-[var(--muted)]">會直接回灌到下一輪 autopilot</p>
+                  </div>
+
+                  <div className="mt-4 grid gap-3 lg:grid-cols-2">
+                    <div className="rounded-[1rem] border border-[var(--border)] bg-white px-4 py-3">
+                      <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--muted)]">題目焦點</p>
+                      <p className="mt-2 text-sm leading-7">{account.learnedFocus}</p>
+                    </div>
+                    <div className="rounded-[1rem] border border-[var(--border)] bg-white px-4 py-3">
+                      <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--muted)]">Hook 調整</p>
+                      <p className="mt-2 text-sm leading-7">{account.learnedHook}</p>
+                    </div>
+                    <div className="rounded-[1rem] border border-[var(--border)] bg-white px-4 py-3">
+                      <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--muted)]">CTA 調整</p>
+                      <p className="mt-2 text-sm leading-7">{account.learnedCta}</p>
+                    </div>
+                    <div className="rounded-[1rem] border border-[var(--border)] bg-white px-4 py-3">
+                      <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--muted)]">下一輪優先</p>
+                      <p className="mt-2 text-sm leading-7">{account.learnedNextMove}</p>
+                    </div>
+                  </div>
+
+                  <p className="mt-4 text-sm leading-7 text-[var(--muted)]">{account.learnedReason}</p>
                 </div>
 
                 <div className="mt-5 grid gap-4 lg:grid-cols-[0.8fr_0.8fr_1.4fr]">

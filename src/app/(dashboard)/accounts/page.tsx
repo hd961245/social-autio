@@ -5,6 +5,7 @@ import { AutopilotHeartbeat } from "@/components/dashboard/autopilot-heartbeat";
 import { AccountPersonaManager } from "@/components/dashboard/account-persona-manager";
 import { AutopilotEditorialControl } from "@/components/dashboard/autopilot-editorial-control";
 import { PageIntro } from "@/components/dashboard/page-intro";
+import { buildAutopilotLearningGuide } from "@/lib/automation/autopilot-learning";
 import { inferBestScheduleTime } from "@/lib/automation/autopilot-timing";
 import { prisma } from "@/lib/prisma";
 import { getAccountOperatingSummaries } from "@/lib/dashboard-data";
@@ -317,6 +318,34 @@ export default async function AccountsPage() {
             return {
               recommendedScheduleLabel: timing.label,
               recommendedScheduleDetail: timing.detail
+            };
+          })(),
+          ...(() => {
+            const learnedGuide = buildAutopilotLearningGuide({
+              posts: account.posts.map((post) => ({
+                text: post.textContent,
+                title: post.title,
+                metrics: post.metrics[0]
+                  ? {
+                      views: post.metrics[0].views,
+                      likes: post.metrics[0].likes,
+                      replies: post.metrics[0].replies,
+                      reposts: post.metrics[0].reposts,
+                      quotes: post.metrics[0].quotes,
+                      shares: post.metrics[0].shares
+                    }
+                  : null
+              })),
+              topicFocus: account.topicFocus,
+              personaLabel: account.personaLabel ?? account.platformUsername
+            });
+
+            return {
+              learnedFocus: learnedGuide.focus,
+              learnedHook: learnedGuide.hook,
+              learnedCta: learnedGuide.cta,
+              learnedReason: learnedGuide.reason,
+              learnedNextMove: learnedGuide.nextMove
             };
           })(),
           id: account.id,
