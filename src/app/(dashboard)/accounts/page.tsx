@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { AccountCardItem } from "@/components/dashboard/account-card";
 import { AutopilotHeartbeat } from "@/components/dashboard/autopilot-heartbeat";
 import { AccountPersonaManager } from "@/components/dashboard/account-persona-manager";
@@ -5,7 +7,7 @@ import { AutopilotEditorialControl } from "@/components/dashboard/autopilot-edit
 import { PageIntro } from "@/components/dashboard/page-intro";
 import { inferBestScheduleTime } from "@/lib/automation/autopilot-timing";
 import { prisma } from "@/lib/prisma";
-import { getAccountSummaries } from "@/lib/dashboard-data";
+import { getAccountOperatingSummaries } from "@/lib/dashboard-data";
 
 export const dynamic = "force-dynamic";
 
@@ -70,7 +72,7 @@ function buildHourlyBars(
 }
 
 export default async function AccountsPage() {
-  const displayAccounts = await getAccountSummaries();
+  const displayAccounts = await getAccountOperatingSummaries();
   const [rawAccounts, autopilotLogs, settings] = await Promise.all([
     prisma.platformAccount.findMany({
       where: { isActive: true },
@@ -128,38 +130,91 @@ export default async function AccountsPage() {
   const enabledAutopilotCount = rawAccounts.filter(
     (account) => account.platform === "threads" && account.autoGenerateEnabled
   ).length;
+  const todayPublished = displayAccounts.reduce((sum, account) => sum + account.todayPublishedCount, 0);
+  const todayScheduled = displayAccounts.reduce((sum, account) => sum + account.todayScheduledCount, 0);
+  const accountsNeedingDailyCoverage = displayAccounts.filter((account) => account.needsDailyPost).length;
+  const totalExceptions = displayAccounts.reduce((sum, account) => sum + account.exceptionCount, 0);
+  const totalWpExpansion = displayAccounts.reduce((sum, account) => sum + account.wordpressExpansionCount, 0);
 
   return (
     <div className="space-y-6">
       <PageIntro
-        eyebrow="Config"
-        title="帳號、persona 與站台 autopilot 設定"
-        description="這裡只做設定，不做日常決策。Threads 授權、persona、每日自動生文與站台級 mission 都集中在這裡。"
+        eyebrow="Accounts"
+        title="每個帳號都是一條獨立營運線"
+        description="先看各帳號今天有沒有自己跑起來、來源偏好、長文沉澱與例外，再決定要不要介入。下面的設定區只在你要改方向或保險絲時才需要打開。"
         action={
-          <a href="/accounts/connect" className="rounded-full bg-[var(--accent)] px-4 py-3 text-sm text-white">
+          <Link href="/accounts/connect" className="rounded-full bg-[var(--accent)] px-4 py-3 text-sm text-white">
             連接 Threads 帳號
-          </a>
+          </Link>
         }
       />
 
-      <div className="grid gap-4 xl:grid-cols-2">
-        {displayAccounts.map((account) => (
-          <AccountCardItem key={account.id} account={account} />
-        ))}
-        {displayAccounts.length === 0 ? (
-          <article className="glass-panel rounded-[1.75rem] border border-dashed border-[var(--border)] p-5 text-sm text-[var(--muted)]">
-            尚未有帳號資料。先按右上角的「連接 Threads 帳號」完成第一支帳號授權。
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+        {[
+          { label: "啟用中的營運線", value: String(displayAccounts.length), detail: "目前有在跑的 Threads 帳號" },
+          { label: "今日已發 Threads", value: String(todayPublished), detail: "已真正送出的內容數" },
+          { label: "今日已排程", value: String(todayScheduled), detail: "高自動內容已進排程佇列" },
+          { label: "今天還缺一篇", value: String(accountsNeedingDailyCoverage), detail: "系統今天會優先補的帳號數" },
+          { label: "長文待放大", value: String(totalWpExpansion), detail: "可自動沉到 WordPress 的強內容" }
+        ].map((card) => (
+          <article key={card.label} className="metric-card">
+            <p className="text-xs uppercase tracking-[0.24em] text-[var(--muted)]">{card.label}</p>
+            <p className="mt-3 text-3xl font-semibold">{card.value}</p>
+            <p className="mt-2 text-sm text-[var(--muted)]">{card.detail}</p>
           </article>
-        ) : null}
-      </div>
+        ))}
+      </section>
+
+      <section className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
+        <article className="glass-panel rounded-[2rem] border border-[var(--border)] p-6">
+          <div className="flex items-end justify-between gap-4">
+            <div>
+              <p className="text-[11px] uppercase tracking-[0.3em] text-[var(--muted)]">Account Portfolio</p>
+              <h2 className="mt-2 text-3xl font-semibold">先看每條線今天有沒有順利自己運轉</h2>
+            </div>
+            <Link href="/review" className="text-sm font-medium text-[var(--accent)]">
+              去看例外
+            </Link>
+          </div>
+          <div className="mt-5 grid gap-4 xl:grid-cols-2">
+            {displayAccounts.map((account) => (
+              <AccountCardItem key={account.id} account={account} />
+            ))}
+            {displayAccounts.length === 0 ? (
+              <article className="glass-panel rounded-[1.75rem] border border-dashed border-[var(--border)] p-5 text-sm text-[var(--muted)]">
+                尚未有帳號資料。先按右上角的「連接 Threads 帳號」完成第一支帳號授權。
+              </article>
+            ) : null}
+          </div>
+        </article>
+
+        <article className="rounded-[2rem] bg-[var(--card-dark)] p-6 text-white shadow-[0_24px_60px_rgba(15,10,7,0.22)]">
+          <p className="text-[11px] uppercase tracking-[0.3em] text-white/55">Operating Rule</p>
+          <h2 className="mt-2 text-3xl font-semibold">高自動帳號的工作方式</h2>
+          <div className="mt-5 space-y-3 text-sm text-white/78">
+            <p className="rounded-[1.2rem] border border-white/10 bg-white/5 px-4 py-3">
+              每個啟用中的帳號，系統都會優先確保「今天至少一篇 Threads」。
+            </p>
+            <p className="rounded-[1.2rem] border border-white/10 bg-white/5 px-4 py-3">
+              Threads 高信心稿會自己排程；中低信心內容才送進 Review，不讓整體飛輪卡住。
+            </p>
+            <p className="rounded-[1.2rem] border border-white/10 bg-white/5 px-4 py-3">
+              強表現 Threads、SEO 高機會頁與長文型題目，會優先沉到 WordPress lane，形成第二條增長曲線。
+            </p>
+            <p className="rounded-[1.2rem] border border-white/10 bg-white/5 px-4 py-3">
+              你真正要看的，只剩例外、方向偏差與商業轉化機會。現在總例外數：{totalExceptions}。
+            </p>
+          </div>
+        </article>
+      </section>
 
       <section className="glass-panel rounded-[2rem] border border-[var(--border)] p-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <p className="text-[11px] uppercase tracking-[0.3em] text-[var(--muted)]">AI Autopilot</p>
-            <h2 className="mt-2 text-3xl font-semibold">先定方向，再讓系統每天自己出稿</h2>
+            <p className="text-[11px] uppercase tracking-[0.3em] text-[var(--muted)]">Site Control</p>
+            <h2 className="mt-2 text-3xl font-semibold">站台級 mission 與自動化保險絲</h2>
             <p className="mt-3 max-w-3xl text-sm leading-7 text-[var(--muted)]">
-              這條線現在會先吃站台方向、WordPress 舊文記憶，再套到各 Threads persona。你只要先確認上方的全域方向，下面各帳號主要負責決定要不要啟用、幾點跑，以及文章要先進總表待確認，還是直接排進發布佇列。
+              這裡只做整站方向設定：總 mission、WordPress 發佈策略、全站 autopilot mode 與 pause 開關。平常日常營運請先看上面的帳號營運線。
             </p>
           </div>
           <div className="rounded-[1.4rem] border border-[var(--border)] bg-white/80 px-5 py-4">
@@ -167,6 +222,43 @@ export default async function AccountsPage() {
             <p className="mt-2 text-3xl font-semibold">{enabledAutopilotCount}</p>
             <p className="mt-2 text-sm text-[var(--muted)]">個 Threads persona 自動生文</p>
           </div>
+        </div>
+
+        <div className="mt-6">
+          <AutopilotEditorialControl
+            initialDirection={settings?.editorialDirection ?? ""}
+            initialGoal={settings?.editorialGoal ?? ""}
+            initialMissionTitle={settings?.missionTitle ?? "7 個月內，讓接入帳號進入台灣前 50 大理財內容流量級"}
+            initialMissionCurrentValue={settings?.missionCurrentValue ?? 0}
+            initialMissionTargetValue={settings?.missionTargetValue ?? 30000}
+            initialMissionUnit={settings?.missionUnit ?? "月自然流量"}
+            initialMissionDeadline={settings?.missionDeadline?.toISOString() ?? null}
+            initialAutopilotMode={
+              (settings?.autopilotMode as "review_only" | "auto_schedule" | "near_full_auto" | undefined) ?? "near_full_auto"
+            }
+            initialWordPressPublishMode={
+              (settings?.wordpressPublishMode as "draft_only" | "auto_publish" | undefined) ?? "draft_only"
+            }
+            initialAutomationPaused={settings?.automationPaused ?? false}
+          />
+        </div>
+        <div className="mt-4">
+          <AutopilotHeartbeat />
+        </div>
+      </section>
+
+      <section className="glass-panel rounded-[2rem] border border-[var(--border)] p-6">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <p className="text-[11px] uppercase tracking-[0.3em] text-[var(--muted)]">Automation Feed</p>
+            <h2 className="mt-2 text-3xl font-semibold">最近系統自己在各帳號做了什麼</h2>
+            <p className="mt-3 max-w-3xl text-sm leading-7 text-[var(--muted)]">
+              這裡只用來確認背景飛輪是否有正常跑，不是給你逐篇操作的地方。
+            </p>
+          </div>
+          <Link href="/factory" className="rounded-full border border-[var(--border)] bg-white/80 px-4 py-2 text-sm">
+            去 Factory
+          </Link>
         </div>
 
         <div className="mt-6 overflow-hidden rounded-[1.6rem] border border-[var(--border)] bg-white/75">
@@ -201,28 +293,6 @@ export default async function AccountsPage() {
               </div>
             ))
           )}
-        </div>
-
-        <div className="mt-6">
-          <AutopilotEditorialControl
-            initialDirection={settings?.editorialDirection ?? ""}
-            initialGoal={settings?.editorialGoal ?? ""}
-            initialMissionTitle={settings?.missionTitle ?? "7 個月內，讓接入帳號進入台灣前 50 大理財內容流量級"}
-            initialMissionCurrentValue={settings?.missionCurrentValue ?? 0}
-            initialMissionTargetValue={settings?.missionTargetValue ?? 30000}
-            initialMissionUnit={settings?.missionUnit ?? "月自然流量"}
-            initialMissionDeadline={settings?.missionDeadline?.toISOString() ?? null}
-            initialAutopilotMode={
-              (settings?.autopilotMode as "review_only" | "auto_schedule" | "near_full_auto" | undefined) ?? "near_full_auto"
-            }
-            initialWordPressPublishMode={
-              (settings?.wordpressPublishMode as "draft_only" | "auto_publish" | undefined) ?? "draft_only"
-            }
-            initialAutomationPaused={settings?.automationPaused ?? false}
-          />
-        </div>
-        <div className="mt-4">
-          <AutopilotHeartbeat />
         </div>
       </section>
 

@@ -2,24 +2,14 @@ import { PageIntro } from "@/components/dashboard/page-intro";
 
 const CONFIG_AREAS = [
   {
-    label: "Accounts",
-    href: "/accounts",
-    detail: "Threads OAuth、persona、每日自動生文、站台 mission 與 autopilot mode。"
-  },
-  {
     label: "Sources",
     href: "/sources",
-    detail: "starter packs、watchlist、官方 / 深度 / 快訊 / 長期知識來源。"
-  },
-  {
-    label: "WordPress Draft Studio",
-    href: "/wordpress",
-    detail: "長文草稿、寫作風格記憶、affiliate blocks 與沉澱工作台。"
+    detail: "管理來源供應鏈、starter packs 與 discovery；日常分發請回 Accounts / PM Ops。"
   },
   {
     label: "Automation",
     href: "/automation",
-    detail: "規則、自動化安全護欄，以及需要保留的例外操作。"
+    detail: "每日日報、背景任務、通知通道與保險機制。"
   },
   {
     label: "Ops",
@@ -30,6 +20,11 @@ const CONFIG_AREAS = [
     label: "Knowledge Inputs",
     href: "/help?topic=knowledge-inputs",
     detail: "YouTube / podcast / site discovery / future Notion、Docs、Markdown 的輸入策略。"
+  },
+  {
+    label: "WordPress / Referral Surface",
+    href: "/wordpress",
+    detail: "長文 CTA、affiliate、未來 referral / 轉介頁與增長承接面。"
   }
 ] as const;
 
@@ -41,7 +36,7 @@ export default function ConfigPage() {
       <PageIntro
         eyebrow="Config"
         title="站台設定只放在這裡"
-        description="Config 不承接日常決策，只負責帳號、來源、WordPress、AI provider、ops 與知識輸入設定。"
+        description="Config 不承接日常營運。帳號日常請去 Accounts、總控盤請去 PM Ops，這裡只留設定、診斷與擴張接口。"
       />
 
       <section className="grid gap-4 xl:grid-cols-2">

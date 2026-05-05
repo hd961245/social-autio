@@ -20,6 +20,24 @@ export type AccountSummary = {
   weeklyViews: number;
 };
 
+export type AccountOperatingSummary = AccountSummary & {
+  autopilotEnabled: boolean;
+  autoGenerateMode: "draft" | "scheduled";
+  accountMission: string;
+  sourcePreference: string;
+  laneHint: string;
+  todayPublishedCount: number;
+  todayScheduledCount: number;
+  directDraftCount: number;
+  reviewDraftCount: number;
+  optimizationDraftCount: number;
+  wordpressDraftCount: number;
+  wordpressExpansionCount: number;
+  exceptionCount: number;
+  needsDailyPost: boolean;
+  latestPublishedAt?: string;
+};
+
 export type PostSummary = {
   id: string;
   account: string;
@@ -509,6 +527,28 @@ function getTokenStatus(tokenExpiresAt: Date) {
   return tokenExpiresAt.getTime() <= Date.now() + 7 * 24 * 60 * 60 * 1000 ? "expiring" : "healthy";
 }
 
+function getCurrentTaipeiDayKey() {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Taipei",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).format(new Date());
+}
+
+function toTaipeiDayKey(value?: Date | null) {
+  if (!value) {
+    return null;
+  }
+
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Taipei",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).format(value);
+}
+
 function extractCandidateRationale(notes?: string | null) {
   if (!notes) {
     return null;
@@ -668,6 +708,178 @@ export async function getAccountSummaries(): Promise<AccountSummary[]> {
         lastSyncedAt: formatDate(account.lastSyncedAt),
         followers: latestMetrics?.followerCount ?? 0,
         weeklyViews: latestMetrics?.totalViews ?? 0
+      };
+    });
+  } catch {
+    return [];
+  }
+}
+
+export async function getAccountOperatingSummaries(): Promise<AccountOperatingSummary[]> {
+  try {
+    const currentDayKey = getCurrentTaipeiDayKey();
+    const fourteenDaysAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
+    const [settings, accounts, recentFailedLogs, wordpressExpansionCandidates] = await Promise.all([
+      prisma.appSettings.findFirst(),
+      prisma.platformAccount.findMany({
+        where: {
+          platform: "threads",
+          isActive: true
+        },
+        include: {
+          metricsSnapshots: {
+            orderBy: {
+              capturedAt: "desc"
+            },
+            take: 1
+          },
+          posts: {
+            orderBy: {
+              createdAt: "desc"
+            },
+            take: 48
+          }
+        },
+        orderBy: {
+          createdAt: "asc"
+        }
+      }),
+      prisma.automationLog.findMany({
+        where: {
+          status: "failed",
+          executedAt: {
+            gte: fourteenDaysAgo
+          },
+          accountId: {
+            not: null
+          }
+        },
+        select: {
+          accountId: true
+        }
+      }),
+      getWordPressExpansionCandidates()
+    ]);
+
+    const threadPostsByPlatformId = new Map<string, string>();
+    for (const account of accounts) {
+      for (const post of account.posts) {
+        if (post.platformPostId) {
+          threadPostsByPlatformId.set(post.platformPostId, account.id);
+        }
+      }
+    }
+
+    const linkedPlatformPostIds = [...threadPostsByPlatformId.keys()];
+    const wordpressLinkedDrafts = linkedPlatformPostIds.length
+      ? await prisma.post.findMany({
+          where: {
+            account: {
+              platform: "wordpress"
+            },
+            replyToPostId: {
+              in: linkedPlatformPostIds
+            }
+          },
+          select: {
+            replyToPostId: true
+          }
+        })
+      : [];
+
+    const wordpressDraftCountByAccount = new Map<string, number>();
+    for (const draft of wordpressLinkedDrafts) {
+      if (!draft.replyToPostId) {
+        continue;
+      }
+      const accountId = threadPostsByPlatformId.get(draft.replyToPostId);
+      if (!accountId) {
+        continue;
+      }
+      wordpressDraftCountByAccount.set(accountId, (wordpressDraftCountByAccount.get(accountId) ?? 0) + 1);
+    }
+
+    const failedCountByAccount = new Map<string, number>();
+    for (const log of recentFailedLogs) {
+      if (!log.accountId) {
+        continue;
+      }
+      failedCountByAccount.set(log.accountId, (failedCountByAccount.get(log.accountId) ?? 0) + 1);
+    }
+
+    const expansionCountByUsername = new Map<string, number>();
+    for (const candidate of wordpressExpansionCandidates) {
+      expansionCountByUsername.set(candidate.account, (expansionCountByUsername.get(candidate.account) ?? 0) + 1);
+    }
+
+    const missionSummary = summarizeMissionStrategy({
+      title: settings?.missionTitle,
+      goal: settings?.editorialGoal,
+      direction: settings?.editorialDirection,
+      unit: settings?.missionUnit,
+      currentValue: settings?.missionCurrentValue,
+      targetValue: settings?.missionTargetValue
+    });
+
+    return accounts.map((account) => {
+      const latestMetrics = account.metricsSnapshots[0];
+      const todayPublishedCount = account.posts.filter(
+        (post) => post.status === "published" && toTaipeiDayKey(post.publishedAt ?? post.createdAt) === currentDayKey
+      ).length;
+      const todayScheduledCount = account.posts.filter(
+        (post) => post.status === "scheduled" && toTaipeiDayKey(post.scheduledAt ?? post.createdAt) === currentDayKey
+      ).length;
+      const directDraftCount = account.posts.filter(
+        (post) => post.status === "draft" && post.isAutoGenerated && !post.requiresApproval
+      ).length;
+      const reviewDraftCount = account.posts.filter((post) =>
+        ["draft", "awaiting_approval", "approval_rejected"].includes(post.status) &&
+        (!post.isAutoGenerated || post.requiresApproval)
+      ).length;
+      const optimizationDraftCount = account.posts.filter((post) => post.topicTag?.startsWith("optimize:")).length;
+      const latestPublished = account.posts.find((post) => post.status === "published" && post.publishedAt);
+      const needsDailyPost =
+        account.autoGenerateEnabled && todayPublishedCount + todayScheduledCount === 0 && settings?.autopilotMode !== "review_only";
+      const exceptionCount =
+        (failedCountByAccount.get(account.id) ?? 0) +
+        (getTokenStatus(account.tokenExpiresAt) === "expiring" ? 1 : 0) +
+        reviewDraftCount;
+
+      return {
+        id: account.id,
+        username: `@${account.platformUsername}`,
+        platform: account.platform[0]?.toUpperCase() + account.platform.slice(1),
+        personaLabel: account.personaLabel ?? undefined,
+        defaultTone: account.defaultTone ?? undefined,
+        tokenStatus: getTokenStatus(account.tokenExpiresAt),
+        lastSyncedAt: formatDate(account.lastSyncedAt),
+        followers: latestMetrics?.followerCount ?? 0,
+        weeklyViews: latestMetrics?.totalViews ?? 0,
+        autopilotEnabled: account.autoGenerateEnabled ?? false,
+        autoGenerateMode: account.autoGenerateMode === "draft" ? "draft" : "scheduled",
+        accountMission:
+          account.autoGenerateGoal?.trim() ||
+          account.topicFocus?.trim() ||
+          settings?.editorialGoal?.trim() ||
+          missionSummary.primaryFocus,
+        sourcePreference:
+          account.topicFocus?.trim() ||
+          account.autoGeneratePrompt?.trim() ||
+          "目前優先吃站台 mission 與高可寫來源。",
+        laneHint:
+          account.topicFocus?.trim()
+            ? `這個帳號目前偏 ${account.topicFocus.trim().slice(0, 42)}`
+            : missionSummary.threadBias,
+        todayPublishedCount,
+        todayScheduledCount,
+        directDraftCount,
+        reviewDraftCount,
+        optimizationDraftCount,
+        wordpressDraftCount: wordpressDraftCountByAccount.get(account.id) ?? 0,
+        wordpressExpansionCount: expansionCountByUsername.get(`@${account.platformUsername}`) ?? 0,
+        exceptionCount,
+        needsDailyPost,
+        latestPublishedAt: latestPublished?.publishedAt ? formatDate(latestPublished.publishedAt) : undefined
       };
     });
   } catch {
