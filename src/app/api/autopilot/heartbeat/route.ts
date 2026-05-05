@@ -1,16 +1,12 @@
 import { NextResponse } from "next/server";
-import { runDailyPersonaAutopilot } from "@/lib/automation/daily-persona";
-import { runSeoOpportunityAutopilot } from "@/lib/automation/seo-opportunity";
+import { runOperatingHeartbeat } from "@/lib/automation/operating-heartbeat";
 
 export async function POST() {
   try {
-    const [personaResult, seoResult] = await Promise.all([runDailyPersonaAutopilot(), runSeoOpportunityAutopilot()]);
+    const result = await runOperatingHeartbeat();
     return NextResponse.json({
       ok: true,
-      result: {
-        persona: personaResult,
-        seo: seoResult
-      }
+      result
     });
   } catch (error) {
     return NextResponse.json(

@@ -7,11 +7,41 @@ const HEARTBEAT_INTERVAL_MS = 10 * 60 * 1000;
 const HEARTBEAT_THROTTLE_MS = 5 * 60 * 1000;
 
 type HeartbeatState = {
-  checked: number;
-  created: number;
-  skipped: number;
-  failed: number;
-  paused: boolean;
+  persona: {
+    checked: number;
+    created: number;
+    skipped: number;
+    failed: number;
+    paused: boolean;
+  };
+  sourceRefresh: {
+    total: number;
+    results: Array<{ id: string; ok: boolean; changed?: boolean }>;
+  };
+  sourceImports: {
+    total: number;
+    imported: number;
+    results: Array<{ id: string; ok: boolean; imported?: boolean; drafts?: number }>;
+  };
+  promoted: {
+    checked: number;
+    promoted: number;
+    skipped: number;
+    paused: boolean;
+  };
+  scheduler: {
+    processed: number;
+    published: number;
+    failed: number;
+  };
+  seo: {
+    checked: number;
+    handled: number;
+    observed: number;
+    skipped: number;
+    failed: number;
+    paused: boolean;
+  };
 };
 
 export function AutopilotHeartbeat({ compact = false }: { compact?: boolean }) {
@@ -49,22 +79,39 @@ export function AutopilotHeartbeat({ compact = false }: { compact?: boolean }) {
         }
 
         const summary = result.result as HeartbeatState;
-        if (summary.paused) {
+        if (summary.persona.paused) {
           setMessage("Autopilot 目前處於暫停狀態");
           return;
         }
 
-        if (summary.created > 0) {
-          setMessage(`Autopilot 已自動補跑，新增 ${summary.created} 篇今日候選稿`);
+        const refreshedSourceCount = summary.sourceRefresh.results.filter((item) => item.ok && item.changed).length;
+        const importedSourceCount = summary.sourceImports.imported;
+        const createdDraftCount = summary.persona.created;
+        const promotedCount = summary.promoted.promoted;
+        const publishedCount = summary.scheduler.published;
+        const seoHandledCount = summary.seo.handled;
+        const failedCount = summary.persona.failed + summary.scheduler.failed + summary.seo.failed;
+
+        if (publishedCount > 0) {
+          setMessage(`系統已自動發布 ${publishedCount} 篇排程內容，並持續補跑來源與草稿。`);
           return;
         }
 
-        if (summary.failed > 0) {
-          setMessage(`Autopilot 背景檢查完成，但有 ${summary.failed} 個 persona 失敗`);
+        if (createdDraftCount > 0 || importedSourceCount > 0 || promotedCount > 0 || seoHandledCount > 0) {
+          setMessage(
+            `系統已自動運轉：刷新 ${refreshedSourceCount} 個來源、匯入 ${importedSourceCount} 則、產文 ${createdDraftCount} 篇、升級排程 ${promotedCount} 篇。`
+          );
           return;
         }
 
-        setMessage(`Autopilot 已背景檢查 ${summary.checked} 個 persona，目前沒有新的到點內容`);
+        if (failedCount > 0) {
+          setMessage(`背景自動化有 ${failedCount} 個失敗項目，建議去 Review / Ops 看例外。`);
+          return;
+        }
+
+        setMessage(
+          `系統已背景檢查 ${summary.persona.checked} 個 persona、${summary.sourceRefresh.total} 個來源與 ${summary.scheduler.processed} 個排程，目前沒有新的到點任務。`
+        );
       } catch {
         if (!disposed) {
           setMessage("Autopilot 背景檢查暫時失敗");
