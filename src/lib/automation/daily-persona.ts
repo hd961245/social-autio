@@ -376,6 +376,15 @@ export async function runDailyPersonaAutopilot(now = new Date()) {
     }
   }
 
+  const guarantee = await ensureDailyThreadsMinimum(now, settings?.autopilotMode ?? "near_full_auto");
+  if (guarantee.created) {
+    created += 1;
+  } else if (guarantee.skipped) {
+    skipped += 1;
+  } else if (guarantee.failed) {
+    failed += 1;
+  }
+
   return {
     checked: accounts.length,
     created,
@@ -397,6 +406,7 @@ async function generateDailyPersonaPost(params: {
   accountId: string;
   now: Date;
   mode: "scheduled-only-if-due" | "force";
+  minimumDailyGuarantee?: boolean;
 }) {
   const [settings, account] = await Promise.all([
     prisma.appSettings.findFirst(),
@@ -549,7 +559,7 @@ async function generateDailyPersonaPost(params: {
           missionSignals.focusKnowledge
         : false;
   const status =
-    siteAutopilotMode === "review_only" || account.autoGenerateMode === "draft" || !canScheduleBySource
+    siteAutopilotMode === "review_only" || (!params.minimumDailyGuarantee && account.autoGenerateMode === "draft") || !canScheduleBySource
       ? "draft"
       : "scheduled";
   const timingSuggestion =
@@ -637,4 +647,138 @@ async function generateDailyPersonaPost(params: {
     scheduledAt: status === "scheduled" ? (timingSuggestion?.scheduledAt ?? new Date(params.now.getTime() + 60 * 1000)).toISOString() : null,
     timingDetail: timingSuggestion?.detail ?? null
   };
+}
+
+async function ensureDailyThreadsMinimum(now: Date, autopilotMode: string) {
+  if (autopilotMode === "review_only") {
+    return {
+      created: false,
+      skipped: true,
+      failed: false,
+      reason: "review_only"
+    };
+  }
+
+  const todayKey = getLocalDateKey(now);
+  const recentPosts = await prisma.post.findMany({
+    where: {
+      account: {
+        platform: "threads",
+        isActive: true
+      },
+      status: {
+        in: ["scheduled", "published", "publishing", "awaiting_approval", "draft"]
+      },
+      createdAt: {
+        gte: new Date(now.getTime() - 36 * 60 * 60 * 1000)
+      }
+    },
+    include: {
+      account: true
+    },
+    orderBy: {
+      createdAt: "desc"
+    },
+    take: 60
+  });
+
+  const hasTodayThreads = recentPosts.some((post) => {
+    const anchor = post.publishedAt ?? post.scheduledAt ?? post.createdAt;
+    return getLocalDateKey(anchor) === todayKey;
+  });
+
+  if (hasTodayThreads) {
+    return {
+      created: false,
+      skipped: true,
+      failed: false,
+      reason: "already_has_post"
+    };
+  }
+
+  const candidateAccounts = await prisma.platformAccount.findMany({
+    where: {
+      isActive: true,
+      platform: "threads",
+      autoGenerateEnabled: true
+    },
+    include: {
+      posts: {
+        where: {
+          status: "published",
+          publishedAt: {
+            not: null
+          }
+        },
+        orderBy: {
+          publishedAt: "desc"
+        },
+        take: 12,
+        include: {
+          metrics: {
+            orderBy: {
+              capturedAt: "desc"
+            },
+            take: 1
+          }
+        }
+      }
+    }
+  });
+
+  if (!candidateAccounts.length) {
+    return {
+      created: false,
+      skipped: true,
+      failed: false,
+      reason: "no_accounts"
+    };
+  }
+
+  const bestAccount = [...candidateAccounts].sort((left, right) => {
+    const leftScore = left.posts.reduce((sum, post) => sum + getMetricScore(post.metrics[0]), 0);
+    const rightScore = right.posts.reduce((sum, post) => sum + getMetricScore(post.metrics[0]), 0);
+    return rightScore - leftScore;
+  })[0];
+
+  try {
+    await generateDailyPersonaPost({
+      accountId: bestAccount.id,
+      now,
+      mode: "force",
+      minimumDailyGuarantee: true
+    });
+
+    await prisma.automationLog.create({
+      data: {
+        accountId: bestAccount.id,
+        actionType: "daily_minimum_threads_guarantee",
+        status: "scheduled",
+        detail: `系統偵測今天尚未有 Threads 內容，已自動為 @${bestAccount.platformUsername} 補足每日最低一篇。`
+      }
+    });
+
+    return {
+      created: true,
+      skipped: false,
+      failed: false,
+      reason: "guaranteed"
+    };
+  } catch (error) {
+    await prisma.automationLog.create({
+      data: {
+        accountId: bestAccount.id,
+        actionType: "daily_minimum_threads_guarantee",
+        status: "failed",
+        detail: error instanceof Error ? error.message : "Daily minimum threads guarantee failed"
+      }
+    });
+
+    return {
+      created: false,
+      skipped: false,
+      failed: true,
+      reason: "failed"
+    };
+  }
 }
