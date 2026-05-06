@@ -6,6 +6,7 @@ import { AccountPersonaManager } from "@/components/dashboard/account-persona-ma
 import { AutopilotEditorialControl } from "@/components/dashboard/autopilot-editorial-control";
 import { PageIntro } from "@/components/dashboard/page-intro";
 import { buildAutopilotLearningGuide } from "@/lib/automation/autopilot-learning";
+import { getEffectiveAutopilotMode, isAutopilotEnabledForAccount } from "@/lib/automation/account-autopilot";
 import { inferBestScheduleTime } from "@/lib/automation/autopilot-timing";
 import { prisma } from "@/lib/prisma";
 import { getAccountOperatingSummaries } from "@/lib/dashboard-data";
@@ -127,9 +128,13 @@ export default async function AccountsPage() {
       .filter((log) => log.accountId)
       .map((log) => [log.accountId as string, log] as const)
   );
+  const siteAutopilotMode =
+    settings?.autopilotMode === "review_only" || settings?.autopilotMode === "auto_schedule"
+      ? settings.autopilotMode
+      : "near_full_auto";
 
   const enabledAutopilotCount = rawAccounts.filter(
-    (account) => account.platform === "threads" && account.autoGenerateEnabled
+    (account) => account.platform === "threads" && isAutopilotEnabledForAccount(account, siteAutopilotMode)
   ).length;
   const todayPublished = displayAccounts.reduce((sum, account) => sum + account.todayPublishedCount, 0);
   const todayScheduled = displayAccounts.reduce((sum, account) => sum + account.todayScheduledCount, 0);
@@ -358,9 +363,9 @@ export default async function AccountsPage() {
           hookStyle: account.hookStyle ?? "",
           ctaStyle: account.ctaStyle ?? "",
           voiceGuardrails: account.voiceGuardrails ?? "",
-          autoGenerateEnabled: account.autoGenerateEnabled ?? false,
           autoGenerateTime: account.autoGenerateTime ?? "09:00",
-          autoGenerateMode: account.autoGenerateMode === "draft" ? "draft" : "scheduled",
+          autoGenerateEnabled: isAutopilotEnabledForAccount(account, siteAutopilotMode),
+          autoGenerateMode: getEffectiveAutopilotMode(account),
           autoGeneratePrompt: account.autoGeneratePrompt ?? "",
           autoGenerateGoal: account.autoGenerateGoal ?? "",
           lastAutopilotStatus: latestAutopilotLogByAccount.get(account.id)?.status,

@@ -99,6 +99,7 @@ export async function getOpsDiagnostics(): Promise<OpsDiagnostics> {
     checkEnv("GOOGLE_OAUTH_REFRESH_TOKEN", process.env.GOOGLE_OAUTH_REFRESH_TOKEN),
     checkEnv("GSC_SITE_URL", process.env.GSC_SITE_URL),
     checkEnv("GSC_CLIENT_EMAIL", process.env.GSC_CLIENT_EMAIL ?? process.env.GA4_CLIENT_EMAIL),
+    checkEnv("CRON_SECRET", process.env.CRON_SECRET),
     checkEnv("INNGEST_EVENT_KEY", process.env.INNGEST_EVENT_KEY),
     checkEnv("INNGEST_SIGNING_KEY", process.env.INNGEST_SIGNING_KEY),
     checkEnv("INNGEST_SERVE_ORIGIN", process.env.INNGEST_SERVE_ORIGIN)
@@ -150,6 +151,11 @@ export async function getOpsDiagnostics(): Promise<OpsDiagnostics> {
     if (!process.env.INNGEST_EVENT_KEY || !process.env.INNGEST_SIGNING_KEY || !process.env.INNGEST_SERVE_ORIGIN) {
       warnings.push("Inngest 環境變數不完整，排程任務可能不會正常工作。");
       hints.push("補齊 `INNGEST_EVENT_KEY`、`INNGEST_SIGNING_KEY`、`INNGEST_SERVE_ORIGIN` 後，再到 Inngest 確認 `/api/inngest` 已 sync。");
+    }
+
+    if (!process.env.CRON_SECRET) {
+      warnings.push("目前沒有設定 CRON_SECRET，若要用外部 cron 打 `/api/cron/heartbeat` 與 `/api/cron/scheduler`，請先補上。");
+      hints.push("如果 Inngest 還沒接好，至少先設定 `CRON_SECRET`，再用外部 cron 定時呼叫 `/api/cron/heartbeat?secret=...`。");
     }
 
     if (!geminiHealth.ok) {
@@ -253,6 +259,13 @@ export async function getOpsDiagnostics(): Promise<OpsDiagnostics> {
           process.env.INNGEST_EVENT_KEY && process.env.INNGEST_SIGNING_KEY && process.env.INNGEST_SERVE_ORIGIN
             ? "Inngest 主要 env 已存在。"
             : "Inngest env 不完整，手動功能可用，但排程可能不穩。"
+      },
+      {
+        label: "External cron fallback",
+        status: process.env.CRON_SECRET ? "pass" : "check",
+        detail: process.env.CRON_SECRET
+          ? "已可安全呼叫 `/api/cron/heartbeat` 或 `/api/cron/scheduler` 當作排程備援。"
+          : "尚未設定 CRON_SECRET，外部 cron 備援還沒建立。"
       },
       {
         label: "已有 Threads 帳號",
@@ -385,6 +398,13 @@ export async function getOpsDiagnostics(): Promise<OpsDiagnostics> {
             process.env.INNGEST_EVENT_KEY && process.env.INNGEST_SIGNING_KEY && process.env.INNGEST_SERVE_ORIGIN
               ? "Inngest 主要 env 已存在。"
               : "Inngest env 不完整，手動功能可用，但排程可能不穩。"
+        },
+        {
+          label: "External cron fallback",
+          status: process.env.CRON_SECRET ? "pass" : "check",
+          detail: process.env.CRON_SECRET
+            ? "已可安全呼叫 `/api/cron/heartbeat` 或 `/api/cron/scheduler` 當作排程備援。"
+            : "尚未設定 CRON_SECRET，外部 cron 備援還沒建立。"
         },
         {
           label: "已有 Threads 帳號",

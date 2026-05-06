@@ -7,12 +7,12 @@ import { SyncWordPressButton } from "@/components/dashboard/sync-wordpress-butto
 import { getGscOpportunityQueue } from "@/lib/gsc";
 import { summarizeMissionStrategy } from "@/lib/mission-scoring";
 import { prisma } from "@/lib/prisma";
-import { getPostSummaries, getWordPressExpansionCandidates } from "@/lib/dashboard-data";
+import { getPortfolioOperatingSnapshot, getPostSummaries, getWordPressExpansionCandidates } from "@/lib/dashboard-data";
 
 export const dynamic = "force-dynamic";
 
 export default async function ReviewBoardPage() {
-  const [posts, expansionCandidates, optimizationDrafts, expansionLogs, settings, failedLogs, gscOpportunities] = await Promise.all([
+  const [posts, expansionCandidates, optimizationDrafts, expansionLogs, settings, failedLogs, gscOpportunities, portfolio] = await Promise.all([
     getPostSummaries(),
     getWordPressExpansionCandidates(),
     prisma.post.findMany({
@@ -74,7 +74,8 @@ export default async function ReviewBoardPage() {
       configured: false,
       items: [],
       message: "目前還讀不到 Search Console 機會隊列。"
-    }))
+    })),
+    getPortfolioOperatingSnapshot()
   ]);
   const missionStrategy = summarizeMissionStrategy({
     title: settings?.missionTitle,
@@ -249,7 +250,11 @@ export default async function ReviewBoardPage() {
         {[
           { label: "待拍板 Threads", value: String(reviewPosts.length), detail: "需要先進 assignment / review workspace" },
           { label: "可直接最後確認", value: String(directPosts.length), detail: "高信心稿，可直接最後確認與送出" },
-          { label: "長文擴寫候選", value: String(expansionCandidates.length), detail: "值得沉成 WordPress draft 的強表現貼文" }
+          {
+            label: "失敗 / SEO 例外",
+            value: String(portfolio.failedRuns24h + portfolio.seoOpportunityCount),
+            detail: "背景失敗與搜尋機會都算少量高價值例外"
+          }
         ].map((card) => (
           <article key={card.label} className="metric-card">
             <p className="text-xs uppercase tracking-[0.24em] text-[var(--muted)]">{card.label}</p>

@@ -7,17 +7,19 @@ import {
   buildLearningSignals,
   getAccountOperatingSummaries,
   getKeywordHitSummaries,
+  getPortfolioOperatingSnapshot,
   getPostSummaries
 } from "@/lib/dashboard-data";
 import { scoreSourceItem } from "@/lib/content/source-inbox";
 import { getGscOpportunityQueue } from "@/lib/gsc";
 import { summarizeMissionStrategy } from "@/lib/mission-scoring";
+import { getOpsDiagnostics } from "@/lib/ops-diagnostics";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
 export default async function DeskPage() {
-  const [settings, accountSummaries, posts, keywordHits, sourceItems, gscOpportunities, failedLogs, analyticsOverview] =
+  const [settings, accountSummaries, posts, keywordHits, sourceItems, gscOpportunities, failedLogs, analyticsOverview, portfolio, diagnostics] =
     await Promise.all([
       prisma.appSettings.findFirst(),
       getAccountOperatingSummaries(),
@@ -49,7 +51,9 @@ export default async function DeskPage() {
         },
         take: 6
       }).catch(() => []),
-      getAnalyticsOverview({ window: "30d", accountId: "all" }).catch(() => null)
+      getAnalyticsOverview({ window: "30d", accountId: "all" }).catch(() => null),
+      getPortfolioOperatingSnapshot(),
+      getOpsDiagnostics()
     ]);
 
   const missionTitle = settings?.missionTitle?.trim() || "7 個月內，讓接入帳號進入台灣前 50 大理財內容流量級";
@@ -67,14 +71,56 @@ export default async function DeskPage() {
     targetValue: settings?.missionTargetValue
   });
 
-  const todayPublished = accountSummaries.reduce((sum, account) => sum + account.todayPublishedCount, 0);
-  const todayScheduled = accountSummaries.reduce((sum, account) => sum + account.todayScheduledCount, 0);
-  const totalPendingReview = accountSummaries.reduce((sum, account) => sum + account.reviewDraftCount, 0);
-  const totalDirectDrafts = accountSummaries.reduce((sum, account) => sum + account.directDraftCount, 0);
-  const totalOptimization = accountSummaries.reduce((sum, account) => sum + account.optimizationDraftCount, 0);
-  const totalWordPressExpansion = accountSummaries.reduce((sum, account) => sum + account.wordpressExpansionCount, 0);
+  const todayPublished = portfolio.todayPublished;
+  const todayScheduled = portfolio.todayScheduled;
+  const totalPendingReview = portfolio.pendingReview;
+  const totalDirectDrafts = portfolio.directDrafts;
+  const totalOptimization = portfolio.optimizationDrafts;
+  const totalWordPressExpansion = portfolio.wordpressExpansion;
   const accountsNeedingCoverage = accountSummaries.filter((account) => account.needsDailyPost);
   const expiringAccounts = accountSummaries.filter((account) => account.tokenStatus === "expiring");
+  const healthCards = [
+    {
+      label: "Database",
+      value: diagnostics.database.ready ? "Ready" : "Check",
+      detail: diagnostics.database.detail
+    },
+    {
+      label: "Schema",
+      value: diagnostics.schema.looksDrifted ? "Drifted" : "Aligned",
+      detail: diagnostics.schema.detail
+    },
+    {
+      label: "AI",
+      value: diagnostics.aiHealth.gemini.ok ? "Ready" : "Fallback",
+      detail: diagnostics.aiHealth.gemini.message
+    },
+    {
+      label: "Scheduler",
+      value:
+        diagnostics.envChecks.some((check) => check.key === "INNGEST_SIGNING_KEY" && check.status === "present") &&
+        diagnostics.envChecks.some((check) => check.key === "INNGEST_EVENT_KEY" && check.status === "present") &&
+        diagnostics.envChecks.some((check) => check.key === "INNGEST_SERVE_ORIGIN" && check.status === "present")
+          ? "Configured"
+          : "Check",
+      detail:
+        portfolio.failedRuns24h > 0
+          ? `過去 24 小時有 ${portfolio.failedRuns24h} 筆失敗背景任務`
+          : "Inngest env 看起來齊全，最近 24 小時沒有失敗背景任務"
+    },
+    {
+      label: "Daily Report",
+      value:
+        diagnostics.envChecks.some((check) => check.key === "DISCORD_DAILY_WEBHOOK_URL" && check.status === "present") ||
+        (diagnostics.envChecks.some((check) => check.key === "TELEGRAM_BOT_TOKEN" && check.status === "present") &&
+          diagnostics.envChecks.some((check) => check.key === "TELEGRAM_CHAT_ID" && check.status === "present"))
+          ? "Configured"
+          : "Optional",
+      detail:
+        diagnostics.deployChecklist.find((item) => item.label === "每日日報 / Discord / Telegram")?.detail ??
+        "尚未確認通知通道"
+    }
+  ];
 
   const todayDraftPicks = posts
     .filter((post) => post.platform === "threads" && post.status === "draft")
@@ -198,13 +244,13 @@ export default async function DeskPage() {
             <div className="rounded-[1.2rem] border border-white/10 bg-white/5 px-4 py-3 text-left sm:text-right">
               <p className="text-[11px] uppercase tracking-[0.24em] text-white/55">Autopilot</p>
               <p className="mt-2 text-lg font-semibold">
-                {settings?.autopilotMode === "review_only"
+                {portfolio.autopilotMode === "review_only"
                   ? "只進 Review"
-                  : settings?.autopilotMode === "auto_schedule"
+                  : portfolio.autopilotMode === "auto_schedule"
                     ? "高自動排程"
                     : "近乎全自動"}
               </p>
-              <p className="mt-1 text-xs text-white/60">{settings?.automationPaused ? "目前已暫停" : "背景飛輪自動運轉中"}</p>
+              <p className="mt-1 text-xs text-white/60">{portfolio.automationPaused ? "目前已暫停" : "背景飛輪自動運轉中"}</p>
             </div>
           </div>
 
@@ -264,6 +310,30 @@ export default async function DeskPage() {
             <AutopilotHeartbeat />
           </div>
         </article>
+      </section>
+
+      <section className="glass-panel rounded-[2rem] border border-[var(--border)] p-6">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <p className="text-[11px] uppercase tracking-[0.3em] text-[var(--muted)]">Operating Health</p>
+            <h2 className="mt-2 text-2xl font-semibold">先確認這套飛輪能不能穩定自己運轉</h2>
+            <p className="mt-3 max-w-3xl text-sm leading-7 text-[var(--muted)]">
+              這層只看會不會卡住營運的底層健康度：DB、schema、AI、排程與每日日報。如果這裡出現紅旗，功能再多都不算真的可用。
+            </p>
+          </div>
+          <Link href="/ops" className="rounded-full border border-[var(--border)] bg-white/80 px-4 py-2 text-sm">
+            去 Ops 診斷
+          </Link>
+        </div>
+        <div className="mt-5 grid gap-3 xl:grid-cols-5">
+          {healthCards.map((card) => (
+            <article key={card.label} className="rounded-[1.25rem] border border-[var(--border)] bg-white/82 p-4">
+              <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">{card.label}</p>
+              <p className="mt-3 text-2xl font-semibold">{card.value}</p>
+              <p className="mt-2 text-sm leading-7 text-[var(--muted)]">{card.detail}</p>
+            </article>
+          ))}
+        </div>
       </section>
 
       <section className="grid gap-4">

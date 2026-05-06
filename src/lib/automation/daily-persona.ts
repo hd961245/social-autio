@@ -1,4 +1,5 @@
 import { rewriteContentWithAi } from "@/lib/ai/gateway";
+import { getEffectiveAutopilotMode, isAutopilotEnabledForAccount } from "@/lib/automation/account-autopilot";
 import { inferBestScheduleTime } from "@/lib/automation/autopilot-timing";
 import { buildAutopilotLearningGuide, buildAutopilotLearningPrompt } from "@/lib/automation/autopilot-learning";
 import { prisma } from "@/lib/prisma";
@@ -325,6 +326,10 @@ async function buildRecentSourceMemory(userId: string, mission?: MissionContext 
 
 export async function runDailyPersonaAutopilot(now = new Date()) {
   const settings = await prisma.appSettings.findFirst();
+  const siteAutopilotMode =
+    settings?.autopilotMode === "review_only" || settings?.autopilotMode === "auto_schedule"
+      ? settings.autopilotMode
+      : "near_full_auto";
 
   if (settings?.automationPaused) {
     return {
@@ -339,19 +344,19 @@ export async function runDailyPersonaAutopilot(now = new Date()) {
   const accounts = await prisma.platformAccount.findMany({
     where: {
       isActive: true,
-      platform: "threads",
-      autoGenerateEnabled: true
+      platform: "threads"
     },
     orderBy: {
       createdAt: "asc"
     }
   });
+  const eligibleAccounts = accounts.filter((account) => isAutopilotEnabledForAccount(account, siteAutopilotMode));
 
   let created = 0;
   let skipped = 0;
   let failed = 0;
 
-  for (const account of accounts) {
+  for (const account of eligibleAccounts) {
     try {
       const outcome = await generateDailyPersonaPost({
         accountId: account.id,
@@ -387,7 +392,7 @@ export async function runDailyPersonaAutopilot(now = new Date()) {
   }
 
   return {
-    checked: accounts.length,
+    checked: eligibleAccounts.length,
     created,
     skipped,
     failed,
@@ -463,8 +468,9 @@ async function generateDailyPersonaPost(params: {
   }
 
   const dateKey = getLocalDateKey(params.now);
+  const effectiveAutopilotMode = getEffectiveAutopilotMode(account);
   const tagPrefix = params.mode === "force" ? `manual-daily-ai:${account.id}:${dateKey}:${params.now.getTime()}` : `daily-ai:${account.id}:${dateKey}`;
-  const desiredCount = account.autoGenerateMode === "draft" ? DAILY_DRAFT_CANDIDATE_COUNT : 1;
+  const desiredCount = effectiveAutopilotMode === "draft" ? DAILY_DRAFT_CANDIDATE_COUNT : 1;
 
   const existingPosts = await prisma.post.findMany({
     where: {
@@ -569,8 +575,11 @@ async function generateDailyPersonaPost(params: {
 
   const tone = account.defaultTone?.trim() || settings?.defaultTone?.trim() || "sharp-observer";
   const siteAutopilotMode = settings?.autopilotMode?.trim() || "near_full_auto";
+  const shouldForceMinimumSchedule = Boolean(params.minimumDailyGuarantee) && siteAutopilotMode !== "review_only";
   const canScheduleBySource =
-    siteAutopilotMode === "auto_schedule"
+    shouldForceMinimumSchedule
+      ? true
+      : siteAutopilotMode === "auto_schedule"
       ? sourceMemory.confidence === "high" ||
         (sourceMemory.confidence === "medium" && (missionSignals.focusTraffic || missionSignals.focusConversation))
       : siteAutopilotMode === "near_full_auto"
@@ -580,7 +589,9 @@ async function generateDailyPersonaPost(params: {
           missionSignals.focusKnowledge
         : false;
   const status =
-    siteAutopilotMode === "review_only" || (!params.minimumDailyGuarantee && account.autoGenerateMode === "draft") || !canScheduleBySource
+    siteAutopilotMode === "review_only" ||
+    (!params.minimumDailyGuarantee && effectiveAutopilotMode === "draft") ||
+    !canScheduleBySource
       ? "draft"
       : "scheduled";
   const timingSuggestion =
@@ -705,12 +716,16 @@ async function ensureDailyThreadsMinimum(now: Date, autopilotMode: string) {
     take: 60
   });
 
-  const hasTodayThreads = recentPosts.some((post) => {
+  const hasTodayOutboundThreads = recentPosts.some((post) => {
+    if (!["scheduled", "published", "publishing", "awaiting_approval"].includes(post.status)) {
+      return false;
+    }
+
     const anchor = post.publishedAt ?? post.scheduledAt ?? post.createdAt;
     return getLocalDateKey(anchor) === todayKey;
   });
 
-  if (hasTodayThreads) {
+  if (hasTodayOutboundThreads) {
     return {
       created: false,
       skipped: true,
@@ -722,8 +737,7 @@ async function ensureDailyThreadsMinimum(now: Date, autopilotMode: string) {
   const candidateAccounts = await prisma.platformAccount.findMany({
     where: {
       isActive: true,
-      platform: "threads",
-      autoGenerateEnabled: true
+      platform: "threads"
     },
     include: {
       posts: {
@@ -748,8 +762,14 @@ async function ensureDailyThreadsMinimum(now: Date, autopilotMode: string) {
       }
     }
   });
+  const eligibleCandidateAccounts = candidateAccounts.filter((account) =>
+    isAutopilotEnabledForAccount(
+      account,
+      autopilotMode === "review_only" || autopilotMode === "auto_schedule" ? autopilotMode : "near_full_auto"
+    )
+  );
 
-  if (!candidateAccounts.length) {
+  if (!eligibleCandidateAccounts.length) {
     return {
       created: false,
       skipped: true,
@@ -758,7 +778,7 @@ async function ensureDailyThreadsMinimum(now: Date, autopilotMode: string) {
     };
   }
 
-  const bestAccount = [...candidateAccounts].sort((left, right) => {
+  const bestAccount = [...eligibleCandidateAccounts].sort((left, right) => {
     const leftScore = left.posts.reduce((sum, post) => sum + getMetricScore(post.metrics[0]), 0);
     const rightScore = right.posts.reduce((sum, post) => sum + getMetricScore(post.metrics[0]), 0);
     return rightScore - leftScore;

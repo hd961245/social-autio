@@ -32,6 +32,8 @@ export async function GET(request: Request) {
     const adapter = getPlatformAdapter("threads");
     const token = await adapter.exchangeCodeForToken(payload.code);
     const profile = await getThreadsProfile(token.accessToken);
+    const settings = await prisma.appSettings.findFirst();
+    const defaultAutopilotEnabled = settings?.autopilotMode !== "review_only";
 
     const user = await prisma.user.upsert({
       where: { id: "seed-admin" },
@@ -67,6 +69,9 @@ export async function GET(request: Request) {
         accessToken: encryptString(token.accessToken),
         tokenType: token.tokenType,
         tokenExpiresAt: token.expiresAt,
+        autoGenerateEnabled: defaultAutopilotEnabled,
+        autoGenerateMode: "scheduled",
+        autoGenerateTime: "09:00",
         isActive: true,
         lastSyncedAt: new Date()
       }

@@ -37,7 +37,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         hookStyle: payload.hookStyle || null,
         ctaStyle: payload.ctaStyle || null,
         voiceGuardrails: payload.voiceGuardrails || null,
-        autoGenerateEnabled: payload.autoGenerateEnabled ?? false,
+        autoGenerateEnabled: payload.autoGenerateEnabled,
         autoGenerateTime: payload.autoGenerateTime || "09:00",
         autoGenerateMode: payload.autoGenerateMode || "scheduled",
         autoGeneratePrompt: payload.autoGeneratePrompt || null,

@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { getPlatformAdapter } from "@/lib/platforms";
+import { getEffectiveAutopilotMode, isAutopilotEnabledForAccount } from "@/lib/automation/account-autopilot";
 import { inferBestScheduleTime } from "@/lib/automation/autopilot-timing";
+import { getGscOpportunityQueue } from "@/lib/gsc";
 import {
   getMissionDraftBoost,
   getMissionLongformBoost,
@@ -249,6 +251,25 @@ export type LearningSignalSummary = {
   label: string;
   observation: string;
   update: string;
+};
+
+export type PortfolioOperatingSnapshot = {
+  automationPaused: boolean;
+  autopilotMode: "review_only" | "auto_schedule" | "near_full_auto";
+  wordpressPublishMode: "draft_only" | "auto_publish";
+  activeAccounts: number;
+  accountsNeedingCoverage: number;
+  expiringAccounts: number;
+  todayPublished: number;
+  todayScheduled: number;
+  directDrafts: number;
+  pendingReview: number;
+  optimizationDrafts: number;
+  wordpressExpansion: number;
+  totalExceptions: number;
+  failedRuns24h: number;
+  failedRuns14d: number;
+  seoOpportunityCount: number;
 };
 
 function clamp(value: number, min: number, max: number) {
@@ -954,6 +975,12 @@ export async function getAccountOperatingSummaries(): Promise<AccountOperatingSu
     });
 
     return accounts.map((account) => {
+      const siteAutopilotMode =
+        settings?.autopilotMode === "review_only" || settings?.autopilotMode === "auto_schedule"
+          ? settings.autopilotMode
+          : "near_full_auto";
+      const effectiveAutopilotEnabled = isAutopilotEnabledForAccount(account, siteAutopilotMode);
+      const effectiveAutopilotMode = getEffectiveAutopilotMode(account);
       const latestMetrics = account.metricsSnapshots[0];
       const todayPublishedCount = account.posts.filter(
         (post) => post.status === "published" && toTaipeiDayKey(post.publishedAt ?? post.createdAt) === currentDayKey
@@ -971,7 +998,7 @@ export async function getAccountOperatingSummaries(): Promise<AccountOperatingSu
       const optimizationDraftCount = account.posts.filter((post) => post.topicTag?.startsWith("optimize:")).length;
       const latestPublished = account.posts.find((post) => post.status === "published" && post.publishedAt);
       const needsDailyPost =
-        account.autoGenerateEnabled && todayPublishedCount + todayScheduledCount === 0 && settings?.autopilotMode !== "review_only";
+        effectiveAutopilotEnabled && todayPublishedCount + todayScheduledCount === 0 && settings?.autopilotMode !== "review_only";
       const exceptionCount =
         (failedCountByAccount.get(account.id) ?? 0) +
         (getTokenStatus(account.tokenExpiresAt) === "expiring" ? 1 : 0) +
@@ -987,8 +1014,8 @@ export async function getAccountOperatingSummaries(): Promise<AccountOperatingSu
         lastSyncedAt: formatDate(account.lastSyncedAt),
         followers: latestMetrics?.followerCount ?? 0,
         weeklyViews: latestMetrics?.totalViews ?? 0,
-        autopilotEnabled: account.autoGenerateEnabled ?? false,
-        autoGenerateMode: account.autoGenerateMode === "draft" ? "draft" : "scheduled",
+        autopilotEnabled: effectiveAutopilotEnabled,
+        autoGenerateMode: effectiveAutopilotMode,
         accountMission:
           account.autoGenerateGoal?.trim() ||
           account.topicFocus?.trim() ||
@@ -1016,6 +1043,77 @@ export async function getAccountOperatingSummaries(): Promise<AccountOperatingSu
     });
   } catch {
     return [];
+  }
+}
+
+export async function getPortfolioOperatingSnapshot(): Promise<PortfolioOperatingSnapshot> {
+  try {
+    const [settings, accountSummaries, failedRuns24h, failedRuns14d, gscOpportunities] = await Promise.all([
+      prisma.appSettings.findFirst(),
+      getAccountOperatingSummaries(),
+      prisma.automationLog.count({
+        where: {
+          status: "failed",
+          executedAt: {
+            gte: new Date(Date.now() - 24 * 60 * 60 * 1000)
+          }
+        }
+      }),
+      prisma.automationLog.count({
+        where: {
+          status: "failed",
+          executedAt: {
+            gte: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000)
+          }
+        }
+      }),
+      getGscOpportunityQueue().catch(() => ({
+        configured: false,
+        items: [],
+        message: "目前還讀不到 Search Console 機會隊列。"
+      }))
+    ]);
+
+    return {
+      automationPaused: settings?.automationPaused ?? false,
+      autopilotMode:
+        settings?.autopilotMode === "review_only" || settings?.autopilotMode === "auto_schedule"
+          ? settings.autopilotMode
+          : "near_full_auto",
+      wordpressPublishMode: settings?.wordpressPublishMode === "auto_publish" ? "auto_publish" : "draft_only",
+      activeAccounts: accountSummaries.length,
+      accountsNeedingCoverage: accountSummaries.filter((account) => account.needsDailyPost).length,
+      expiringAccounts: accountSummaries.filter((account) => account.tokenStatus === "expiring").length,
+      todayPublished: accountSummaries.reduce((sum, account) => sum + account.todayPublishedCount, 0),
+      todayScheduled: accountSummaries.reduce((sum, account) => sum + account.todayScheduledCount, 0),
+      directDrafts: accountSummaries.reduce((sum, account) => sum + account.directDraftCount, 0),
+      pendingReview: accountSummaries.reduce((sum, account) => sum + account.reviewDraftCount, 0),
+      optimizationDrafts: accountSummaries.reduce((sum, account) => sum + account.optimizationDraftCount, 0),
+      wordpressExpansion: accountSummaries.reduce((sum, account) => sum + account.wordpressExpansionCount, 0),
+      totalExceptions: accountSummaries.reduce((sum, account) => sum + account.exceptionCount, 0),
+      failedRuns24h,
+      failedRuns14d,
+      seoOpportunityCount: gscOpportunities.items.length
+    };
+  } catch {
+    return {
+      automationPaused: false,
+      autopilotMode: "near_full_auto",
+      wordpressPublishMode: "draft_only",
+      activeAccounts: 0,
+      accountsNeedingCoverage: 0,
+      expiringAccounts: 0,
+      todayPublished: 0,
+      todayScheduled: 0,
+      directDrafts: 0,
+      pendingReview: 0,
+      optimizationDrafts: 0,
+      wordpressExpansion: 0,
+      totalExceptions: 0,
+      failedRuns24h: 0,
+      failedRuns14d: 0,
+      seoOpportunityCount: 0
+    };
   }
 }
 

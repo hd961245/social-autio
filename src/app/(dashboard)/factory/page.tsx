@@ -4,7 +4,9 @@ import { ContentEngineForm } from "@/components/dashboard/content-engine-form";
 import { HelpSheet } from "@/components/dashboard/help-sheet";
 import { PageIntro } from "@/components/dashboard/page-intro";
 import { SeoOpportunityDraftButton } from "@/components/dashboard/seo-opportunity-draft-button";
+import { getPortfolioOperatingSnapshot } from "@/lib/dashboard-data";
 import { getGscOpportunityQueue } from "@/lib/gsc";
+import { getOpsDiagnostics } from "@/lib/ops-diagnostics";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -38,6 +40,8 @@ export default async function FactoryPage() {
     items: [],
     message: "目前還讀不到 Search Console 機會隊列。"
   };
+  const portfolio = await getPortfolioOperatingSnapshot().catch(() => null);
+  const diagnostics = await getOpsDiagnostics().catch(() => null);
 
   try {
     [settings, ingestions, drafts, threadsAccounts, automationLogs, gscOpportunities] = await Promise.all([
@@ -222,6 +226,51 @@ export default async function FactoryPage() {
             <p className="mt-2 text-sm text-[var(--muted)]">{card.detail}</p>
           </article>
         ))}
+      </section>
+
+      <section className="glass-panel rounded-[2rem] border border-[var(--border)] p-6">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <p className="text-[11px] uppercase tracking-[0.24em] text-[var(--muted)]">Reliability Rail</p>
+            <h2 className="mt-2 text-2xl font-semibold">工廠層先看哪些底層訊號會讓飛輪斷掉</h2>
+          </div>
+          <Link href="/ops" className="text-sm font-medium text-[var(--accent)]">
+            去 Ops
+          </Link>
+        </div>
+        <div className="mt-5 grid gap-3 xl:grid-cols-4">
+          {[
+            {
+              label: "24h 失敗任務",
+              value: String(portfolio?.failedRuns24h ?? 0),
+              detail: (portfolio?.failedRuns24h ?? 0) > 0 ? "這代表背景工廠今天有斷點要補。" : "今天目前沒有新的背景失敗。"
+            },
+            {
+              label: "Schema",
+              value: diagnostics?.schema.looksDrifted ? "Drifted" : "Aligned",
+              detail: diagnostics?.schema.detail ?? "尚未讀到 schema 狀態"
+            },
+            {
+              label: "AI Health",
+              value: diagnostics?.aiHealth.gemini.ok ? "Ready" : "Fallback",
+              detail: diagnostics?.aiHealth.gemini.message ?? "尚未讀到 AI 健康狀態"
+            },
+            {
+              label: "Auto Coverage",
+              value: String(portfolio?.accountsNeedingCoverage ?? 0),
+              detail:
+                (portfolio?.accountsNeedingCoverage ?? 0) > 0
+                  ? "還有帳號今天沒滿一篇，工廠會優先補稿。"
+                  : "目前所有啟用中的帳號都已有今日覆蓋。"
+            }
+          ].map((card) => (
+            <article key={card.label} className="rounded-[1.25rem] border border-[var(--border)] bg-white/82 p-4">
+              <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">{card.label}</p>
+              <p className="mt-3 text-2xl font-semibold">{card.value}</p>
+              <p className="mt-2 text-sm leading-7 text-[var(--muted)]">{card.detail}</p>
+            </article>
+          ))}
+        </div>
       </section>
 
       <section className="glass-panel rounded-[2rem] border border-[var(--border)] p-6">

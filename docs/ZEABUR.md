@@ -71,6 +71,33 @@ Current scheduled jobs:
 
 If Inngest is not connected correctly, scheduled work will stop running even if the UI still looks normal.
 
+## 4.1 External Cron Fallback
+
+If Inngest is not stable yet, configure at least one external cron fallback:
+
+- every 15 minutes:
+
+```text
+https://your-domain/api/cron/heartbeat?secret=<CRON_SECRET>
+```
+
+This runs the whole operating heartbeat:
+
+- source refresh
+- source imports
+- daily persona generation
+- direct-draft promotion
+- scheduled Threads publishing
+- SEO opportunity autopilot
+
+- every 1 minute:
+
+```text
+https://your-domain/api/cron/scheduler?secret=<CRON_SECRET>
+```
+
+This is the lighter fallback for publication only. It now also promotes high-confidence drafts before checking due scheduled posts, so good drafts do not get stuck in `draft`.
+
 ## 5. Threads Redirect Setup
 
 In Meta Developer Console, set the redirect URI to:

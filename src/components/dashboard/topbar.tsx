@@ -1,7 +1,17 @@
-import { getActiveAccountSummary, getDatabaseStatus } from "@/lib/dashboard-data";
+import { getActiveAccountSummary, getDatabaseStatus, getPortfolioOperatingSnapshot } from "@/lib/dashboard-data";
 
 export async function Topbar() {
-  const [activeAccount, databaseStatus] = await Promise.all([getActiveAccountSummary(), getDatabaseStatus()]);
+  const [activeAccount, databaseStatus, portfolio] = await Promise.all([
+    getActiveAccountSummary(),
+    getDatabaseStatus(),
+    getPortfolioOperatingSnapshot()
+  ]);
+  const exceptionLabel =
+    portfolio.totalExceptions > 0
+      ? `${portfolio.totalExceptions} 個例外待處理`
+      : portfolio.automationPaused
+        ? "自動化目前暫停"
+        : "目前沒有明顯例外";
 
   return (
     <header className="glass-panel soft-grid overflow-hidden rounded-[2rem] border border-[var(--border)] px-6 py-5 fade-in-up">
@@ -21,12 +31,20 @@ export async function Topbar() {
             <p className="mt-1 break-words text-sm font-semibold">PM Ops → Accounts → Review → Factory</p>
           </div>
           <div className="rounded-[1.2rem] border border-[var(--border)] bg-white/60 px-4 py-3">
-            <p className="text-[11px] uppercase tracking-[0.25em] text-[var(--muted)]">目前帳號</p>
-            <p className="mt-1 text-sm font-semibold">{activeAccount ? activeAccount.username : "Not Connected"}</p>
+            <p className="text-[11px] uppercase tracking-[0.25em] text-[var(--muted)]">例外 / 覆蓋</p>
+            <p className="mt-1 text-sm font-semibold">{exceptionLabel}</p>
+            <p className="mt-1 text-xs text-[var(--muted)]">
+              今日已發 {portfolio.todayPublished} · 還缺 {portfolio.accountsNeedingCoverage}
+            </p>
           </div>
           <div className="rounded-[1.2rem] border border-[var(--border)] bg-[var(--card-dark)] px-4 py-3 text-white">
             <p className="text-[11px] uppercase tracking-[0.25em] text-white/60">Console Status</p>
-            <p className="mt-1 text-sm font-semibold">{databaseStatus.ready ? "高自動營運中" : "Setup First"}</p>
+            <p className="mt-1 text-sm font-semibold">
+              {databaseStatus.ready ? (portfolio.automationPaused ? "Paused" : "高自動營運中") : "Setup First"}
+            </p>
+            <p className="mt-1 text-xs text-white/60">
+              {activeAccount ? activeAccount.username : "尚未接上 Threads 帳號"}
+            </p>
           </div>
         </div>
       </div>
