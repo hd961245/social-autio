@@ -61,6 +61,56 @@ export default async function OpsPage() {
       </section>
 
       <section className="glass-panel rounded-[2rem] border border-[var(--border)] p-6">
+        <p className="text-[11px] uppercase tracking-[0.3em] text-[var(--muted)]">Automation Runtime</p>
+        <h2 className="mt-2 text-3xl font-semibold">背景排程最近有沒有真的跑</h2>
+        <div className="mt-6 grid gap-4 md:grid-cols-2">
+          {diagnostics.runtimeChecks.map((item) => (
+            <article key={item.label} className="rounded-[1.5rem] border border-[var(--border)] bg-white/75 p-4">
+              <div className="flex items-center justify-between gap-3">
+                <p className="font-medium">{item.label}</p>
+                <span
+                  className={`rounded-full px-3 py-1 text-xs ${
+                    item.tone === "good"
+                      ? "bg-emerald-50 text-emerald-700"
+                      : item.tone === "warn"
+                        ? "bg-amber-50 text-amber-700"
+                        : "bg-rose-50 text-rose-700"
+                  }`}
+                >
+                  {item.tone}
+                </span>
+              </div>
+              <p className="mt-4 text-2xl font-semibold leading-none">{item.value}</p>
+              <p className="mt-3 text-sm leading-6 text-[var(--muted)]">{item.detail}</p>
+            </article>
+          ))}
+        </div>
+        <div className="mt-6 max-h-[18rem] space-y-3 overflow-y-auto pr-1">
+          {diagnostics.runtimeLogs.map((log) => (
+            <article key={log.id} className="rounded-[1.4rem] border border-[var(--border)] bg-white/75 p-4 text-sm">
+              <div className="flex items-center justify-between gap-3">
+                <p className="font-medium">{log.actionType}</p>
+                <span
+                  className={`rounded-full px-3 py-1 text-xs ${
+                    log.status === "executed" ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"
+                  }`}
+                >
+                  {log.status}
+                </span>
+              </div>
+              <p className="mt-3 text-xs uppercase tracking-[0.22em] text-[var(--muted)]">{log.executedAt}</p>
+              <p className="mt-3 text-[var(--muted)]">{log.detail}</p>
+            </article>
+          ))}
+          {diagnostics.runtimeLogs.length === 0 ? (
+            <article className="rounded-[1.4rem] border border-[var(--border)] bg-white/75 p-4 text-sm text-[var(--muted)]">
+              目前還沒有 heartbeat / scheduler 執行紀錄。部署完後只要 cron 真的有打到站台，這裡就會開始出現時間與結果。
+            </article>
+          ) : null}
+        </div>
+      </section>
+
+      <section className="glass-panel rounded-[2rem] border border-[var(--border)] p-6">
         <p className="text-[11px] uppercase tracking-[0.3em] text-[var(--muted)]">Deploy Checklist</p>
         <h2 className="mt-2 text-3xl font-semibold">部署前檢查</h2>
         <div className="mt-6 grid max-h-[18rem] gap-4 overflow-y-auto pr-1 md:grid-cols-2 xl:grid-cols-3">

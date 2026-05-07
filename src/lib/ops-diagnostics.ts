@@ -48,6 +48,19 @@ type OpsDiagnostics = {
     detail: string;
     executedAt: string;
   }>;
+  runtimeChecks: Array<{
+    label: string;
+    value: string;
+    detail: string;
+    tone: "good" | "warn" | "bad";
+  }>;
+  runtimeLogs: Array<{
+    id: string;
+    actionType: string;
+    status: string;
+    detail: string;
+    executedAt: string;
+  }>;
   deployChecklist: Array<{
     label: string;
     status: "pass" | "check" | "fail";
@@ -131,12 +144,75 @@ export async function getOpsDiagnostics(): Promise<OpsDiagnostics> {
       },
       take: 5
     });
+    const runtimeLogs = await prisma.automationLog.findMany({
+      where: {
+        actionType: {
+          in: ["ops_heartbeat", "ops_scheduler"]
+        }
+      },
+      orderBy: {
+        executedAt: "desc"
+      },
+      take: 10
+    });
     const schemaColumns = new Set(schemaRows.map((row) => row.column_name));
     const schemaChecks = ["editorialDirection", "editorialGoal", "missionTitle", "autopilotMode", "wordpressPublishMode"].map((column) => ({
       column,
       status: schemaColumns.has(column) ? ("present" as const) : ("missing" as const)
     }));
     const looksDrifted = schemaChecks.some((check) => check.status === "missing");
+
+    const latestHeartbeat = runtimeLogs.find((log) => log.actionType === "ops_heartbeat");
+    const latestScheduler = runtimeLogs.find((log) => log.actionType === "ops_scheduler");
+    const fifteenMinutesAgo = Date.now() - 15 * 60 * 1000;
+    const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
+
+    const runtimeChecks: OpsDiagnostics["runtimeChecks"] = [
+      {
+        label: "Last Heartbeat",
+        value: latestHeartbeat ? latestHeartbeat.executedAt.toLocaleString("zh-TW", { hour12: false }) : "Never",
+        detail: latestHeartbeat?.detail ?? "還沒有看到 heartbeat 執行紀錄。",
+        tone: !latestHeartbeat
+          ? "bad"
+          : latestHeartbeat.status === "failed"
+            ? "bad"
+            : latestHeartbeat.executedAt.getTime() < fifteenMinutesAgo
+              ? "warn"
+              : "good"
+      },
+      {
+        label: "Last Scheduler",
+        value: latestScheduler ? latestScheduler.executedAt.toLocaleString("zh-TW", { hour12: false }) : "Never",
+        detail: latestScheduler?.detail ?? "還沒有看到 scheduler 執行紀錄。",
+        tone: !latestScheduler
+          ? "bad"
+          : latestScheduler.status === "failed"
+            ? "bad"
+            : latestScheduler.executedAt.getTime() < fiveMinutesAgo
+              ? "warn"
+              : "good"
+      }
+    ];
+
+    if (!latestHeartbeat) {
+      warnings.push("目前還沒有 heartbeat 執行紀錄，代表外部 cron 或舊 autopilot heartbeat 可能還沒真的打進來。");
+      hints.push("部署完成後先手動打一次 `/api/cron/heartbeat?secret=...`，確認 `/ops` 會出現 Last Heartbeat。");
+    }
+
+    if (!latestScheduler) {
+      warnings.push("目前還沒有 scheduler 執行紀錄，代表排程送文器還沒有真的跑過。");
+      hints.push("至少先讓外部 cron 每分鐘打一次 `/api/cron/scheduler?secret=...`，確認 `/ops` 會出現 Last Scheduler。");
+    }
+
+    if (latestHeartbeat && latestHeartbeat.executedAt.getTime() < fifteenMinutesAgo) {
+      warnings.push("最近一次 heartbeat 超過 15 分鐘，背景飛輪可能已經停住。");
+      hints.push("確認 Zeabur / 外部 cron 是否仍在定時呼叫 heartbeat route。");
+    }
+
+    if (latestScheduler && latestScheduler.executedAt.getTime() < fiveMinutesAgo) {
+      warnings.push("最近一次 scheduler 超過 5 分鐘，排程發文鏈可能沒有持續在跑。");
+      hints.push("確認 `/api/cron/scheduler` 或舊 scheduler 排程是否還在正常執行。");
+    }
 
     if (!process.env.DATABASE_URL) {
       warnings.push("目前沒有 DATABASE_URL，這份環境不會讀到原本雲端資料。");
@@ -312,6 +388,14 @@ export async function getOpsDiagnostics(): Promise<OpsDiagnostics> {
         detail: log.detail ?? "threads callback log",
         executedAt: log.executedAt.toLocaleString("zh-TW", { hour12: false })
       })),
+      runtimeChecks,
+      runtimeLogs: runtimeLogs.map((log) => ({
+        id: log.id,
+        actionType: log.actionType,
+        status: log.status,
+        detail: log.detail ?? "runtime log",
+        executedAt: log.executedAt.toLocaleString("zh-TW", { hour12: false })
+      })),
       deployChecklist
     };
   } catch (error) {
@@ -351,6 +435,8 @@ export async function getOpsDiagnostics(): Promise<OpsDiagnostics> {
       warnings,
       hints,
       threadsCallbackLogs: [],
+      runtimeChecks: [],
+      runtimeLogs: [],
       deployChecklist: [
         {
           label: "DATABASE_URL / DB 連線",

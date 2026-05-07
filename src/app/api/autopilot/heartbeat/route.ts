@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { runOperatingHeartbeat } from "@/lib/automation/operating-heartbeat";
+import { logAutomationRuntime } from "@/lib/automation/run-monitor";
 import { authorizeCronRequest } from "@/lib/cron-auth";
 
 async function handle(request: Request) {
@@ -11,11 +12,24 @@ async function handle(request: Request) {
     }
 
     const result = await runOperatingHeartbeat();
+    await logAutomationRuntime({
+      actionType: "ops_heartbeat",
+      status: "executed",
+      detail:
+        `legacy heartbeat ok | persona ${result.persona.created}/${result.persona.checked}` +
+        ` | promoted ${result.promoted.promoted}/${result.promoted.checked}` +
+        ` | published ${result.scheduler.published}/${result.scheduler.processed}`
+    });
     return NextResponse.json({
       ok: true,
       result
     });
   } catch (error) {
+    await logAutomationRuntime({
+      actionType: "ops_heartbeat",
+      status: "failed",
+      detail: error instanceof Error ? error.message : "Autopilot heartbeat failed"
+    });
     return NextResponse.json(
       {
         ok: false,
