@@ -583,10 +583,7 @@ async function generateDailyPersonaPost(params: {
       ? sourceMemory.confidence === "high" ||
         (sourceMemory.confidence === "medium" && (missionSignals.focusTraffic || missionSignals.focusConversation))
       : siteAutopilotMode === "near_full_auto"
-        ? sourceMemory.confidence !== "low" ||
-          missionSignals.focusTraffic ||
-          missionSignals.focusSearch ||
-          missionSignals.focusKnowledge
+        ? true
         : false;
   const status =
     siteAutopilotMode === "review_only" ||
