@@ -151,6 +151,15 @@ function scoreDraftForAutomation(input: {
   return Math.round(Math.min(Math.max(score + missionBoost.scoreDelta, 0), 100));
 }
 
+function getTaipeiDayKey(value: Date) {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Taipei",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).format(value);
+}
+
 export async function runAutoPromoteDirectDrafts(now = new Date()) {
   const settings = await prisma.appSettings.findFirst();
   const missionContext = {
@@ -214,6 +223,8 @@ export async function runAutoPromoteDirectDrafts(now = new Date()) {
 
   let promoted = 0;
   let skipped = 0;
+  const todayKey = getTaipeiDayKey(now);
+  const guaranteedAccounts = new Set<string>();
 
   for (const draft of drafts) {
     const score = scoreDraftForAutomation({
@@ -232,8 +243,16 @@ export async function runAutoPromoteDirectDrafts(now = new Date()) {
         : settings?.autopilotMode === "auto_schedule"
           ? 78
           : 86;
+    const hasTodayOutboundPost = draft.account.posts.some((post) => {
+      const anchor = post.publishedAt ?? post.createdAt;
+      return getTaipeiDayKey(anchor) === todayKey;
+    });
+    const shouldGuaranteeToday =
+      !hasTodayOutboundPost &&
+      !guaranteedAccounts.has(draft.accountId) &&
+      settings?.autopilotMode === "near_full_auto";
 
-    if (score < threshold) {
+    if (score < threshold && !shouldGuaranteeToday) {
       skipped += 1;
       continue;
     }
@@ -263,13 +282,18 @@ export async function runAutoPromoteDirectDrafts(now = new Date()) {
     });
 
     promoted += 1;
+    if (shouldGuaranteeToday) {
+      guaranteedAccounts.add(draft.accountId);
+    }
     await prisma.automationLog.create({
       data: {
         accountId: draft.accountId,
         postId: draft.id,
         actionType: "auto_promote_review_draft",
         status: "scheduled",
-        detail: `系統已自動把高信心 Threads 候選稿升級進排程。分數：${score}。建議時段：${timingSuggestion.label}。`
+        detail: shouldGuaranteeToday
+          ? `今天這個帳號還沒有可送出的 Threads，系統先保底把最新 AI 候選稿升級進排程。分數：${score}。建議時段：${timingSuggestion.label}。`
+          : `系統已自動把高信心 Threads 候選稿升級進排程。分數：${score}。建議時段：${timingSuggestion.label}。`
       }
     });
   }
