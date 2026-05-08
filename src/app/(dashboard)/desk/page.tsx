@@ -309,6 +309,46 @@ export default async function DeskPage() {
           <div className="mt-5">
             <AutopilotHeartbeat />
           </div>
+          <div className="mt-5 grid gap-3 xl:grid-cols-2">
+            {diagnostics.runtimeChecks.map((card) => (
+              <article key={card.label} className="rounded-[1.2rem] border border-[var(--border)] bg-white/82 p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">{card.label}</p>
+                  <span
+                    className={`rounded-full px-3 py-1 text-xs ${
+                      card.tone === "good"
+                        ? "bg-emerald-50 text-emerald-700"
+                        : card.tone === "warn"
+                          ? "bg-amber-50 text-amber-700"
+                          : "bg-rose-50 text-rose-700"
+                    }`}
+                  >
+                    {card.tone}
+                  </span>
+                </div>
+                <p className="mt-3 text-2xl font-semibold">{card.value}</p>
+                <p className="mt-2 text-sm leading-7 text-[var(--muted)]">{card.detail}</p>
+              </article>
+            ))}
+          </div>
+          <div className="mt-4 space-y-3">
+            {diagnostics.runtimeLogs.slice(0, 2).map((log) => (
+              <article key={log.id} className="rounded-[1.2rem] border border-[var(--border)] bg-white/72 p-4 text-sm">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="font-medium">{log.actionType}</p>
+                  <span
+                    className={`rounded-full px-3 py-1 text-xs ${
+                      log.status === "executed" ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"
+                    }`}
+                  >
+                    {log.status}
+                  </span>
+                </div>
+                <p className="mt-2 text-xs uppercase tracking-[0.22em] text-[var(--muted)]">{log.executedAt}</p>
+                <p className="mt-2 text-[var(--muted)]">{log.detail}</p>
+              </article>
+            ))}
+          </div>
         </article>
       </section>
 
