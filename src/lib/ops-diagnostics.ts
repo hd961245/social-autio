@@ -169,7 +169,7 @@ export async function getOpsDiagnostics(): Promise<OpsDiagnostics> {
 
     const runtimeChecks: OpsDiagnostics["runtimeChecks"] = [
       {
-        label: "Last Heartbeat",
+        label: "CRON Heartbeat",
         value: latestHeartbeat ? latestHeartbeat.executedAt.toLocaleString("zh-TW", { hour12: false }) : "Never",
         detail: latestHeartbeat?.detail ?? "還沒有看到 heartbeat 執行紀錄。",
         tone: !latestHeartbeat
@@ -181,7 +181,7 @@ export async function getOpsDiagnostics(): Promise<OpsDiagnostics> {
               : "good"
       },
       {
-        label: "Last Scheduler",
+        label: "CRON Scheduler",
         value: latestScheduler ? latestScheduler.executedAt.toLocaleString("zh-TW", { hour12: false }) : "Never",
         detail: latestScheduler?.detail ?? "還沒有看到 scheduler 執行紀錄。",
         tone: !latestScheduler
@@ -196,12 +196,12 @@ export async function getOpsDiagnostics(): Promise<OpsDiagnostics> {
 
     if (!latestHeartbeat) {
       warnings.push("目前還沒有 heartbeat 執行紀錄，代表外部 cron 或舊 autopilot heartbeat 可能還沒真的打進來。");
-      hints.push("部署完成後先手動打一次 `/api/cron/heartbeat?secret=...`，確認 `/ops` 會出現 Last Heartbeat。");
+      hints.push("部署完成後先手動打一次 `/api/cron/heartbeat?secret=...`，確認 `/ops` 會出現 CRON Heartbeat。");
     }
 
     if (!latestScheduler) {
       warnings.push("目前還沒有 scheduler 執行紀錄，代表排程送文器還沒有真的跑過。");
-      hints.push("至少先讓外部 cron 每分鐘打一次 `/api/cron/scheduler?secret=...`，確認 `/ops` 會出現 Last Scheduler。");
+      hints.push("至少先讓外部 cron 每分鐘打一次 `/api/cron/scheduler?secret=...`，確認 `/ops` 會出現 CRON Scheduler。");
     }
 
     if (latestHeartbeat && latestHeartbeat.executedAt.getTime() < fifteenMinutesAgo) {

@@ -309,7 +309,13 @@ export default async function DeskPage() {
           <div className="mt-5">
             <AutopilotHeartbeat />
           </div>
-          <div className="mt-5 grid gap-3 xl:grid-cols-2">
+          <div className="mt-5">
+            <p className="text-[11px] uppercase tracking-[0.3em] text-[var(--muted)]">CRON Status</p>
+            <p className="mt-2 text-sm leading-7 text-[var(--muted)]">
+              這兩張卡直接告訴你外部 cron / heartbeat 有沒有真的打進來，以及 scheduler 最近一次有沒有跑。
+            </p>
+          </div>
+          <div className="mt-4 grid gap-3 xl:grid-cols-2">
             {diagnostics.runtimeChecks.map((card) => (
               <article key={card.label} className="rounded-[1.2rem] border border-[var(--border)] bg-white/82 p-4">
                 <div className="flex items-center justify-between gap-3">
