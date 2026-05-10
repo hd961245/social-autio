@@ -1,11 +1,17 @@
 # Social Audio
 
-Social Audio 是一個給自媒體創業者使用的多帳號 AI 內容營運中台，能自動找題、產文、分流 Threads / WordPress、觀察、優化與回填學習。
+Social Audio 是一套給單人操盤手使用的多帳號 AI 自媒體營運系統，能把知識輸入、選題、產文、排程、發布、復盤與學習回填收成同一個內容飛輪。
 
-## Current v2
+一句話定義：
 
+`單人操盤、多帳號、自動生成、自動排程、自動復盤的 AI 自媒體營運系統`
+
+## Current Product Docs
+
+- Product PRD v3: [docs/PRD_V3.md](./docs/PRD_V3.md)
 - Product PRD v2: [docs/PRD_V2.md](./docs/PRD_V2.md)
 - Requirements v2: [docs/REQUIREMENTS_V2.md](./docs/REQUIREMENTS_V2.md)
+- Knowledge Ingestion Plan: [docs/KNOWLEDGE_INGESTION.md](./docs/KNOWLEDGE_INGESTION.md)
 
 ## Legacy References
 
@@ -19,9 +25,28 @@ Social Audio 是一個給自媒體創業者使用的多帳號 AI 內容營運中
 - Handoff Notes: [docs/HANDOFF.md](./docs/HANDOFF.md)
 - Persistence + Automation: [docs/PERSISTENCE_AND_AUTOMATION.md](./docs/PERSISTENCE_AND_AUTOMATION.md)
 - Deploy / Recovery: [docs/ZEABUR.md](./docs/ZEABUR.md)
-- Knowledge Ingestion Plan: [docs/KNOWLEDGE_INGESTION.md](./docs/KNOWLEDGE_INGESTION.md)
 - Current focus: PM Ops + account operating lanes + high-autonomy Threads / WordPress factory
 - Stack: Next.js App Router, TypeScript, Tailwind CSS, Prisma, PostgreSQL, Inngest
+
+## Core Product Idea
+
+這個產品的核心不是「幫你寫一篇文」，而是把一個人的內容營運流程變成可持續運轉的系統：
+
+`知識輸入 -> 選題 -> 草稿 -> 審核 / 排程 -> 發布 -> 數據回收 -> 規則更新`
+
+主要輸入包括：
+
+- 帳號 mission、persona、tone、hook、CTA
+- 外部來源：RSS、文章、網站、研究資料
+- 個人知識：Obsidian 筆記、NotebookLM 摘要、舊貼文、長文、逐字稿
+- 既有表現：Threads、WordPress、SEO、歷史有效規則
+
+主要輸出包括：
+
+- Threads 排程與發布
+- WordPress 長文沉澱
+- Review 例外處理
+- Analytics / Learning 規則回填
 
 ## Getting Started
 
@@ -36,6 +61,18 @@ npm run dev
 Open `http://localhost:3000`.
 
 預設登入密碼來自 `ADMIN_PASSWORD`。
+
+## Knowledge Inputs
+
+目前系統支援把 `NotebookLM` 與 `Obsidian` 內容作為知識輸入源，但採 `手動匯入`，不做 API 自動同步。
+
+- `NotebookLM`
+  - 預設偏 `Research Library`
+  - 適合摘要、整理、案例、研究重點
+- `Obsidian`
+  - 可進 `Voice Corpus` 或 `Research Library`
+  - 個人觀點與原始想法偏向 `Voice Corpus`
+  - 拆解、研究筆記與資料偏向 `Research Library`
 
 ## Zeabur Deploy
 
@@ -81,6 +118,11 @@ Open `http://localhost:3000`.
 
 ## Current Product Shape
 
+- `Desk / PM Ops`：首頁總控台，集中看自動化是否真的有跑、哪些帳號卡住、今天最值得處理的下一步
+- `Accounts`：每個帳號是一條獨立營運線，管理 persona、目標、節奏、token 與最近表現
+- `Review`：只承接低信心、高風險、需 approval 或發送失敗的例外內容
+- `Factory`：背景任務、內容流水線與失敗追蹤
+- `Ops`：環境、排程、token、AI provider 與 auto-publish readiness 診斷
 - `Threads`：即時發文、排程、Queue、分析
 - `Threads Personas`：每個 Threads 帳號可維護不同人設與預設語氣
 - `Persona Playbook`：每個 Threads 帳號可定義題材範圍、hook 風格、CTA 風格與語氣禁區
@@ -94,16 +136,31 @@ Open `http://localhost:3000`.
 - `Source Watchlist`：追蹤 RSS / Blog 來源
 - `Inbox`：集中處理最新來源內容並做簡單改寫判斷
 
+## Content Flywheel
+
+系統內部的內容飛輪分成四層：
+
+- `Voice Corpus`
+  - 個人語料、風格、禁語、語氣與原始觀點
+- `Research Library`
+  - 研究素材、競品拆解、NotebookLM 摘要、可復用案例
+- `Content Pipeline`
+  - 題目池、brief、draft、image brief、publish job
+- `Learning Loop`
+  - performance signal、title / hook pattern、learning rule
+
+這四層的目標是讓每次內容不是一次性產物，而是能反哺下一輪選題與生成。
+
 ## Product Direction
 
-這個專案正在從「個人內容工具」往「自媒體創業者管理中台」演進。
+這個專案正在從「個人內容工具」往「單人操盤的 AI 自媒體營運系統」演進。
 
-下一階段的核心不是多做幾個平台，而是把這幾層收成一個可運作的內容生意後台：
+下一階段的核心不是多做幾個平台，而是把以下幾層收成一個真正可運作的內容後台：
 
-- 內容來源與選題
+- 知識輸入與知識沉澱
 - Threads 發布與復盤
-- WordPress 長文草稿工作流
-- 聯盟連結 / CTA / 推廣模組
+- WordPress 長文資產工作流
+- 多帳號自動營運
 - 自己的寫作風格與內容資產複用
 
 建議上線前重設 `THREADS_APP_SECRET`，並把 `ADMIN_SESSION_SECRET` 與 `TOKEN_ENCRYPTION_KEY` 換成高熵隨機值。

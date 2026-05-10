@@ -1,8 +1,26 @@
 # Knowledge Ingestion Plan
 
 > Version: v1.0  
-> Updated: 2026-05-01  
+> Updated: 2026-05-10
 > Scope: define the next-stage knowledge input architecture for Social Audio
+
+這份文件是知識輸入專項設計文件，正式產品定義請同步參考 [PRD v3](./PRD_V3.md)。
+
+## 0. Current Product Decision
+
+目前 `NotebookLM` 與 `Obsidian` 採 `手動匯入`，不做 API 自動同步。
+
+在目前產品裡，兩者的預設角色是：
+
+- `NotebookLM`
+  - 預設偏 `Research Library`
+  - 適合承接摘要、研究重點、案例整理、可復用觀點
+- `Obsidian`
+  - 可進 `Voice Corpus` 或 `Research Library`
+  - 如果是第一人稱觀點、語氣、原始想法，優先進 `Voice Corpus`
+  - 如果是拆解、資料、研究筆記、案例彙整，優先進 `Research Library`
+
+這個定位應和 [PRD v3 的知識系統設計](./PRD_V3.md#7-knowledge-system-design) 保持一致。
 
 ## 1. Goal
 
@@ -18,6 +36,11 @@
 - 可正規化的文章本體
 - 可沉澱的影音 transcript
 - 可回收的個人知識庫
+
+在現階段，這個輸入層除了外部來源，也必須明確吃得下：
+
+- Obsidian 手動貼入的筆記與段落
+- NotebookLM 手動整理出的摘要與知識重點
 
 ## 2. Input Layers
 
@@ -77,6 +100,24 @@
 - podcast transcript
 - 自有筆記平台
 - newsletter archive
+- Obsidian 筆記
+- NotebookLM 摘要
+
+### Layer D: 個人語料與風格來源
+
+用途：
+
+- 建立個人風格記憶
+- 讓 AI 更像操盤者本人
+- 提供 draft 前的 voice pack
+
+優先來源型態：
+
+- 舊貼文
+- 長文
+- 聊天紀錄
+- 語音逐字稿
+- Obsidian 第一人稱筆記
 
 ## 3. GitHub References Worth Using
 
