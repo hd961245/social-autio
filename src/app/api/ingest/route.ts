@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { ingestAndGenerateDrafts } from "@/lib/ai/content-engine";
+import { authorizeCronRequest } from "@/lib/cron-auth";
 
 const ingestSchema = z.object({
   sourceType: z.enum(["url", "text", "image"]),
@@ -13,6 +14,11 @@ const ingestSchema = z.object({
 });
 
 export async function POST(request: Request) {
+  const auth = await authorizeCronRequest(request);
+  if (!auth.ok) {
+    return NextResponse.json({ ok: false, message: auth.message }, { status: 401 });
+  }
+
   try {
     const payload = ingestSchema.parse(await request.json());
     const result = await ingestAndGenerateDrafts(payload);
