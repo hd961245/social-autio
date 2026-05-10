@@ -8,16 +8,22 @@ import { runScheduledPosts } from "@/lib/scheduler/engine";
 import { refreshAllSourceWatches, runDailySourceImports } from "@/lib/sources-service";
 import { runAutoPromoteDirectDrafts, runAutoWordPressExpansion, runOptimizationFlywheel } from "@/lib/automation/flywheel";
 import { runDailyOpsDigest } from "@/lib/automation/daily-report";
+import {
+  runAntiAiPass,
+  runLearningSynthesis,
+  runTopicScoring,
+  runVoiceIngestion
+} from "@/lib/content-os/workspace";
 
 export const schedulerFunction = inngest.createFunction(
-  { id: "publish-scheduled-posts", retries: 1, triggers: [cron("* * * * *")] },
+  { id: "publish-scheduled-posts", retries: 1, concurrency: 1, triggers: [cron("* * * * *")] },
   async ({ step }) => {
     return step.run("publish-due-posts", async () => runScheduledPosts());
   }
 );
 
 export const metricsFunction = inngest.createFunction(
-  { id: "collect-metrics-and-refresh-tokens", retries: 1, triggers: [cron("0 */6 * * *")] },
+  { id: "collect-metrics-and-refresh-tokens", retries: 1, concurrency: 1, triggers: [cron("0 */6 * * *")] },
   async ({ step }) => {
     const metrics = await step.run("collect-metrics", async () => collectMetricsSnapshots());
     const tokenRefresh = await step.run("refresh-expiring-tokens", async () => refreshExpiringTokens());
@@ -30,14 +36,14 @@ export const metricsFunction = inngest.createFunction(
 );
 
 export const keywordScanFunction = inngest.createFunction(
-  { id: "scan-keyword-matches", retries: 1, triggers: [cron("*/30 * * * *")] },
+  { id: "scan-keyword-matches", retries: 1, concurrency: 1, triggers: [cron("*/30 * * * *")] },
   async ({ step }) => {
     return step.run("scan-keywords", async () => scanKeywordMatches());
   }
 );
 
 export const automationFunction = inngest.createFunction(
-  { id: "evaluate-automation-rules", retries: 1, triggers: [cron("*/30 * * * *")] },
+  { id: "evaluate-automation-rules", retries: 1, concurrency: 1, triggers: [cron("*/30 * * * *")] },
   async ({ step }) => {
     return step.run("evaluate-automation", async () => evaluateAutomationRules());
   }
@@ -58,7 +64,7 @@ export const dailySourceImportFunction = inngest.createFunction(
 );
 
 export const dailyPersonaAutopilotFunction = inngest.createFunction(
-  { id: "daily-persona-autopilot", retries: 1, triggers: [cron("*/15 * * * *")] },
+  { id: "daily-persona-autopilot", retries: 1, concurrency: 1, triggers: [cron("*/15 * * * *")] },
   async ({ step }) => {
     return step.run("generate-daily-persona-posts", async () => runDailyPersonaAutopilot());
   }
@@ -78,7 +84,7 @@ export const optimizationFlywheelFunction = inngest.createFunction(
 );
 
 export const autoPromoteDraftsFunction = inngest.createFunction(
-  { id: "auto-promote-direct-drafts", retries: 1, triggers: [cron("*/20 * * * *")] },
+  { id: "auto-promote-direct-drafts", retries: 1, concurrency: 1, triggers: [cron("*/20 * * * *")] },
   async ({ step }) => {
     const result = await step.run("promote-high-confidence-drafts", async () => runAutoPromoteDirectDrafts());
 
@@ -93,6 +99,34 @@ export const dailyOpsDigestFunction = inngest.createFunction(
   }
 );
 
+export const contentVoiceIngestionFunction = inngest.createFunction(
+  { id: "content-os-voice-ingestion", retries: 1, triggers: [cron("30 2,14 * * *")] },
+  async ({ step }) => {
+    return step.run("content-os-ingest-voice", async () => runVoiceIngestion());
+  }
+);
+
+export const contentTopicScoringFunction = inngest.createFunction(
+  { id: "content-os-topic-scoring", retries: 1, triggers: [cron("45 3,15 * * *")] },
+  async ({ step }) => {
+    return step.run("content-os-score-topics", async () => runTopicScoring());
+  }
+);
+
+export const contentAntiAiFunction = inngest.createFunction(
+  { id: "content-os-anti-ai", retries: 1, triggers: [cron("15 4 * * *")] },
+  async ({ step }) => {
+    return step.run("content-os-anti-ai-pass", async () => runAntiAiPass());
+  }
+);
+
+export const contentLearningFunction = inngest.createFunction(
+  { id: "content-os-learning", retries: 1, triggers: [cron("20 5 * * *")] },
+  async ({ step }) => {
+    return step.run("content-os-learning-synthesis", async () => runLearningSynthesis());
+  }
+);
+
 export const inngestFunctions = [
   schedulerFunction,
   metricsFunction,
@@ -103,5 +137,9 @@ export const inngestFunctions = [
   sourceWatchRefreshFunction,
   dailySourceImportFunction,
   dailyPersonaAutopilotFunction,
-  optimizationFlywheelFunction
+  optimizationFlywheelFunction,
+  contentVoiceIngestionFunction,
+  contentTopicScoringFunction,
+  contentAntiAiFunction,
+  contentLearningFunction
 ];
