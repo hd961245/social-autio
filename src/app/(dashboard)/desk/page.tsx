@@ -53,7 +53,43 @@ export default async function DeskPage() {
       }).catch(() => []),
       getAnalyticsOverview({ window: "30d", accountId: "all" }).catch(() => null),
       getPortfolioOperatingSnapshot(),
-      getOpsDiagnostics()
+      getOpsDiagnostics().catch((error) => ({
+        database: {
+          ready: false,
+          detail: error instanceof Error ? error.message : "ops diagnostics failed"
+        },
+        envChecks: [],
+        records: {
+          threadsAccounts: 0,
+          wordpressAccounts: 0,
+          posts: 0,
+          sourceWatches: 0
+        },
+        aiHealth: {
+          configured: {
+            openai: false,
+            gemini: false,
+            claude: false
+          },
+          gemini: {
+            ok: false,
+            model: undefined,
+            latencyMs: undefined,
+            message: error instanceof Error ? error.message : "ops diagnostics failed"
+          }
+        },
+        schema: {
+          looksDrifted: false,
+          detail: "目前無法完整讀取 diagnostics。",
+          checks: []
+        },
+        warnings: ["Desk 已進入保護模式，代表 diagnostics 在 server-side 讀取時發生異常。"],
+        hints: ["先確認最新 deploy 是否真的上線，再檢查 DB / env / scheduler diagnostics。"],
+        threadsCallbackLogs: [],
+        runtimeChecks: [],
+        runtimeLogs: [],
+        deployChecklist: []
+      }))
     ]);
 
   const missionTitle = settings?.missionTitle?.trim() || "7 個月內，讓接入帳號進入台灣前 50 大理財內容流量級";
