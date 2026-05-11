@@ -4,7 +4,57 @@ import { getOpsDiagnostics } from "@/lib/ops-diagnostics";
 export const dynamic = "force-dynamic";
 
 export default async function OpsPage() {
-  const diagnostics = await getOpsDiagnostics();
+  const diagnostics = await getOpsDiagnostics().catch((error) => ({
+    database: {
+      ready: false,
+      detail: error instanceof Error ? error.message : "ops diagnostics failed"
+    },
+    envChecks: [],
+    records: {
+      threadsAccounts: 0,
+      wordpressAccounts: 0,
+      posts: 0,
+      sourceWatches: 0
+    },
+    aiHealth: {
+      configured: {
+        openai: false,
+        gemini: false,
+        claude: false
+      },
+      gemini: {
+        ok: false,
+        model: undefined,
+        latencyMs: undefined,
+        message: error instanceof Error ? error.message : "ops diagnostics failed"
+      }
+    },
+    schema: {
+      looksDrifted: false,
+      detail: "目前無法完整讀取 ops diagnostics。",
+      checks: []
+    },
+    warnings: ["Ops page 已進入保護模式，代表 server-side diagnostics 有欄位或資料異常。"],
+    hints: ["先確認最新 deploy 是否真的上線，再檢查 runtime logs / env / schema。"],
+    threadsCallbackLogs: [],
+    runtimeChecks: [],
+    runtimeLogs: [],
+    deployChecklist: [
+      {
+        label: "Ops Diagnostics",
+        status: "fail" as const,
+        detail: error instanceof Error ? error.message : "ops diagnostics failed"
+      }
+    ]
+  }));
+  const runtimeChecks = diagnostics.runtimeChecks ?? [];
+  const runtimeLogs = diagnostics.runtimeLogs ?? [];
+  const deployChecklist = diagnostics.deployChecklist ?? [];
+  const schemaChecks = diagnostics.schema?.checks ?? [];
+  const envChecks = diagnostics.envChecks ?? [];
+  const warnings = diagnostics.warnings ?? [];
+  const hints = diagnostics.hints ?? [];
+  const threadsCallbackLogs = diagnostics.threadsCallbackLogs ?? [];
 
   return (
     <div className="space-y-6">
@@ -64,7 +114,7 @@ export default async function OpsPage() {
         <p className="text-[11px] uppercase tracking-[0.3em] text-[var(--muted)]">Automation Runtime</p>
         <h2 className="mt-2 text-3xl font-semibold">背景排程最近有沒有真的跑</h2>
         <div className="mt-6 grid gap-4 md:grid-cols-2">
-          {diagnostics.runtimeChecks.map((item) => (
+          {runtimeChecks.map((item) => (
             <article key={item.label} className="rounded-[1.5rem] border border-[var(--border)] bg-white/75 p-4">
               <div className="flex items-center justify-between gap-3">
                 <p className="font-medium">{item.label}</p>
@@ -86,7 +136,7 @@ export default async function OpsPage() {
           ))}
         </div>
         <div className="mt-6 max-h-[18rem] space-y-3 overflow-y-auto pr-1">
-          {diagnostics.runtimeLogs.map((log) => (
+          {runtimeLogs.map((log) => (
             <article key={log.id} className="rounded-[1.4rem] border border-[var(--border)] bg-white/75 p-4 text-sm">
               <div className="flex items-center justify-between gap-3">
                 <p className="font-medium">{log.actionType}</p>
@@ -102,7 +152,7 @@ export default async function OpsPage() {
               <p className="mt-3 text-[var(--muted)]">{log.detail}</p>
             </article>
           ))}
-          {diagnostics.runtimeLogs.length === 0 ? (
+          {runtimeLogs.length === 0 ? (
             <article className="rounded-[1.4rem] border border-[var(--border)] bg-white/75 p-4 text-sm text-[var(--muted)]">
               目前還沒有 heartbeat / scheduler 執行紀錄。部署完後只要 cron 真的有打到站台，這裡就會開始出現時間與結果。
             </article>
@@ -114,7 +164,7 @@ export default async function OpsPage() {
         <p className="text-[11px] uppercase tracking-[0.3em] text-[var(--muted)]">Deploy Checklist</p>
         <h2 className="mt-2 text-3xl font-semibold">部署前檢查</h2>
         <div className="mt-6 grid max-h-[18rem] gap-4 overflow-y-auto pr-1 md:grid-cols-2 xl:grid-cols-3">
-          {diagnostics.deployChecklist.map((item) => (
+          {deployChecklist.map((item) => (
             <article key={item.label} className="rounded-[1.5rem] border border-[var(--border)] bg-white/75 p-4">
               <div className="flex items-center justify-between gap-3">
                 <p className="font-medium">{item.label}</p>
@@ -140,7 +190,7 @@ export default async function OpsPage() {
         <p className="text-[11px] uppercase tracking-[0.3em] text-[var(--muted)]">Schema Checks</p>
         <h2 className="mt-2 text-3xl font-semibold">資料庫欄位抽查</h2>
         <div className="mt-6 grid max-h-[16rem] gap-4 overflow-y-auto pr-1 md:grid-cols-2">
-          {diagnostics.schema.checks.map((check) => (
+          {schemaChecks.map((check) => (
             <article key={check.column} className="rounded-[1.5rem] border border-[var(--border)] bg-white/75 p-4">
               <div className="flex items-center justify-between gap-3">
                 <p className="font-medium">{check.column}</p>
@@ -156,7 +206,7 @@ export default async function OpsPage() {
               </div>
             </article>
           ))}
-          {diagnostics.schema.checks.length === 0 ? (
+          {schemaChecks.length === 0 ? (
             <article className="rounded-[1.5rem] border border-[var(--border)] bg-white/75 p-4 text-sm text-[var(--muted)]">
               目前沒有可用的 schema 抽查結果。
             </article>
@@ -168,7 +218,7 @@ export default async function OpsPage() {
         <p className="text-[11px] uppercase tracking-[0.3em] text-[var(--muted)]">Environment Checks</p>
         <h2 className="mt-2 text-3xl font-semibold">關鍵環境變數</h2>
         <div className="mt-6 grid max-h-[18rem] gap-4 overflow-y-auto pr-1 md:grid-cols-2">
-          {diagnostics.envChecks.map((check) => (
+          {envChecks.map((check) => (
             <article key={check.key} className="rounded-[1.5rem] border border-[var(--border)] bg-white/75 p-4">
               <div className="flex items-center justify-between gap-3">
                 <p className="font-medium">{check.key}</p>
@@ -192,12 +242,12 @@ export default async function OpsPage() {
         <p className="text-[11px] uppercase tracking-[0.3em] text-[var(--muted)]">Warnings</p>
         <h2 className="mt-2 text-3xl font-semibold">目前觀察</h2>
         <div className="mt-6 max-h-[14rem] space-y-3 overflow-y-auto pr-1">
-          {diagnostics.warnings.map((warning) => (
+          {warnings.map((warning) => (
             <article key={warning} className="rounded-[1.4rem] border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
               {warning}
             </article>
           ))}
-          {diagnostics.warnings.length === 0 ? (
+          {warnings.length === 0 ? (
             <article className="rounded-[1.4rem] border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
               目前沒有明顯異常。若你仍覺得資料不對，優先確認是不是看錯 Zeabur project / environment。
             </article>
@@ -209,12 +259,12 @@ export default async function OpsPage() {
         <p className="text-[11px] uppercase tracking-[0.3em] text-[var(--muted)]">Recovery Hints</p>
         <h2 className="mt-2 text-3xl font-semibold">下一步建議</h2>
         <div className="mt-6 max-h-[14rem] space-y-3 overflow-y-auto pr-1">
-          {diagnostics.hints.map((hint) => (
+          {hints.map((hint) => (
             <article key={hint} className="rounded-[1.4rem] border border-[var(--border)] bg-white/75 p-4 text-sm text-[var(--foreground)]">
               {hint}
             </article>
           ))}
-          {diagnostics.hints.length === 0 ? (
+          {hints.length === 0 ? (
             <article className="rounded-[1.4rem] border border-[var(--border)] bg-white/75 p-4 text-sm text-[var(--muted)]">
               目前沒有特別需要處理的異常建議。
             </article>
@@ -226,7 +276,7 @@ export default async function OpsPage() {
         <p className="text-[11px] uppercase tracking-[0.3em] text-[var(--muted)]">Threads Callback</p>
         <h2 className="mt-2 text-3xl font-semibold">最近授權寫庫紀錄</h2>
         <div className="mt-6 max-h-[18rem] space-y-3 overflow-y-auto pr-1">
-          {diagnostics.threadsCallbackLogs.map((log) => (
+          {threadsCallbackLogs.map((log) => (
             <article key={log.id} className="rounded-[1.4rem] border border-[var(--border)] bg-white/75 p-4 text-sm">
               <div className="flex items-center justify-between gap-3">
                 <p className="font-medium">{log.executedAt}</p>
@@ -241,7 +291,7 @@ export default async function OpsPage() {
               <p className="mt-3 break-all text-[var(--muted)]">{log.detail}</p>
             </article>
           ))}
-          {diagnostics.threadsCallbackLogs.length === 0 ? (
+          {threadsCallbackLogs.length === 0 ? (
             <article className="rounded-[1.4rem] border border-[var(--border)] bg-white/75 p-4 text-sm text-[var(--muted)]">
               目前還沒有 Threads callback 記錄。你下一次重新授權後，這裡會直接顯示 profile id、username 與是否寫入成功。
             </article>
