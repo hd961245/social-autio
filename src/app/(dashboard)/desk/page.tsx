@@ -19,78 +19,163 @@ import { prisma } from "@/lib/prisma";
 export const dynamic = "force-dynamic";
 
 export default async function DeskPage() {
-  const [settings, accountSummaries, posts, keywordHits, sourceItems, gscOpportunities, failedLogs, analyticsOverview, portfolio, diagnostics] =
-    await Promise.all([
-      prisma.appSettings.findFirst(),
-      getAccountOperatingSummaries(),
-      getPostSummaries(),
-      getKeywordHitSummaries(),
-      prisma.sourceWatch.findMany({
-        where: { isActive: true, lastItemTitle: { not: null } },
-        orderBy: [{ updatedAt: "desc" }, { createdAt: "desc" }],
-        take: 16
-      }).catch(() => []),
-      getGscOpportunityQueue().catch(() => ({
-        configured: false,
-        items: [],
-        message: "目前還讀不到 Search Console 機會隊列。"
-      })),
-      prisma.automationLog.findMany({
-        where: {
-          status: "failed"
+  const fallbackDiagnostics = (message: string) => ({
+    database: {
+      ready: false,
+      detail: message
+    },
+    envChecks: [],
+    records: {
+      threadsAccounts: 0,
+      wordpressAccounts: 0,
+      posts: 0,
+      sourceWatches: 0
+    },
+    aiHealth: {
+      configured: {
+        openai: false,
+        gemini: false,
+        claude: false
+      },
+      gemini: {
+        ok: false,
+        model: undefined,
+        latencyMs: undefined,
+        message
+      }
+    },
+    schema: {
+      looksDrifted: false,
+      detail: "目前無法完整讀取 diagnostics。",
+      checks: []
+    },
+    warnings: ["Desk 已進入保護模式，代表 server-side 資料讀取時發生異常。"],
+    hints: ["先確認最新 deploy 是否真的上線，再檢查 DB / env / scheduler diagnostics。"],
+    threadsCallbackLogs: [],
+    runtimeChecks: [],
+    runtimeLogs: [],
+    deployChecklist: []
+  });
+
+  const deskData = await (async () => {
+    try {
+      const [settings, accountSummaries, posts, keywordHits, sourceItems, gscOpportunities, failedLogs, analyticsOverview, portfolio, diagnostics] =
+        await Promise.all([
+          prisma.appSettings.findFirst().catch(() => null),
+          getAccountOperatingSummaries().catch(() => []),
+          getPostSummaries().catch(() => []),
+          getKeywordHitSummaries().catch(() => []),
+          prisma.sourceWatch.findMany({
+            where: { isActive: true, lastItemTitle: { not: null } },
+            orderBy: [{ updatedAt: "desc" }, { createdAt: "desc" }],
+            take: 16
+          }).catch(() => []),
+          getGscOpportunityQueue().catch(() => ({
+            configured: false,
+            items: [],
+            message: "目前還讀不到 Search Console 機會隊列。"
+          })),
+          prisma.automationLog.findMany({
+            where: {
+              status: "failed"
+            },
+            include: {
+              account: {
+                select: {
+                  platformUsername: true
+                }
+              }
+            },
+            orderBy: {
+              executedAt: "desc"
+            },
+            take: 6
+          }).catch(() => []),
+          getAnalyticsOverview({ window: "30d", accountId: "all" }).catch(() => null),
+          getPortfolioOperatingSnapshot().catch(() => ({
+            automationPaused: false,
+            autopilotMode: "near_full_auto" as const,
+            wordpressPublishMode: "draft_only" as const,
+            activeAccounts: 0,
+            accountsNeedingCoverage: 0,
+            expiringAccounts: 0,
+            todayPublished: 0,
+            todayScheduled: 0,
+            directDrafts: 0,
+            pendingReview: 0,
+            optimizationDrafts: 0,
+            wordpressExpansion: 0,
+            totalExceptions: 0,
+            failedRuns24h: 0,
+            failedRuns14d: 0,
+            seoOpportunityCount: 0
+          })),
+          getOpsDiagnostics().catch((error) =>
+            fallbackDiagnostics(error instanceof Error ? error.message : "ops diagnostics failed")
+          )
+        ]);
+
+      return {
+        settings,
+        accountSummaries,
+        posts,
+        keywordHits,
+        sourceItems,
+        gscOpportunities,
+        failedLogs,
+        analyticsOverview,
+        portfolio,
+        diagnostics
+      };
+    } catch (error) {
+      return {
+        settings: null,
+        accountSummaries: [],
+        posts: [],
+        keywordHits: [],
+        sourceItems: [],
+        gscOpportunities: {
+          configured: false,
+          items: [],
+          message: "目前還讀不到 Search Console 機會隊列。"
         },
-        include: {
-          account: {
-            select: {
-              platformUsername: true
-            }
-          }
+        failedLogs: [],
+        analyticsOverview: null,
+        portfolio: {
+          automationPaused: false,
+          autopilotMode: "near_full_auto" as const,
+          wordpressPublishMode: "draft_only" as const,
+          activeAccounts: 0,
+          accountsNeedingCoverage: 0,
+          expiringAccounts: 0,
+          todayPublished: 0,
+          todayScheduled: 0,
+          directDrafts: 0,
+          pendingReview: 0,
+          optimizationDrafts: 0,
+          wordpressExpansion: 0,
+          totalExceptions: 0,
+          failedRuns24h: 0,
+          failedRuns14d: 0,
+          seoOpportunityCount: 0
         },
-        orderBy: {
-          executedAt: "desc"
-        },
-        take: 6
-      }).catch(() => []),
-      getAnalyticsOverview({ window: "30d", accountId: "all" }).catch(() => null),
-      getPortfolioOperatingSnapshot(),
-      getOpsDiagnostics().catch((error) => ({
-        database: {
-          ready: false,
-          detail: error instanceof Error ? error.message : "ops diagnostics failed"
-        },
-        envChecks: [],
-        records: {
-          threadsAccounts: 0,
-          wordpressAccounts: 0,
-          posts: 0,
-          sourceWatches: 0
-        },
-        aiHealth: {
-          configured: {
-            openai: false,
-            gemini: false,
-            claude: false
-          },
-          gemini: {
-            ok: false,
-            model: undefined,
-            latencyMs: undefined,
-            message: error instanceof Error ? error.message : "ops diagnostics failed"
-          }
-        },
-        schema: {
-          looksDrifted: false,
-          detail: "目前無法完整讀取 diagnostics。",
-          checks: []
-        },
-        warnings: ["Desk 已進入保護模式，代表 diagnostics 在 server-side 讀取時發生異常。"],
-        hints: ["先確認最新 deploy 是否真的上線，再檢查 DB / env / scheduler diagnostics。"],
-        threadsCallbackLogs: [],
-        runtimeChecks: [],
-        runtimeLogs: [],
-        deployChecklist: []
-      }))
-    ]);
+        diagnostics: fallbackDiagnostics(error instanceof Error ? error.message : "desk data failed")
+      };
+    }
+  })();
+
+  const {
+    settings,
+    accountSummaries,
+    posts,
+    keywordHits,
+    sourceItems,
+    gscOpportunities,
+    failedLogs,
+    analyticsOverview,
+    portfolio,
+    diagnostics
+  } = deskData;
 
   const missionTitle = settings?.missionTitle?.trim() || "7 個月內，讓接入帳號進入台灣前 50 大理財內容流量級";
   const missionCurrentValue = settings?.missionCurrentValue ?? 0;
