@@ -2,9 +2,29 @@ import { getActiveAccountSummary, getDatabaseStatus, getPortfolioOperatingSnapsh
 
 export async function Topbar() {
   const [activeAccount, databaseStatus, portfolio] = await Promise.all([
-    getActiveAccountSummary(),
-    getDatabaseStatus(),
-    getPortfolioOperatingSnapshot()
+    getActiveAccountSummary().catch(() => null),
+    getDatabaseStatus().catch(() => ({
+      ready: false,
+      message: "目前無法讀取資料庫狀態"
+    })),
+    getPortfolioOperatingSnapshot().catch(() => ({
+      automationPaused: false,
+      autopilotMode: "near_full_auto" as const,
+      wordpressPublishMode: "draft_only" as const,
+      activeAccounts: 0,
+      accountsNeedingCoverage: 0,
+      expiringAccounts: 0,
+      todayPublished: 0,
+      todayScheduled: 0,
+      directDrafts: 0,
+      pendingReview: 0,
+      optimizationDrafts: 0,
+      wordpressExpansion: 0,
+      totalExceptions: 0,
+      failedRuns24h: 0,
+      failedRuns14d: 0,
+      seoOpportunityCount: 0
+    }))
   ]);
   const exceptionLabel =
     portfolio.totalExceptions > 0
@@ -43,7 +63,7 @@ export async function Topbar() {
               {databaseStatus.ready ? (portfolio.automationPaused ? "Paused" : "高自動營運中") : "Setup First"}
             </p>
             <p className="mt-1 text-xs text-white/60">
-              {activeAccount ? activeAccount.username : "尚未接上 Threads 帳號"}
+              {databaseStatus.ready ? (activeAccount ? activeAccount.username : "尚未接上 Threads 帳號") : databaseStatus.message}
             </p>
           </div>
         </div>
