@@ -15,16 +15,15 @@ export const env = {
   threadsAppId: () => required("THREADS_APP_ID"),
   threadsAppSecret: () => required("THREADS_APP_SECRET"),
   threadsRedirectUri: () => {
-    // Explicit override wins (useful for Meta app allowlist testing).
+    // Explicit override wins (e.g. for local dev set THREADS_REDIRECT_URI=http://localhost:3000/api/auth/threads/callback).
     const explicit = process.env.THREADS_REDIRECT_URI?.trim();
     if (explicit) return explicit;
-    // Otherwise auto-build from APP_BASE_URL so local / production
-    // never need a separate THREADS_REDIRECT_URI value.
+    // Production: always build from APP_BASE_URL — no hardcoded domain.
     const base =
       process.env.APP_BASE_URL?.trim() ||
       process.env.INNGEST_SERVE_ORIGIN?.trim() ||
       "http://localhost:3000";
-    return `${base}/api/threads/callback`;
+    return `${base}/api/auth/threads/callback`;
   },
   tokenEncryptionKey: () => required("TOKEN_ENCRYPTION_KEY"),
   openaiApiKey: () => process.env.OPENAI_API_KEY?.trim() || "",
