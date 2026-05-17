@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { encryptString } from "@/lib/crypto";
 import { toDisplayErrorMessage } from "@/lib/error-display";
+import { env } from "@/lib/env";
 import { prisma } from "@/lib/prisma";
 import { getPlatformAdapter } from "@/lib/platforms";
 import { THREADS_STATE_COOKIE } from "@/lib/platforms/threads/constants";
@@ -10,7 +11,8 @@ import { getThreadsProfile, parseThreadsCallback } from "@/lib/platforms/threads
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const searchParams = Object.fromEntries(url.searchParams.entries());
-  const logDetailPrefix = `redirect=${url.origin}/api/threads/callback`;
+  const baseUrl = env.appBaseUrl() || url.origin;
+  const logDetailPrefix = `redirect=${baseUrl}/api/threads/callback`;
 
   try {
     const oauthError = searchParams.error || searchParams.error_type;
@@ -38,7 +40,7 @@ export async function GET(request: Request) {
         }
       }).catch(() => null);
 
-      const redirectUrl = new URL("/accounts/connect", request.url);
+      const redirectUrl = new URL("/accounts/connect", baseUrl);
       redirectUrl.searchParams.set("error", "threads_oauth_error");
       redirectUrl.searchParams.set("error_code", String(oauthError));
       if (oauthErrorReason) redirectUrl.searchParams.set("error_reason", oauthErrorReason);
@@ -60,7 +62,7 @@ export async function GET(request: Request) {
         }
       }).catch(() => null);
 
-      return NextResponse.redirect(new URL("/accounts/connect?error=invalid_oauth_state", request.url));
+      return NextResponse.redirect(new URL("/accounts/connect?error=invalid_oauth_state", baseUrl));
     }
 
     const adapter = getPlatformAdapter("threads");
@@ -122,7 +124,7 @@ export async function GET(request: Request) {
 
     cookieStore.delete(THREADS_STATE_COOKIE);
 
-    return NextResponse.redirect(new URL("/accounts?connected=threads", request.url));
+    return NextResponse.redirect(new URL("/accounts?connected=threads", baseUrl));
   } catch (error) {
     const { message, rawMessage } = toDisplayErrorMessage(error);
 
@@ -134,7 +136,7 @@ export async function GET(request: Request) {
       }
     }).catch(() => null);
 
-    const redirectUrl = new URL("/accounts/connect", request.url);
+    const redirectUrl = new URL("/accounts/connect", baseUrl);
     redirectUrl.searchParams.set("error", "threads_callback_failed");
     redirectUrl.searchParams.set("message", message.slice(0, 180));
     return NextResponse.redirect(redirectUrl);
