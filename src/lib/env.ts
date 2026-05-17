@@ -14,7 +14,18 @@ export const env = {
   adminSessionSecret: () => required("ADMIN_SESSION_SECRET"),
   threadsAppId: () => required("THREADS_APP_ID"),
   threadsAppSecret: () => required("THREADS_APP_SECRET"),
-  threadsRedirectUri: () => required("THREADS_REDIRECT_URI"),
+  threadsRedirectUri: () => {
+    // Explicit override wins (useful for Meta app allowlist testing).
+    const explicit = process.env.THREADS_REDIRECT_URI?.trim();
+    if (explicit) return explicit;
+    // Otherwise auto-build from APP_BASE_URL so local / production
+    // never need a separate THREADS_REDIRECT_URI value.
+    const base =
+      process.env.APP_BASE_URL?.trim() ||
+      process.env.INNGEST_SERVE_ORIGIN?.trim() ||
+      "http://localhost:3000";
+    return `${base}/api/threads/callback`;
+  },
   tokenEncryptionKey: () => required("TOKEN_ENCRYPTION_KEY"),
   openaiApiKey: () => process.env.OPENAI_API_KEY?.trim() || "",
   openaiBaseUrl: () => process.env.OPENAI_BASE_URL?.trim() || "https://api.openai.com/v1",
