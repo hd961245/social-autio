@@ -3,6 +3,10 @@ export async function runScheduledPosts() {
   const { logPublishEvent } = await import("@/lib/publish-log");
   const { prisma } = await import("@/lib/prisma");
   const { requestThreadsApproval } = await import("@/lib/threads-approval");
+  const schedulerBatchLimit = (() => {
+    const parsed = Number(process.env.SCHEDULER_BATCH_LIMIT ?? "");
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : 12;
+  })();
 
   const duePosts = await prisma.post.findMany({
     where: {
@@ -22,26 +26,66 @@ export async function runScheduledPosts() {
     orderBy: {
       scheduledAt: "asc"
     },
-    take: 20
+    take: schedulerBatchLimit
   });
 
   let published = 0;
   let failed = 0;
+  let skipped = 0;
+  let approvalRequested = 0;
 
   for (const post of duePosts) {
     try {
       if (post.requiresApproval && post.approvalState !== "approved") {
         if (post.approvalState !== "requested") {
-          await requestThreadsApproval(post.id);
+          const claimedApproval = await prisma.post.updateMany({
+            where: {
+              id: post.id,
+              status: {
+                in: ["scheduled", "awaiting_approval"]
+              },
+              approvalState: {
+                not: "requested"
+              }
+            },
+            data: {
+              status: "awaiting_approval"
+            }
+          });
+
+          if (claimedApproval.count > 0) {
+            await requestThreadsApproval(post.id);
+            approvalRequested += 1;
+          } else {
+            skipped += 1;
+          }
+        } else {
+          skipped += 1;
         }
 
         continue;
       }
 
-      await prisma.post.update({
-        where: { id: post.id },
-        data: { status: "publishing" }
+      const claimed = await prisma.post.updateMany({
+        where: {
+          id: post.id,
+          status: {
+            in: ["scheduled", "awaiting_approval"]
+          },
+          scheduledAt: {
+            lte: new Date()
+          }
+        },
+        data: {
+          status: "publishing",
+          errorMessage: null
+        }
       });
+
+      if (claimed.count === 0) {
+        skipped += 1;
+        continue;
+      }
 
       const adapter = getPlatformAdapter(post.account.platform as "threads" | "wordpress");
       const result = await adapter.createPost(post.accountId, {
@@ -132,6 +176,8 @@ export async function runScheduledPosts() {
   return {
     processed: duePosts.length,
     published,
-    failed
+    failed,
+    skipped,
+    approvalRequested
   };
 }

@@ -18,6 +18,25 @@ model User {
   autoRules  AutoRule[]
   ingestions IngestionRecord[]
   sourceWatches SourceWatch[]
+  voiceSnippets      VoiceSnippet[]
+  styleGuides        StyleGuide[]
+  styleRules         StyleRule[]
+  antiAiRules        AntiAiRule[]
+  researchAssets     ResearchAsset[]
+  competitorAccounts CompetitorAccount[]
+  insightCards       InsightCard[]
+  reusablePatterns   ReusablePattern[]
+  topicCards         TopicCard[]
+  operatingBriefs    OperatingBrief[]
+  draftAssets        DraftAsset[]
+  imageStylePresets  ImageStylePreset[]
+  imageBriefs        ImageBrief[]
+  imageAssets        ImageAsset[]
+  performanceSignals PerformanceSignal[]
+  learningRules      LearningRule[]
+  titlePatterns      TitlePattern[]
+  hookPatterns       HookPattern[]
+  formatOutcomes     FormatOutcome[]
 }
 
 model PlatformAccount {
@@ -52,6 +71,16 @@ model PlatformAccount {
   metricsSnapshots  MetricsSnapshot[]
   keywordMatches    KeywordMatch[]
   automationLogs    AutomationLog[]
+  voiceSnippets      VoiceSnippet[]
+  styleGuides        StyleGuide[]
+  styleRules         StyleRule[]
+  antiAiRules        AntiAiRule[]
+  researchAssets     ResearchAsset[]
+  topicCards         TopicCard[]
+  operatingBriefs    OperatingBrief[]
+  draftAssets        DraftAsset[]
+  performanceSignals PerformanceSignal[]
+  learningRules      LearningRule[]
 
   @@unique([platform, platformUserId])
 }
@@ -90,6 +119,9 @@ model Post {
   account         PlatformAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
   metrics         PostMetrics[]
   sourceMatch     KeywordMatch?   @relation("KeywordMatchGeneratedPosts", fields: [sourceMatchId], references: [id], onDelete: SetNull)
+  draftAsset      DraftAsset?
+  imageAssets     ImageAsset[]
+  performanceSignals PerformanceSignal[]
 }
 
 model PostMetrics {
@@ -256,4 +288,353 @@ model SourceWatch {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
   user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VoiceSnippet {
+  id         String           @id @default(cuid())
+  userId     String
+  accountId  String?
+  source     String
+  personaId  String?
+  text       String
+  topicTags  String[]
+  toneTags   String[]
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+  user       User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account    PlatformAccount? @relation(fields: [accountId], references: [id], onDelete: SetNull)
+}
+
+model StyleGuide {
+  id               String           @id @default(cuid())
+  userId           String
+  accountId        String?
+  personaId        String?
+  title            String
+  summary          String
+  coreSequence     String?
+  preferredDevices String[]
+  bannedPatterns   String[]
+  evidenceSnippetIds String[]
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account          PlatformAccount? @relation(fields: [accountId], references: [id], onDelete: SetNull)
+}
+
+model StyleRule {
+  id         String           @id @default(cuid())
+  userId     String
+  accountId  String?
+  personaId  String?
+  type       String
+  ruleText   String
+  severity   String
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+  user       User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account    PlatformAccount? @relation(fields: [accountId], references: [id], onDelete: SetNull)
+}
+
+model AntiAiRule {
+  id          String           @id @default(cuid())
+  userId      String
+  accountId   String?
+  label       String
+  description String
+  pattern     String
+  severity    String
+  examples    String[]
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account     PlatformAccount? @relation(fields: [accountId], references: [id], onDelete: SetNull)
+}
+
+model ResearchAsset {
+  id             String           @id @default(cuid())
+  userId         String
+  accountId      String?
+  sourceType     String
+  title          String
+  content        String
+  sourceUrl      String?
+  topicTags      String[]
+  structureNotes String?
+  evidenceLevel  String
+  reusable       Boolean          @default(true)
+  saturationLabel String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account        PlatformAccount? @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  insightCards   InsightCard[]
+}
+
+model CompetitorAccount {
+  id          String           @id @default(cuid())
+  userId      String
+  handle      String
+  platform    String
+  positioning String?
+  summary     String?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  posts       CompetitorPost[]
+}
+
+model CompetitorPost {
+  id                  String            @id @default(cuid())
+  competitorAccountId String
+  title               String
+  hook                String?
+  structure           String?
+  summary             String?
+  performanceLabel    String?
+  angle               String?
+  formatTags          String[]
+  takeaways           String[]
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+  competitorAccount   CompetitorAccount @relation(fields: [competitorAccountId], references: [id], onDelete: Cascade)
+}
+
+model InsightCard {
+  id              String         @id @default(cuid())
+  userId          String
+  researchAssetId String?
+  title           String
+  insightText     String
+  sourceLabel     String?
+  angleLabel      String?
+  reusable        Boolean        @default(true)
+  evidenceLevel   String
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  researchAsset   ResearchAsset? @relation(fields: [researchAssetId], references: [id], onDelete: SetNull)
+}
+
+model ReusablePattern {
+  id          String   @id @default(cuid())
+  userId      String
+  label       String
+  patternType String
+  template    String
+  summary     String?
+  bestFor     String?
+  lanes       String[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model TopicCard {
+  id              String           @id @default(cuid())
+  userId          String
+  accountId       String?
+  lane            String
+  goal            String
+  angle           String
+  targetPlatform  String
+  evidenceRefs    String[]
+  score           Float            @default(0)
+  status          String
+  needsResearch   Boolean          @default(false)
+  confidenceScore Float            @default(0)
+  sourceType      String?
+  missionTag      String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account         PlatformAccount? @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  briefs          OperatingBrief[]
+  drafts          DraftAsset[]
+}
+
+model OperatingBrief {
+  id             String           @id @default(cuid())
+  userId         String
+  accountId      String?
+  topicCardId    String
+  targetPlatform String
+  targetOutcome  String
+  audience       String
+  hookStrategy   String
+  ctaStrategy    String?
+  whyNow         String?
+  assignment     String?
+  successMetric  String?
+  retrievalNotes String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account        PlatformAccount? @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  topicCard      TopicCard        @relation(fields: [topicCardId], references: [id], onDelete: Cascade)
+  drafts         DraftAsset[]
+}
+
+model DraftAsset {
+  id              String           @id @default(cuid())
+  userId          String
+  accountId       String?
+  briefId         String
+  topicCardId     String?
+  postId          String?          @unique
+  platform        String
+  structure       String
+  body            String
+  confidenceScore Float            @default(0)
+  antiAiFlags     String[]
+  reviewLane      String           @default("direct")
+  status          String           @default("draft")
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account         PlatformAccount? @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  brief           OperatingBrief   @relation(fields: [briefId], references: [id], onDelete: Cascade)
+  topicCard       TopicCard?       @relation(fields: [topicCardId], references: [id], onDelete: SetNull)
+  post            Post?            @relation(fields: [postId], references: [id], onDelete: SetNull)
+  imageBriefs     ImageBrief[]
+  imageAssets     ImageAsset[]
+  performanceSignals PerformanceSignal[]
+}
+
+model ImageStylePreset {
+  id              String   @id @default(cuid())
+  userId          String
+  name            String
+  slug            String   @unique
+  description     String
+  visualDirection String
+  promptPrefix    String
+  aspectRatio     String
+  defaultForLanes String[]
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  imageBriefs     ImageBrief[]
+}
+
+model ImageBrief {
+  id            String            @id @default(cuid())
+  userId        String
+  draftId       String
+  imageRole     String
+  stylePresetId String?
+  prompt        String
+  aspectRatio   String
+  status        String            @default("pending")
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  user          User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  draft         DraftAsset        @relation(fields: [draftId], references: [id], onDelete: Cascade)
+  stylePreset   ImageStylePreset? @relation(fields: [stylePresetId], references: [id], onDelete: SetNull)
+  assets        ImageAsset[]
+}
+
+model ImageAsset {
+  id           String      @id @default(cuid())
+  userId       String
+  draftId      String?
+  imageBriefId String?
+  postId       String?
+  url          String
+  altText      String?
+  status       String      @default("generated")
+  provider     String?
+  prompt       String?
+  role         String
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  draft        DraftAsset? @relation(fields: [draftId], references: [id], onDelete: SetNull)
+  imageBrief   ImageBrief? @relation(fields: [imageBriefId], references: [id], onDelete: SetNull)
+  post         Post?       @relation(fields: [postId], references: [id], onDelete: SetNull)
+}
+
+model PerformanceSignal {
+  id              String           @id @default(cuid())
+  userId          String
+  accountId       String?
+  draftId         String?
+  postId          String?
+  contentId       String?
+  platform        String
+  impressions     Int              @default(0)
+  bookmarks       Int              @default(0)
+  follows         Int              @default(0)
+  ctr             Float            @default(0)
+  conversions     Int              @default(0)
+  likes           Int              @default(0)
+  replies         Int              @default(0)
+  reposts         Int              @default(0)
+  quotes          Int              @default(0)
+  shares          Int              @default(0)
+  titlePattern    String?
+  hasNumber       Boolean          @default(false)
+  hasIdentity     Boolean          @default(false)
+  isTutorial      Boolean          @default(false)
+  hasCaseStudy    Boolean          @default(false)
+  usesPersonaStory Boolean         @default(false)
+  capturedAt      DateTime         @default(now())
+  createdAt       DateTime         @default(now())
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account         PlatformAccount? @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  draft           DraftAsset?      @relation(fields: [draftId], references: [id], onDelete: SetNull)
+  post            Post?            @relation(fields: [postId], references: [id], onDelete: SetNull)
+}
+
+model LearningRule {
+  id              String           @id @default(cuid())
+  userId          String
+  accountId       String?
+  scope           String
+  signalType      String
+  ruleText        String
+  weight          Float            @default(0.5)
+  isActive        Boolean          @default(true)
+  lastValidatedAt DateTime?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account         PlatformAccount? @relation(fields: [accountId], references: [id], onDelete: SetNull)
+}
+
+model TitlePattern {
+  id              String   @id @default(cuid())
+  userId          String
+  label           String
+  template        String
+  hasNumber       Boolean  @default(false)
+  hasIdentity     Boolean  @default(false)
+  hasContrast     Boolean  @default(false)
+  expectedOutcome String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model HookPattern {
+  id         String   @id @default(cuid())
+  userId     String
+  label      String
+  template   String
+  bestFor    String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model FormatOutcome {
+  id          String   @id @default(cuid())
+  userId      String
+  label       String
+  lane        String
+  metricFocus String
+  note        String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

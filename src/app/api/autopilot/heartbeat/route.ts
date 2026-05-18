@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { runOperatingHeartbeat } from "@/lib/automation/operating-heartbeat";
-import { logAutomationRuntime } from "@/lib/automation/run-monitor";
+import { getLatestAutomationRuntimeStatus, logAutomationRuntime } from "@/lib/automation/run-monitor";
 import { authorizeCronRequest } from "@/lib/cron-auth";
 
-async function handle(request: Request) {
+export async function POST(request: Request) {
   try {
     const auth = await authorizeCronRequest(request);
 
@@ -40,10 +40,7 @@ async function handle(request: Request) {
   }
 }
 
-export async function POST(request: Request) {
-  return handle(request);
-}
-
-export async function GET(request: Request) {
-  return handle(request);
+export async function GET() {
+  const status = await getLatestAutomationRuntimeStatus();
+  return NextResponse.json(status);
 }

@@ -11,7 +11,7 @@ import { inferBestScheduleTime } from "@/lib/automation/autopilot-timing";
 import { prisma } from "@/lib/prisma";
 import { getAccountOperatingSummaries } from "@/lib/dashboard-data";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 120;
 
 function getMetricScore(metric?: {
   views: number;
@@ -77,9 +77,25 @@ export default async function AccountsPage() {
   const displayAccounts = await getAccountOperatingSummaries();
   const [rawAccounts, autopilotLogs, settings] = await Promise.all([
     prisma.platformAccount.findMany({
-      where: { isActive: true },
+      where: { isActive: true, platform: "threads" },
       orderBy: [{ platform: "asc" }, { createdAt: "desc" }],
-      include: {
+      select: {
+        id: true,
+        platform: true,
+        platformUsername: true,
+        personaLabel: true,
+        personaPrompt: true,
+        defaultTone: true,
+        topicFocus: true,
+        hookStyle: true,
+        ctaStyle: true,
+        voiceGuardrails: true,
+        autoGenerateTime: true,
+        autoGenerateEnabled: true,
+        autoGenerateMode: true,
+        autoGeneratePrompt: true,
+        autoGenerateGoal: true,
+        tokenExpiresAt: true,
         posts: {
           where: {
             status: "published",
@@ -90,7 +106,7 @@ export default async function AccountsPage() {
           orderBy: {
             publishedAt: "desc"
           },
-          take: 18,
+          take: 12,
           include: {
             metrics: {
               orderBy: {

@@ -20,6 +20,7 @@ export const dashboardNavGroups: DashboardNavGroup[] = [
     primaryHref: "/desk",
     items: [
       { href: "/desk", label: "Portfolio View", hint: "總 mission、各帳號今日進度與例外" },
+      { href: "/content-os", label: "Content OS", hint: "四層知識庫、題目池、draft 與 learning loop" },
       { href: "/inventory", label: "Content Inventory", hint: "source 到 monetizable 的內容總庫" }
     ]
   },

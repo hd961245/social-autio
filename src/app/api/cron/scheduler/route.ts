@@ -20,6 +20,8 @@ async function handle(request: Request) {
       detail:
         `scheduler ok | promoted ${promoted.promoted}/${promoted.checked}` +
         ` | published ${scheduler.published}/${scheduler.processed}` +
+        ` | approval ${scheduler.approvalRequested}` +
+        ` | skipped ${scheduler.skipped}` +
         ` | failed ${scheduler.failed}`
     });
     return NextResponse.json({

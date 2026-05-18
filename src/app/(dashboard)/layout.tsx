@@ -3,7 +3,7 @@ import { Sidebar } from "@/components/dashboard/sidebar";
 import { Topbar } from "@/components/dashboard/topbar";
 import { WorkspaceNav } from "@/components/dashboard/workspace-nav";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 120;
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   return (

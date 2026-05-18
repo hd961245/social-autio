@@ -15,7 +15,7 @@ const sans = Manrope({
 
 export const metadata: Metadata = {
   title: "Social Audio",
-  description: "Threads-first social operations dashboard"
+  description: "AI content operating system for solo creators"
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

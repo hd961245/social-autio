@@ -171,7 +171,8 @@ export async function POST(request: Request) {
       tone,
       siteUrl: editorialSiteUrl,
       wordpressTemplate: body.wordpressTemplate || "opinion",
-      preferredProvider: provider
+      preferredProvider: provider,
+      threadsOnly: account.platform === "threads"
     });
 
     let createdDraftId: string | null = null;

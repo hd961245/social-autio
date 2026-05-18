@@ -2,10 +2,17 @@ import { hydrateSourceCandidate, refreshSourceCandidates, refreshSourceWatch } f
 import { ingestAndGenerateDrafts } from "@/lib/ai/content-engine";
 import { prisma } from "@/lib/prisma";
 
+function getBatchLimit(envKey: string, fallback: number) {
+  const parsed = Number(process.env[envKey] ?? "");
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
 export async function refreshAllSourceWatches() {
+  const refreshLimit = getBatchLimit("SOURCE_REFRESH_BATCH_LIMIT", 20);
   const watches = await prisma.sourceWatch.findMany({
     where: { isActive: true },
-    orderBy: { updatedAt: "desc" }
+    orderBy: { updatedAt: "desc" },
+    take: refreshLimit
   });
 
   const results = [];
@@ -47,12 +54,14 @@ export async function refreshAllSourceWatches() {
 }
 
 export async function runDailySourceImports() {
+  const importLimit = getBatchLimit("SOURCE_IMPORT_BATCH_LIMIT", 10);
   const watches = await prisma.sourceWatch.findMany({
     where: {
       isActive: true,
       autoImportEnabled: true
     },
-    orderBy: { updatedAt: "desc" }
+    orderBy: { updatedAt: "desc" },
+    take: importLimit
   });
 
   const results = [];

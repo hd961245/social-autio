@@ -736,6 +736,10 @@ async function ensureDailyThreadsMinimum(now: Date, autopilotMode: string) {
       isActive: true,
       platform: "threads"
     },
+    take: (() => {
+      const parsed = Number(process.env.PERSONA_AUTOPILOT_ACCOUNT_LIMIT ?? "");
+      return Number.isFinite(parsed) && parsed > 0 ? parsed : 8;
+    })(),
     include: {
       posts: {
         where: {

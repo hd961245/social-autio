@@ -1,6 +1,11 @@
 import { getPlatformAdapter } from "@/lib/platforms";
 import { prisma } from "@/lib/prisma";
 
+function getBatchLimit(envKey: string, fallback: number) {
+  const parsed = Number(process.env[envKey] ?? "");
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
 function matchesKeyword(keyword: string, matchMode: string, text: string) {
   if (!text) {
     return false;
@@ -43,9 +48,13 @@ export async function scanKeywordMatches() {
       },
       orderBy: {
         createdAt: "desc"
-      }
+      },
+      take: getBatchLimit("KEYWORD_SCAN_ACCOUNT_LIMIT", 5)
     })
   ]);
+
+  const maxPostsPerAccount = getBatchLimit("KEYWORD_SCAN_POST_LIMIT", 12);
+  const maxRepliesPerPost = getBatchLimit("KEYWORD_SCAN_REPLY_LIMIT", 25);
 
   let scannedPosts = 0;
   let scannedReplies = 0;
@@ -61,9 +70,10 @@ export async function scanKeywordMatches() {
       continue;
     }
 
-    scannedPosts += ownPosts.length;
+    const limitedPosts = ownPosts.slice(0, maxPostsPerAccount);
+    scannedPosts += limitedPosts.length;
 
-    for (const sourcePost of ownPosts) {
+    for (const sourcePost of limitedPosts) {
       let replies: Awaited<ReturnType<typeof adapter.getPostReplies>> = [];
 
       try {
@@ -72,9 +82,10 @@ export async function scanKeywordMatches() {
         continue;
       }
 
-      scannedReplies += replies.length;
+      const limitedReplies = replies.slice(0, maxRepliesPerPost);
+      scannedReplies += limitedReplies.length;
 
-      for (const reply of replies) {
+      for (const reply of limitedReplies) {
         for (const keyword of keywords) {
           if (!matchesKeyword(keyword.keyword, keyword.matchMode, reply.text)) {
             continue;

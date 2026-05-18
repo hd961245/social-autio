@@ -9,6 +9,7 @@ type RewriteInput = {
   siteUrl?: string;
   wordpressTemplate?: "opinion" | "case-study" | "tool-review" | "weekly-recap";
   preferredProvider?: "auto" | "gemini" | "claude" | "openai";
+  threadsOnly?: boolean;
 };
 
 type RewriteOutput = {
@@ -207,6 +208,19 @@ function parseLooseJsonObject(raw: string) {
   }
 }
 
+function buildThreadsOnlyPrompt(input: RewriteInput) {
+  return [
+    `Persona: ${input.personaPrompt}`,
+    `Tone: ${input.tone}`,
+    "請根據輸入素材，輸出 JSON，欄位只有：summary, threadsDraft。",
+    "threadsDraft 必須適合 Threads，300 字以內，像真人在經營帳號，不要像 AI 助手或教學機器人。",
+    "整體文風要口語、有觀點、有立場，避免條列、避免轉場詞（首先/其次/總結）。",
+    "summary 用一句話說明這篇在幹嘛。",
+    `Title: ${input.title}`,
+    `Source: ${input.rawText}`
+  ].join("\n");
+}
+
 function buildPrompt(input: RewriteInput) {
   const preset = findEditorialPresetBySiteUrl(input.siteUrl);
 
@@ -243,6 +257,9 @@ async function runOpenAiRewrite(input: RewriteInput): Promise<RewriteOutput> {
     throw new Error("Missing OPENAI_API_KEY");
   }
 
+  const prompt = input.threadsOnly ? buildThreadsOnlyPrompt(input) : buildPrompt(input);
+  const timeoutMs = input.threadsOnly ? 20000 : AI_PROVIDER_TIMEOUT_MS;
+
   const response = await fetchWithTimeout(`${baseUrl}/responses`, {
     method: "POST",
     headers: {
@@ -251,9 +268,9 @@ async function runOpenAiRewrite(input: RewriteInput): Promise<RewriteOutput> {
     },
     body: JSON.stringify({
       model,
-      input: buildPrompt(input)
+      input: prompt
     })
-  });
+  }, timeoutMs);
 
   if (!response.ok) {
     const detail = await response.text();
@@ -287,6 +304,9 @@ async function runGeminiRewrite(input: RewriteInput): Promise<RewriteOutput> {
     throw new Error("Missing GEMINI_API_KEY");
   }
 
+  const prompt = input.threadsOnly ? buildThreadsOnlyPrompt(input) : buildPrompt(input);
+  const timeoutMs = input.threadsOnly ? 20000 : AI_PROVIDER_TIMEOUT_MS;
+
   const response = await fetchWithTimeout(
     `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
     {
@@ -298,11 +318,12 @@ async function runGeminiRewrite(input: RewriteInput): Promise<RewriteOutput> {
         contents: [
           {
             role: "user",
-            parts: [{ text: buildPrompt(input) }]
+            parts: [{ text: prompt }]
           }
         ]
       })
-    }
+    },
+    timeoutMs
   );
 
   if (!response.ok) {
@@ -334,6 +355,10 @@ async function runClaudeRewrite(input: RewriteInput): Promise<RewriteOutput> {
     throw new Error("Missing ANTHROPIC_API_KEY");
   }
 
+  const prompt = input.threadsOnly ? buildThreadsOnlyPrompt(input) : buildPrompt(input);
+  const timeoutMs = input.threadsOnly ? 20000 : AI_PROVIDER_TIMEOUT_MS;
+  const maxTokens = input.threadsOnly ? 600 : 1200;
+
   const response = await fetchWithTimeout("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
@@ -343,15 +368,15 @@ async function runClaudeRewrite(input: RewriteInput): Promise<RewriteOutput> {
     },
     body: JSON.stringify({
       model: "claude-sonnet-4-20250514",
-      max_tokens: 1200,
+      max_tokens: maxTokens,
       messages: [
         {
           role: "user",
-          content: buildPrompt(input)
+          content: prompt
         }
       ]
     })
-  });
+  }, timeoutMs);
 
   if (!response.ok) {
     const detail = await response.text();

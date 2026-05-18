@@ -3,45 +3,26 @@
 import { useEffect, useState } from "react";
 
 const HEARTBEAT_STORAGE_KEY = "autopilot-heartbeat:last-run";
-const HEARTBEAT_INTERVAL_MS = 10 * 60 * 1000;
-const HEARTBEAT_THROTTLE_MS = 5 * 60 * 1000;
+const HEARTBEAT_INTERVAL_MS = 15 * 60 * 1000;
+const HEARTBEAT_THROTTLE_MS = 2 * 60 * 1000;
 
-type HeartbeatState = {
-  persona: {
-    checked: number;
-    created: number;
-    skipped: number;
-    failed: number;
-    paused: boolean;
-  };
-  sourceRefresh: {
-    total: number;
-    results: Array<{ id: string; ok: boolean; changed?: boolean }>;
-  };
-  sourceImports: {
-    total: number;
-    imported: number;
-    results: Array<{ id: string; ok: boolean; imported?: boolean; drafts?: number }>;
-  };
-  promoted: {
-    checked: number;
-    promoted: number;
-    skipped: number;
-    paused: boolean;
-  };
-  scheduler: {
-    processed: number;
-    published: number;
-    failed: number;
-  };
-  seo: {
-    checked: number;
-    handled: number;
-    observed: number;
-    skipped: number;
-    failed: number;
-    paused: boolean;
-  };
+type RuntimeStatus = {
+  ok: boolean;
+  latestHeartbeat: {
+    status: "executed" | "failed";
+    detail: string | null;
+    executedAt: string;
+  } | null;
+  latestScheduler: {
+    status: "executed" | "failed";
+    detail: string | null;
+    executedAt: string;
+  } | null;
+  latestFailure: {
+    actionType: string;
+    detail: string | null;
+    executedAt: string;
+  } | null;
 };
 
 export function AutopilotHeartbeat({ compact = false }: { compact?: boolean }) {
@@ -62,59 +43,43 @@ export function AutopilotHeartbeat({ compact = false }: { compact?: boolean }) {
 
         window.localStorage.setItem(HEARTBEAT_STORAGE_KEY, String(now));
         const response = await fetch("/api/autopilot/heartbeat", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          }
+          method: "GET",
+          cache: "no-store"
         });
-        const result = await response.json();
+        const result = (await response.json()) as RuntimeStatus;
 
         if (disposed) {
           return;
         }
 
         if (!response.ok) {
-          setMessage(result.message ?? "Autopilot 背景檢查失敗");
+          setMessage("Autopilot 狀態讀取失敗");
           return;
         }
 
-        const summary = result.result as HeartbeatState;
-        if (summary.persona.paused) {
-          setMessage("Autopilot 目前處於暫停狀態");
+        if (!result.latestHeartbeat && !result.latestScheduler) {
+          setMessage("還沒有看到背景自動化執行紀錄，請確認 Inngest / cron 是否已接通。");
           return;
         }
 
-        const refreshedSourceCount = summary.sourceRefresh.results.filter((item) => item.ok && item.changed).length;
-        const importedSourceCount = summary.sourceImports.imported;
-        const createdDraftCount = summary.persona.created;
-        const promotedCount = summary.promoted.promoted;
-        const publishedCount = summary.scheduler.published;
-        const seoHandledCount = summary.seo.handled;
-        const failedCount = summary.persona.failed + summary.scheduler.failed + summary.seo.failed;
-
-        if (publishedCount > 0) {
-          setMessage(`系統已自動發布 ${publishedCount} 篇排程內容，並持續補跑來源與草稿。`);
+        if (result.latestFailure) {
+          setMessage(`最近一次失敗來自 ${result.latestFailure.actionType}，建議去 Factory / Ops 看詳細原因。`);
           return;
         }
 
-        if (createdDraftCount > 0 || importedSourceCount > 0 || promotedCount > 0 || seoHandledCount > 0) {
-          setMessage(
-            `系統已自動運轉：刷新 ${refreshedSourceCount} 個來源、匯入 ${importedSourceCount} 則、產文 ${createdDraftCount} 篇、升級排程 ${promotedCount} 篇。`
-          );
+        if (result.latestScheduler?.status === "executed") {
+          const timeLabel = new Date(result.latestScheduler.executedAt).toLocaleString("zh-TW", { hour12: false });
+          setMessage(`排程引擎最近一次執行於 ${timeLabel}，目前前台只讀狀態，不會再額外觸發重任務。`);
           return;
         }
 
-        if (failedCount > 0) {
-          setMessage(`背景自動化有 ${failedCount} 個失敗項目，建議去 Review / Ops 看例外。`);
-          return;
-        }
-
-        setMessage(
-          `系統已背景檢查 ${summary.persona.checked} 個 persona、${summary.sourceRefresh.total} 個來源與 ${summary.scheduler.processed} 個排程，目前沒有新的到點任務。`
-        );
+        const heartbeatTime = result.latestHeartbeat
+          ? new Date(result.latestHeartbeat.executedAt).toLocaleString("zh-TW", { hour12: false })
+          : "未知";
+        setMessage(`背景自動化最後回報於 ${heartbeatTime}，目前由 Inngest / cron 持續接手，不依賴頁面常駐觸發。`);
       } catch {
         if (!disposed) {
-          setMessage("Autopilot 背景檢查暫時失敗");
+          setMessage("Autopilot 狀態讀取暫時失敗");
         }
       }
     }

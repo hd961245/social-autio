@@ -6,7 +6,7 @@ import { getAnalyticsOverview, getDatabaseStatus } from "@/lib/dashboard-data";
 import { getGaOverview } from "@/lib/ga";
 import { getGscOverview } from "@/lib/gsc";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
 const WINDOW_OPTIONS = [
   { id: "7d", label: "7天" },
@@ -22,36 +22,66 @@ export default async function AnalyticsPage({
   const params = await searchParams;
   const window = params.window === "7d" || params.window === "30d" || params.window === "all" ? params.window : "30d";
   const accountId = params.accountId ?? "all";
+  const includeExternal = params.accountId !== undefined || params.window !== undefined;
   const [databaseStatus, analytics, gaOverview, gscOverview] = await Promise.all([
     getDatabaseStatus(),
     getAnalyticsOverview({ window, accountId }),
-    getGaOverview().catch((error) => ({
-      configured: false,
-      propertyId: "",
-      source: "ga4",
-      totals: {
-        activeUsers: 0,
-        newUsers: 0,
-        sessions: 0,
-        screenPageViews: 0
-      },
-      topPages: [],
-      message: error instanceof Error ? error.message : "GA4 讀取失敗"
-    })),
-    getGscOverview().catch((error) => ({
-      configured: false,
-      siteUrl: "",
-      source: "gsc",
-      totals: {
-        clicks: 0,
-        impressions: 0,
-        ctr: 0,
-        position: 0
-      },
-      topPages: [],
-      topQueries: [],
-      message: error instanceof Error ? error.message : "GSC 讀取失敗"
-    }))
+    includeExternal
+      ? getGaOverview().catch((error) => ({
+          configured: false,
+          propertyId: "",
+          source: "ga4",
+          totals: {
+            activeUsers: 0,
+            newUsers: 0,
+            sessions: 0,
+            screenPageViews: 0
+          },
+          topPages: [],
+          message: error instanceof Error ? error.message : "GA4 讀取失敗"
+        }))
+      : Promise.resolve({
+          configured: false,
+          propertyId: "",
+          source: "ga4",
+          totals: {
+            activeUsers: 0,
+            newUsers: 0,
+            sessions: 0,
+            screenPageViews: 0
+          },
+          topPages: [],
+          message: "預設先顯示站內內容分析；需要時再載入 GA4 / GSC 外部流量。"
+        }),
+    includeExternal
+      ? getGscOverview().catch((error) => ({
+          configured: false,
+          siteUrl: "",
+          source: "gsc",
+          totals: {
+            clicks: 0,
+            impressions: 0,
+            ctr: 0,
+            position: 0
+          },
+          topPages: [],
+          topQueries: [],
+          message: error instanceof Error ? error.message : "GSC 讀取失敗"
+        }))
+      : Promise.resolve({
+          configured: false,
+          siteUrl: "",
+          source: "gsc",
+          totals: {
+            clicks: 0,
+            impressions: 0,
+            ctr: 0,
+            position: 0
+          },
+          topPages: [],
+          topQueries: [],
+          message: "若要看 Google 外部流量，切換任一篩選條件後才會載入。"
+        })
   ]);
   const bestPost = analytics.topPosts[0] ?? null;
   const strongestCandidate = analytics.viralCandidates[0] ?? null;
@@ -181,12 +211,12 @@ export default async function AnalyticsPage({
             <div className="rounded-[1.2rem] border border-[var(--border)] bg-white/70 px-4 py-3 text-sm">
               <p className="text-xs uppercase tracking-[0.22em] text-[var(--muted)]">GA4</p>
               <p className="mt-2 font-semibold">{gaOverview.propertyId || "未設定"}</p>
-              <p className="mt-2 text-xs text-[var(--muted)]">{gaOverview.configured ? "已連線" : "尚未接好"}</p>
+              <p className="mt-2 text-xs text-[var(--muted)]">{gaOverview.configured ? "已連線" : includeExternal ? "尚未接好" : "延後載入"}</p>
             </div>
             <div className="rounded-[1.2rem] border border-[var(--border)] bg-white/70 px-4 py-3 text-sm">
               <p className="text-xs uppercase tracking-[0.22em] text-[var(--muted)]">GSC</p>
               <p className="mt-2 font-semibold">{gscOverview.siteUrl || "未設定"}</p>
-              <p className="mt-2 text-xs text-[var(--muted)]">{gscOverview.configured ? "已連線" : "尚未接好"}</p>
+              <p className="mt-2 text-xs text-[var(--muted)]">{gscOverview.configured ? "已連線" : includeExternal ? "尚未接好" : "延後載入"}</p>
             </div>
           </div>
         </div>
