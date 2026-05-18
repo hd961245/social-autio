@@ -14,6 +14,8 @@ import {
   runTopicScoring,
   runVoiceIngestion
 } from "@/lib/content-os/workspace";
+import { rewriteContentWithAi } from "@/lib/ai/gateway";
+import { prisma } from "@/lib/prisma";
 
 export const schedulerFunction = inngest.createFunction(
   { id: "publish-scheduled-posts", retries: 1, concurrency: 1, triggers: [cron("* * * * *")] },
@@ -127,6 +129,57 @@ export const contentLearningFunction = inngest.createFunction(
   }
 );
 
+export type AiDraftEvent = {
+  data: {
+    postId: string;
+    title: string;
+    rawText: string;
+    personaPrompt: string;
+    tone: string;
+    siteUrl: string | undefined;
+    wordpressTemplate: "opinion" | "case-study" | "tool-review" | "weekly-recap";
+    preferredProvider: "auto" | "gemini" | "claude" | "openai";
+    brief: string;
+  };
+};
+
+export const aiDraftFunction = inngest.createFunction(
+  { id: "ai-draft-background", retries: 1 },
+  { event: "social-audio/ai.draft.requested" },
+  async ({ event, step }) => {
+    const { postId, title, rawText, personaPrompt, tone, siteUrl, wordpressTemplate, preferredProvider, brief } =
+      event.data as AiDraftEvent["data"];
+
+    const result = await step.run("generate-wordpress-draft", async () =>
+      rewriteContentWithAi({
+        title,
+        rawText,
+        personaPrompt,
+        tone,
+        siteUrl,
+        wordpressTemplate,
+        preferredProvider,
+        threadsOnly: false
+      })
+    );
+
+    await step.run("save-draft-to-db", async () => {
+      await prisma.post.update({
+        where: { id: postId },
+        data: {
+          title: result.wordpressTitle || result.summary.slice(0, 120),
+          textContent: result.threadsDraft,
+          htmlContent: result.wordpressHtml,
+          excerpt: result.wordpressExcerpt || brief || result.summary,
+          status: "draft"
+        }
+      });
+    });
+
+    return { postId, provider: result.provider };
+  }
+);
+
 export const inngestFunctions = [
   schedulerFunction,
   metricsFunction,
@@ -141,5 +194,6 @@ export const inngestFunctions = [
   contentVoiceIngestionFunction,
   contentTopicScoringFunction,
   contentAntiAiFunction,
-  contentLearningFunction
+  contentLearningFunction,
+  aiDraftFunction
 ];
