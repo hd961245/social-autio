@@ -10,7 +10,7 @@ import { deriveMissionSignals, type MissionContext } from "@/lib/mission-scoring
 import { getPlatformAdapter } from "@/lib/platforms";
 
 const AUTOMATION_TIMEZONE = "Asia/Taipei";
-const DAILY_DRAFT_CANDIDATE_COUNT = 3;
+const DAILY_DRAFT_CANDIDATE_COUNT = 1;
 const DAILY_VARIANT_ANGLES = [
   "主打明確結論與第一句停留感，適合直接發在 Threads 首屏。",
   "主打案例或情境切入，讓讀者覺得這篇是在講自己。",
@@ -627,7 +627,8 @@ async function generateDailyPersonaPost(params: {
       rawText: promptSeed,
       personaPrompt,
       tone,
-      preferredProvider: (settings?.aiProvider?.trim() as "auto" | "gemini" | "claude" | "openai") || "auto"
+      preferredProvider: (settings?.aiProvider?.trim() as "auto" | "gemini" | "claude" | "openai") || "auto",
+      threadsOnly: account.platform === "threads"
     });
 
     providerUsed = result.provider;

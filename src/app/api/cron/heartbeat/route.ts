@@ -12,14 +12,26 @@ async function handle(request: Request) {
 
   try {
     const result = await runOperatingHeartbeat();
+    const persona = result.persona.ok ? result.persona.value : null;
+    const promoted = result.promoted.ok ? result.promoted.value : null;
+    const scheduler = result.scheduler.ok ? result.scheduler.value : null;
+    const seo = result.seo.ok ? result.seo.value : null;
+    const errors = Object.entries(result)
+      .filter(([, v]) => !v.ok)
+      .map(([k, v]) => `${k}:${(v as { error: string }).error}`)
+      .join(" | ");
+
     await logAutomationRuntime({
       actionType: "ops_heartbeat",
       status: "executed",
-      detail:
-        `heartbeat ok | persona ${result.persona.created}/${result.persona.checked}` +
-        ` | promoted ${result.promoted.promoted}/${result.promoted.checked}` +
-        ` | published ${result.scheduler.published}/${result.scheduler.processed}` +
-        ` | seo ${result.seo.handled + result.seo.observed}/${result.seo.checked}`
+      detail: [
+        `heartbeat ok`,
+        persona ? `persona ${persona.created}/${persona.checked}` : `persona err`,
+        promoted ? `promoted ${promoted.promoted}/${promoted.checked}` : `promoted err`,
+        scheduler ? `published ${scheduler.published}/${scheduler.processed}` : `scheduler err`,
+        seo ? `seo ${seo.handled + seo.observed}/${seo.checked}` : `seo err`,
+        errors ? `| errors: ${errors}` : ""
+      ].filter(Boolean).join(" | ")
     });
     return NextResponse.json({ ok: true, result });
   } catch (error) {
