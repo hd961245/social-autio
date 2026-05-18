@@ -144,8 +144,7 @@ export type AiDraftEvent = {
 };
 
 export const aiDraftFunction = inngest.createFunction(
-  { id: "ai-draft-background", retries: 1 },
-  { event: "social-audio/ai.draft.requested" },
+  { id: "ai-draft-background", retries: 1, triggers: [{ event: "social-audio/ai.draft.requested" }] },
   async ({ event, step }) => {
     const { postId, title, rawText, personaPrompt, tone, siteUrl, wordpressTemplate, preferredProvider, brief } =
       event.data as AiDraftEvent["data"];

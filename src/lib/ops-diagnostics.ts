@@ -488,7 +488,7 @@ export async function getOpsDiagnostics(): Promise<OpsDiagnostics> {
       const schedulerHealthy =
         Boolean(latestScheduler) &&
         latestScheduler?.status !== "failed" &&
-        latestScheduler.executedAt.getTime() >= fiveMinutesAgo;
+        (latestScheduler?.executedAt.getTime() ?? 0) >= fiveMinutesAgo;
       const hasThreadsEnv = Boolean(
         process.env.THREADS_APP_ID &&
           process.env.THREADS_APP_SECRET &&

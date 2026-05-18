@@ -12,13 +12,18 @@ export async function POST(request: Request) {
     }
 
     const result = await runOperatingHeartbeat();
+    const persona = result.persona.ok ? result.persona.value : null;
+    const promoted = result.promoted.ok ? result.promoted.value : null;
+    const scheduler = result.scheduler.ok ? result.scheduler.value : null;
     await logAutomationRuntime({
       actionType: "ops_heartbeat",
       status: "executed",
-      detail:
-        `legacy heartbeat ok | persona ${result.persona.created}/${result.persona.checked}` +
-        ` | promoted ${result.promoted.promoted}/${result.promoted.checked}` +
-        ` | published ${result.scheduler.published}/${result.scheduler.processed}`
+      detail: [
+        "legacy heartbeat ok",
+        persona ? `persona ${persona.created}/${persona.checked}` : `persona err`,
+        promoted ? `promoted ${promoted.promoted}/${promoted.checked}` : `promoted err`,
+        scheduler ? `published ${scheduler.published}/${scheduler.processed}` : `scheduler err`
+      ].join(" | ")
     });
     return NextResponse.json({
       ok: true,
