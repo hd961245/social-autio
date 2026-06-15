@@ -15,6 +15,9 @@ import {
   runVoiceIngestion
 } from "@/lib/content-os/workspace";
 import { rewriteContentWithAi } from "@/lib/ai/gateway";
+import { ingestAndGenerateDrafts } from "@/lib/ai/content-engine";
+import { fetchRecentInboxItems } from "@/lib/notion-inbox";
+import { env } from "@/lib/env";
 import { prisma } from "@/lib/prisma";
 
 export const schedulerFunction = inngest.createFunction(
@@ -179,6 +182,66 @@ export const aiDraftFunction = inngest.createFunction(
   }
 );
 
+export const notionInboxPollFunction = inngest.createFunction(
+  { id: "notion-inbox-poll", retries: 1, concurrency: 1, triggers: [cron("*/30 * * * *")] },
+  async ({ step }) => {
+    if (!env.notionApiKey()) {
+      return { skipped: true, reason: "NOTION_API_KEY not configured" };
+    }
+
+    const since = new Date(Date.now() - 35 * 60 * 1000);
+
+    const items = await step.run("fetch-notion-inbox", async () =>
+      fetchRecentInboxItems(since)
+    );
+
+    if (!items.length) return { processed: 0 };
+
+    const existingUrls = await step.run("check-existing-records", async () => {
+      const sourceUrls = items.map((i) => `notion://inbox/${i.pageId}`);
+      const records = await prisma.ingestionRecord.findMany({
+        where: { sourceUrl: { in: sourceUrls } },
+        select: { sourceUrl: true }
+      });
+      return records.map((r) => r.sourceUrl);
+    });
+
+    const existingSet = new Set(existingUrls);
+    const newItems = items.filter((i) => !existingSet.has(`notion://inbox/${i.pageId}`));
+    if (!newItems.length) return { processed: 0, skipped: items.length };
+
+    let processed = 0;
+    for (const item of newItems) {
+      const sourceUrl = `notion://inbox/${item.pageId}`;
+      const rawText   = [item.title, item.bodyText].filter(Boolean).join("\n");
+
+      await step.run(`ingest-${item.pageId}`, async () => {
+        await ingestAndGenerateDrafts({
+          sourceType: item.url ? "url" : "text",
+          sourceUrl:  item.url || undefined,
+          title:      item.title,
+          rawText,
+        });
+
+        await prisma.ingestionRecord.create({
+          data: {
+            userId:    "seed-admin",
+            sourceType: "notion_inbox",
+            sourceUrl,
+            title:     item.title,
+            rawText,
+            status:    "processed",
+          }
+        });
+      });
+
+      processed++;
+    }
+
+    return { processed, skipped: items.length - processed };
+  }
+);
+
 export const inngestFunctions = [
   schedulerFunction,
   metricsFunction,
@@ -194,5 +257,6 @@ export const inngestFunctions = [
   contentTopicScoringFunction,
   contentAntiAiFunction,
   contentLearningFunction,
-  aiDraftFunction
+  aiDraftFunction,
+  notionInboxPollFunction
 ];

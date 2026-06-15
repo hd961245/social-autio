@@ -47,5 +47,6 @@ export const env = {
   gscPrivateKey: () =>
     process.env.GSC_PRIVATE_KEY?.replace(/\\n/g, "\n").trim() ||
     process.env.GA4_PRIVATE_KEY?.replace(/\\n/g, "\n").trim() ||
-    ""
+    "",
+  notionApiKey: () => process.env.NOTION_API_KEY?.trim() || ""
 };
