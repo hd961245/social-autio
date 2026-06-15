@@ -56,7 +56,7 @@ export function WordPressConnectForm() {
           onChange={(event) => setAppPassword(event.target.value)}
           required
         />
-        <div className="lg:col-span-2 flex items-center gap-4">
+        <div className="lg:col-span-2 flex flex-wrap items-center gap-3">
           <button
             type="button"
             disabled={isPending}
@@ -64,6 +64,8 @@ export function WordPressConnectForm() {
             onClick={() =>
               startTransition(async () => {
                 setMessage(null);
+                setStage(null);
+                setHints([]);
                 const response = await fetch("/api/wordpress/diagnose", {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
@@ -81,8 +83,39 @@ export function WordPressConnectForm() {
           <button disabled={isPending} className="rounded-full bg-[var(--accent)] px-4 py-3 text-sm text-white">
             {isPending ? "連接中..." : "連接 WordPress"}
           </button>
-          {message ? <p className="text-sm text-[var(--muted)]">{message}</p> : null}
+          <button
+            type="button"
+            disabled={isPending}
+            className="rounded-full border border-amber-400 px-4 py-3 text-sm text-amber-700"
+            onClick={() =>
+              startTransition(async () => {
+                setMessage(null);
+                setStage(null);
+                setHints([]);
+                const response = await fetch("/api/wordpress/connect", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ siteUrl, username, appPassword, force: true })
+                });
+                const result = await response.json();
+                setStage(response.ok ? "saved" : result.stage ?? null);
+                setHints(response.ok ? [] : result.hints ?? []);
+                setMessage(
+                  response.ok
+                    ? "WordPress 已強制儲存，請到 Compose 確認是否可正常讀取文章。"
+                    : result.message ?? "強制儲存失敗"
+                );
+              })
+            }
+          >
+            {isPending ? "儲存中..." : "強制儲存（跳過網路測試）"}
+          </button>
         </div>
+        {message ? (
+          <p className={`lg:col-span-2 text-sm ${stage === "saved" ? "text-emerald-600" : "text-[var(--muted)]"}`}>
+            {message}
+          </p>
+        ) : null}
         {stage ? (
           <div className="lg:col-span-2 rounded-2xl border border-[var(--border)] bg-white/75 p-4 text-sm text-[var(--muted)]">
             <p className="font-medium text-[var(--foreground)]">目前卡點：{stage === "site" ? "站台連線" : stage === "auth" ? "登入驗證" : "已通過"}</p>
