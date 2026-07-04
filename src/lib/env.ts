@@ -48,5 +48,16 @@ export const env = {
     process.env.GSC_PRIVATE_KEY?.replace(/\\n/g, "\n").trim() ||
     process.env.GA4_PRIVATE_KEY?.replace(/\\n/g, "\n").trim() ||
     "",
-  notionApiKey: () => process.env.NOTION_API_KEY?.trim() || ""
+  notionApiKey: () => process.env.NOTION_API_KEY?.trim() || "",
+  instagramAppId: () => required("INSTAGRAM_APP_ID"),
+  instagramAppSecret: () => required("INSTAGRAM_APP_SECRET"),
+  instagramRedirectUri: () => {
+    const explicit = process.env.INSTAGRAM_REDIRECT_URI?.trim();
+    if (explicit) return explicit;
+    const base =
+      process.env.APP_BASE_URL?.trim() ||
+      process.env.INNGEST_SERVE_ORIGIN?.trim() ||
+      "http://localhost:3000";
+    return `${base}/api/auth/instagram/callback`;
+  }
 };
